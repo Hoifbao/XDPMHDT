@@ -1,11 +1,17 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Page-1" id="j18L_sRBwEaSoZeyb9i5">
-    <mxGraphModel dx="3225" dy="2193" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1523" dy="708" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="QNRLClnOIP1NIBTum6wF-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="1600" width="270" x="20" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="QNRLClnOIP1NIBTum6wF-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="1600" width="270" x="290" y="70" as="geometry" />
+        </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 23px;&quot;&gt;&lt;b&gt;Admin&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="270" x="19" y="10" as="geometry" />
+          <mxGeometry height="60" width="281" x="19" y="10" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 23px;&quot;&gt;&lt;b&gt;Web Admin&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="270" x="290" y="10" as="geometry" />
@@ -83,25 +89,25 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-36" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Quản lý địa điểm di tích&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="310" y="580" as="geometry" />
+          <mxGeometry height="60" width="115" x="308" y="580" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-37" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="580" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="580" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Quản lý địa điểm di tích&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="310" y="662" as="geometry" />
+          <mxGeometry height="60" width="115" x="308" y="662" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-39" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="662" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="662" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-40" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="744" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="744" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="826" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="826" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="908" as="geometry" />
+          <mxGeometry height="60" width="115" x="445" y="908" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-43" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Quản lý ảnh, video, audio&lt;/span&gt;" vertex="1">
           <mxGeometry height="60" width="115" x="310" y="744" as="geometry" />
@@ -140,7 +146,7 @@
           <mxGeometry height="90" width="132.5" x="655" y="985" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-64" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Thông báo lỗi xác thực và quay lại chỉnh sửa&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="185" x="405" y="1000" as="geometry" />
+          <mxGeometry height="60" width="142.5" x="385" y="1000" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-65" edge="1" parent="1" source="SZ1xHenuOdo3IgYoee_T-63" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="SZ1xHenuOdo3IgYoee_T-64" value="">
           <mxGeometry relative="1" as="geometry">
@@ -186,13 +192,13 @@
           <mxGeometry height="60" width="205" x="607.5" y="1357" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-76" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="1274" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="1274" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-77" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Gửi yêu cầu/ dữ liệu HTTPS&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="1191" as="geometry" />
+          <mxGeometry height="60" width="115" x="440" y="1191" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-78" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Chọn xuất báo cáo PDF/Excel&lt;/span&gt;" vertex="1">
-          <mxGeometry height="60" width="115" x="455" y="1357" as="geometry" />
+          <mxGeometry height="60" width="115" x="445" y="1357" as="geometry" />
         </mxCell>
         <mxCell id="SZ1xHenuOdo3IgYoee_T-79" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Quản lý vị trí IBeacon trên bản đồ&lt;/span&gt;" vertex="1">
           <mxGeometry height="60" width="115" x="310" y="1191" as="geometry" />
@@ -430,6 +436,9 @@
             <mxPoint x="425" y="573" as="sourcePoint" />
             <mxPoint x="310" y="1357" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="QNRLClnOIP1NIBTum6wF-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="1600" width="270" x="560" y="70" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
