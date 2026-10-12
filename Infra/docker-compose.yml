@@ -1,0 +1,23 @@
+﻿services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: smart_heritage_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: smart_heritage_db
+      MYSQL_ROOT_PASSWORD: rootpassword123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+
+  redis-cache:
+    image: redis:7.2-alpine
+    container_name: smart_heritage_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql_data:
