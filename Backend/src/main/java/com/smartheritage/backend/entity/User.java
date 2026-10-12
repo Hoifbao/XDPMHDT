@@ -1,4 +1,4 @@
-﻿package com.smartheritage.backend.entity;
+package com.smartheritage.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
