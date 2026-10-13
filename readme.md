@@ -163,3 +163,17 @@ Hệ thống bao gồm 6 module cốt lõi[cite: 1]:
 
 *(Đề xuất bổ sung tính năng mở rộng nếu có)*
 * Định hướng phát triển tích hợp công nghệ Thực tế ảo tăng cường (AR) và thuật toán AI gợi ý lộ trình tham quan thông minh trong các phiên bản mở rộng tiếp theo.
+
+---
+
+## 4. Cấu Trúc Repository / Repository Structure
+
+- `Backend/`: Java/Maven REST API; mã nguồn hiện tại dùng package `com.smartheritage.backend`.
+- `WebAdmin/`: giao diện quản trị prototype (`admin.html`, `theme.css`); tài liệu và vị trí dự kiến cho API, pages, components nằm trong thư mục này.
+- `Interface/`: Flutter app dành cho khách tham quan, gồm `lib/`, `android/`, `test/`, `web/` và các tệp cấu hình Flutter.
+- `Infra/`: Docker Compose và SQL khởi tạo cơ sở dữ liệu.
+- `Diagram/`: sơ đồ kiến trúc, cơ sở dữ liệu và luồng nghiệp vụ.
+- `Docs/`: tài liệu requirements, API, database, testing, deployment và user manuals.
+- `.env.example`: mẫu cấu hình môi trường; tạo `.env` cục bộ và thay các giá trị mẫu trước khi chạy Backend.
+
+Các thư mục `core`, `features`, `shared`, `api`, `pages`, `components` và một số package Backend hiện là khung tổ chức mã nguồn; triển khai chức năng sẽ được bổ sung tại đó.
