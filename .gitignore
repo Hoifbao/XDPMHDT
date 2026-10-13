@@ -1,0 +1,19 @@
+# Flutter and Dart build output
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/build/
+**/coverage/
+
+# Java and Maven build output
+**/target/
+
+# Local environment and IDE files
+.env
+**/.env
+!.env.example
+**/.idea/
+**/*.iml
+
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
