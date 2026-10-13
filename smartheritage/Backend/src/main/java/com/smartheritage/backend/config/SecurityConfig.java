@@ -1,4 +1,4 @@
-﻿package com.smartheritage.backend.config;
+package com.smartheritage.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
