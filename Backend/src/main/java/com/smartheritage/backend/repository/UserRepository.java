@@ -1,4 +1,4 @@
-﻿package com.smartheritage.backend.repository;
+package com.smartheritage.backend.repository;
 
 import com.smartheritage.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

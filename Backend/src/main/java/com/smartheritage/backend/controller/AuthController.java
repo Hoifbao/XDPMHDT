@@ -1,4 +1,4 @@
-﻿package com.smartheritage.backend.controller;
+package com.smartheritage.backend.controller;
 
 import com.smartheritage.backend.entity.User;
 import com.smartheritage.backend.repository.UserRepository;
