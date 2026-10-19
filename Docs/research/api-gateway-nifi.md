@@ -80,7 +80,7 @@ Danh sách processor: <https://nifi.apache.org/components/>
 
 ### 2.3 Dùng NiFi để gom dữ liệu thống kê ra sao (đề xuất)
 
-Dữ liệu tương tác của hệ thống nằm trong MySQL, ở các bảng `visits` (`detected_at`, `duration_seconds`) và `feedbacks` (`rating`, `status`, `created_at`) theo `Infra/init_db.sql` hiện tại. Một luồng NiFi có thể làm như sau:
+Dữ liệu tương tác của hệ thống nằm trong MySQL, ở các bảng `visits` (`detected_at`, `duration_seconds`) và `feedbacks` (`rating`, `status`, `created_at`) theo bản `Infra/init_db.sql` đầy đủ ở nhánh `Feedback_Rating` (trên `main` file này đang rỗng). Một luồng NiFi có thể làm như sau:
 
 ```
 QueryDatabaseTable (đọc dòng mới của visits / feedbacks)
