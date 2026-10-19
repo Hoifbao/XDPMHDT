@@ -1,4 +1,17 @@
 /* Chi bo sung cho trang dashboard, phan con lai dung lai theme.css */
+.page-head {
+    margin-bottom: 16px
+}
+
+.page-head h1 {
+    font-size: 40px;
+    margin: 5px 0
+}
+
+.section {
+    margin-top: 18px
+}
+
 .toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -29,7 +42,7 @@
     margin-left: auto
 }
 
-.toolbar .btn:disabled {
+.toolbar :disabled,.lang button:disabled {
     opacity: .6;
     cursor: not-allowed
 }

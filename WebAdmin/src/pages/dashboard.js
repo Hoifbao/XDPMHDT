@@ -16,7 +16,7 @@ const DATA = {
         { label: 'Tổng khách', value: 1248 },
         // COUNT(*) bang visits
         { label: 'Lượt tương tác', value: 3560 },
-        // AVG(feedbacks.rating), chi tinh status = 'APPROVED'
+        // AVG(feedbacks.rating); tinh tat ca hay chi status = 'APPROVED': can thong nhat khi lam API
         { label: 'Điểm đánh giá TB', value: 4.2 },
         // COUNT(*) bang feedbacks
         { label: 'Số phản hồi', value: 312 },
@@ -86,7 +86,8 @@ function renderFeedbacks() {
         tr.append(
             el('td', f.createdAt),
             el('td', f.artifact),
-            el('td', '★'.repeat(f.rating) + '☆'.repeat(5 - f.rating)),
+            // Kem "x/5" de trinh doc man hinh doc duoc diem, khong chi doc ky tu sao
+            el('td', '★'.repeat(f.rating) + '☆'.repeat(5 - f.rating) + ' ' + f.rating + '/5'),
             el('td', f.comment ?? '—', f.comment ? '' : 'muted')
         );
         const status = el('td');
