@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Heritage - Dashboard thống kê</title>
+    <link rel="stylesheet" href="../../theme.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="mark">SH</div>
+                <span>Smart Heritage</span>
+            </div>
+            <div class="nav">
+                <button class="active" type="button">Thống kê</button>
+                <!-- Tuan 2: chi la giao dien, chua doi ngon ngu that -->
+                <div class="lang">
+                    <button class="sel" type="button">VI</button>
+                    <button type="button">EN</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-title" style="margin-bottom:16px">
+            <div>
+                <div class="eyebrow">Phân tích &amp; báo cáo</div>
+                <h1 style="font-size:40px;margin:5px 0">Dashboard thống kê</h1>
+            </div>
+            <span class="pill">Dữ liệu mẫu</span>
+        </div>
+
+        <!-- Bo loc va nut xuat: chi giao dien o tuan 2 -->
+        <div class="card toolbar">
+            <label>Di tích
+                <select id="site-filter"></select>
+            </label>
+            <label>Từ ngày <input type="date" value="2026-10-05"></label>
+            <label>Đến ngày <input type="date" value="2026-10-11"></label>
+            <div class="toolbar-actions">
+                <button class="btn alt" type="button" disabled title="Sẽ làm ở tuần sau">Xuất PDF</button>
+                <button class="btn gold" type="button" disabled title="Sẽ làm ở tuần sau">Xuất Excel</button>
+            </div>
+            <span class="muted note">Bộ lọc và xuất báo cáo sẽ hoạt động ở tuần sau.</span>
+        </div>
+
+        <div class="dashboard-grid kpi-grid" id="kpis"></div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="panel-title">
+                    <h2>Hiện vật được tương tác nhiều nhất</h2>
+                    <span class="pill">Lượt ghé</span>
+                </div>
+                <div class="chart-box"><canvas id="chart-artifacts" aria-label="Biểu đồ cột lượt tương tác theo hiện vật" role="img"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="panel-title">
+                    <h2>Lượt tương tác theo ngày</h2>
+                    <span class="pill">7 ngày</span>
+                </div>
+                <div class="chart-box"><canvas id="chart-daily" aria-label="Biểu đồ đường lượt tương tác theo ngày" role="img"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+            <div class="panel-title">
+                <h2>Phản hồi gần đây</h2>
+                <span class="pill" id="feedback-count"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr><th>Ngày</th><th>Hiện vật</th><th>Điểm</th><th>Bình luận</th><th>Trạng thái</th></tr>
+                    </thead>
+                    <tbody id="feedback-rows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+            crossorigin="anonymous"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
