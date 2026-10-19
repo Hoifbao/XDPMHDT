@@ -7,7 +7,7 @@ SET NAMES utf8mb4;
 -- 1. CAC BANG CHA (khong co khoa ngoai)
 -- ---------------------------------------------------------------------
 
--- ERD: Users. Cot khop voi Entity User.java hien co.
+-- ERD: Users.
 CREATE TABLE IF NOT EXISTS users (
     id                 BIGINT       NOT NULL AUTO_INCREMENT,
     username           VARCHAR(50)  NOT NULL,
@@ -136,8 +136,7 @@ CREATE TABLE IF NOT EXISTS likes (
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ERD: quan he Reviews (Users N-N Artifacts), thuoc tinh Rating, Comment, Status, Created_At.
--- Task W2 yeu cau bang Feedbacks => Reviews duoc hien thuc thanh bang lien ket `feedbacks`.
+-- ERD: quan he Feedbacks (Users N-N Artifacts), thuoc tinh Rating, Comment, Status, Created_At.
 -- Khong dat UNIQUE (user_id, artifact_id): ERD the hien (0,n) hai phia.
 -- Status: 'PENDING' | 'APPROVED' | 'REJECTED' (gia tri do trien khai chon, ERD khong quy dinh).
 CREATE TABLE IF NOT EXISTS feedbacks (
