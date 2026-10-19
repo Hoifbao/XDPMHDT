@@ -1,0 +1,84 @@
+/* Chi bo sung cho trang dashboard, phan con lai dung lai theme.css */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding: 16px 22px
+}
+
+.toolbar label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.toolbar select,.toolbar input {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: white;
+    color: var(--ink)
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto
+}
+
+.toolbar .btn:disabled {
+    opacity: .6;
+    cursor: not-allowed
+}
+
+.toolbar .note {
+    flex-basis: 100%;
+    font-size: 12px
+}
+
+.kpi-grid {
+    grid-template-columns: repeat(5,1fr)
+}
+
+/* Chart.js can khung co chieu cao co dinh khi responsive */
+.chart-box {
+    position: relative;
+    height: 280px;
+    margin-top: 14px
+}
+
+.table-wrap {
+    overflow-x: auto
+}
+
+.status {
+    font-size: 12px;
+    font-weight: 800
+}
+
+.status.APPROVED { color: var(--sage) }
+.status.PENDING { color: var(--gold) }
+.status.REJECTED { color: var(--danger) }
+
+@media(max-width: 850px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2,1fr)
+    }
+
+    .toolbar-actions {
+        margin-left: 0
+    }
+}
+
+@media(max-width: 520px) {
+    .kpi-grid {
+        grid-template-columns: 1fr
+    }
+
+    .chart-box {
+        height: 230px
+    }
+}
