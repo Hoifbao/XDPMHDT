@@ -162,10 +162,10 @@ CREATE TABLE IF NOT EXISTS feedbacks (
 -- =====================================================================
 
 INSERT INTO users (id, username, email, password_hash, full_name, preferred_language, role, created_at) VALUES
-    (1, 'admin',        'admin@example.com',       '$2b$10$abcdefghijklmnopqrstuupYWJKQ4BNERAHkseHR6HFLBtBzDzsjO', 'Quản trị viên mẫu', 'vi', 'ADMIN',   '2026-10-01 08:00:00'),
-    (2, 'visitor_an',   'an.nguyen@example.com',   '$2b$10$abcdefghijklmnopqrstuupYWJKQ4BNERAHkseHR6HFLBtBzDzsjO', 'Nguyễn Văn An',     'vi', 'VISITOR', '2026-10-01 08:05:00'),
-    (3, 'visitor_mai',  'mai.tran@example.com',    '$2b$10$abcdefghijklmnopqrstuupYWJKQ4BNERAHkseHR6HFLBtBzDzsjO', 'Trần Thị Mai',      'vi', 'VISITOR', '2026-10-01 08:10:00'),
-    (4, 'visitor_john', 'john.smith@example.com',  '$2b$10$abcdefghijklmnopqrstuupYWJKQ4BNERAHkseHR6HFLBtBzDzsjO', 'John Smith',        'en', 'VISITOR', '2026-10-01 08:15:00');
+    (1, 'admin',        'admin@example.com',       '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'Quản trị viên mẫu', 'vi', 'ADMIN',   '2026-10-01 08:00:00'),
+    (2, 'visitor_an',   'an.nguyen@example.com',   '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'Nguyễn Văn An',     'vi', 'VISITOR', '2026-10-01 08:05:00'),
+    (3, 'visitor_mai',  'mai.tran@example.com',    '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'Trần Thị Mai',      'vi', 'VISITOR', '2026-10-01 08:10:00'),
+    (4, 'visitor_john', 'john.smith@example.com',  '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'John Smith',        'en', 'VISITOR', '2026-10-01 08:15:00');
 
 INSERT INTO heritage_sites (id, name, location, map_image_url) VALUES
     (1, 'Văn Miếu - Quốc Tử Giám', '58 Quốc Tử Giám, Đống Đa, Hà Nội', 'https://example.com/maps/van-mieu.png'),
