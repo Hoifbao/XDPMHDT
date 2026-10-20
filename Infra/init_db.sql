@@ -22,12 +22,14 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY uq_users_email (email)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ERD: Heritage_Sites (Site_Id, Name, Location, Map_Image_Url).
+-- ERD: Heritage_Sites (Site_Id, Name, Location, Map_Image_Url, Latitude, Longitude).
 CREATE TABLE IF NOT EXISTS heritage_sites (
-    id            BIGINT       NOT NULL AUTO_INCREMENT,
-    name          VARCHAR(150) NOT NULL,
-    location      VARCHAR(255) NULL,
-    map_image_url VARCHAR(500) NULL,
+    id            BIGINT         NOT NULL AUTO_INCREMENT,
+    name          VARCHAR(150)   NOT NULL,
+    location      VARCHAR(255)   NULL,
+    map_image_url VARCHAR(500)   NULL,
+    latitude      DECIMAL(10, 7) NULL COMMENT 'Vĩ độ (WGS-84)',
+    longitude     DECIMAL(10, 7) NULL COMMENT 'Kinh độ (WGS-84)',
     PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
@@ -167,9 +169,9 @@ INSERT INTO users (id, username, email, password_hash, full_name, preferred_lang
     (3, 'visitor_mai',  'mai.tran@example.com',    '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'Trần Thị Mai',      'vi', 'VISITOR', '2026-10-01 08:10:00'),
     (4, 'visitor_john', 'john.smith@example.com',  '$2a$10$49XXXfZrrbAlJRbVGs6Gf.f3du6Nsa8kMEgkHd2gOGk8texi.CtCO', 'John Smith',        'en', 'VISITOR', '2026-10-01 08:15:00');
 
-INSERT INTO heritage_sites (id, name, location, map_image_url) VALUES
-    (1, 'Văn Miếu - Quốc Tử Giám', '58 Quốc Tử Giám, Đống Đa, Hà Nội', 'https://example.com/maps/van-mieu.png'),
-    (2, 'Hoàng thành Thăng Long',  '19C Hoàng Diệu, Ba Đình, Hà Nội',  'https://example.com/maps/hoang-thanh.png');
+INSERT INTO heritage_sites (id, name, location, map_image_url, latitude, longitude) VALUES
+    (1, 'Văn Miếu - Quốc Tử Giám', '58 Quốc Tử Giám, Đống Đa, Hà Nội', 'https://example.com/maps/van-mieu.png',    21.0277644, 105.8354028),
+    (2, 'Hoàng thành Thăng Long',  '19C Hoàng Diệu, Ba Đình, Hà Nội',  'https://example.com/maps/hoang-thanh.png', 21.0354430, 105.8349380);
 
 INSERT INTO artifacts (id, site_id, status, category, code) VALUES
     (1, 1, 'ACTIVE', 'ARCHITECTURE', 'KVC-01'),

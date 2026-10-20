@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Di tích - Smart Heritage</title>
+    <link rel="stylesheet" href="../../theme.css">
+    <style>
+        .hs-coord {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .hs-name {
+            font-weight: 700;
+        }
+        .hs-location {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        .hs-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn.hs-sm {
+            padding: 7px 11px;
+            border-radius: 11px;
+            font-size: 13px;
+        }
+        .btn.hs-danger {
+            background: #f4e1e1;
+            color: #9a4545;
+        }
+        .btn.hs-edit {
+            background: var(--sage2);
+            color: var(--sage);
+        }
+        .hs-empty {
+            padding: 28px 8px;
+            text-align: center;
+        }
+        .hs-table-wrap {
+            overflow-x: auto;
+        }
+        .hs-head {
+            margin-bottom: 16px;
+        }
+        .hs-title {
+            font-size: clamp(28px, 5vw, 40px);
+            margin: 5px 0;
+        }
+        .hs-note {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border: 1px dashed var(--gold);
+            border-radius: 14px;
+            background: #f2e8d2;
+            color: #795b26;
+            font-size: 14px;
+        }
+        .map-preview {
+            width: 100%;
+            min-height: 200px;
+            border-radius: 16px;
+            background: radial-gradient(circle at 30% 40%, #c9ddca 0 4%, transparent 5%),
+                        radial-gradient(circle at 70% 60%, #d6c79f 0 5%, transparent 6%),
+                        linear-gradient(135deg, #e7eee4, #dfe8dc);
+            position: relative;
+            overflow: hidden;
+            margin-top: 14px;
+        }
+        .map-preview::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(35deg, transparent 0 30px, rgba(255,255,255,.45) 31px 33px);
+        }
+        .map-pins {
+            position: absolute;
+            inset: 0;
+        }
+        .map-center-label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* Modal */
+        .hs-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(23,33,27,.4);
+            z-index: 20;
+            place-items: center;
+            padding: 20px;
+        }
+        .hs-modal.open {
+            display: grid;
+        }
+        .hs-modal-card {
+            background: var(--paper);
+            border-radius: 24px;
+            padding: 28px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 35px rgba(23,33,27,.1);
+        }
+        .hs-modal-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0 0 20px;
+        }
+        .hs-form-group {
+            margin-bottom: 16px;
+        }
+        .hs-form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--sage);
+            margin-bottom: 6px;
+        }
+        .hs-form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            font-size: 14px;
+            background: var(--cream);
+            color: var(--ink);
+            outline: none;
+            transition: border-color .15s;
+        }
+        .hs-form-group input:focus {
+            border-color: var(--sage);
+        }
+        .hs-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .hs-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+            justify-content: flex-end;
+        }
+        .btn.hs-cancel {
+            background: var(--cream);
+            color: var(--muted);
+            border: 1px solid var(--line);
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="brand">
+                <div class="mark">SH</div>
+                <span>Smart Heritage</span>
+            </div>
+            <div class="nav">
+                <a href="../../admin.html"><button type="button">Tổng quan</button></a>
+                <button type="button" class="active">Di tích</button>
+                <a href="./feedback.html"><button type="button">Phản hồi</button></a>
+            </div>
+        </div>
+
+        <!-- Page header -->
+        <div class="panel-title hs-head">
+            <div>
+                <div class="eyebrow">Quản lý</div>
+                <h1 class="hs-title">Danh sách Di tích</h1>
+            </div>
+            <button type="button" class="btn" onclick="openModal('create')">+ Thêm di tích</button>
+        </div>
+
+        <!-- Note -->
+        <div class="hs-note" role="note">
+            Dữ liệu mẫu từ <b>Infra/init_db.sql</b>. Nút Sửa/Xóa chỉ thay đổi trong trình duyệt,
+            chưa kết nối API.
+        </div>
+
+        <!-- Stats -->
+        <div class="dashboard-grid" style="margin-bottom: 18px;">
+            <div class="card stat">
+                <strong id="stat-total">0</strong>
+                <span class="muted">Tổng di tích</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-coords">0</strong>
+                <span class="muted">Có tọa độ</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-no-coords">0</strong>
+                <span class="muted">Chưa có tọa độ</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-artifacts">5</strong>
+                <span class="muted">Tổng hiện vật</span>
+            </div>
+        </div>
+
+        <!-- Bản đồ tổng quan (placeholder) -->
+        <div class="card" style="margin-bottom: 18px;">
+            <div class="panel-title">
+                <div>
+                    <div class="eyebrow">Bản đồ</div>
+                    <h2 style="margin: 4px 0;">Vị trí Di tích</h2>
+                </div>
+                <span class="pill">Placeholder</span>
+            </div>
+            <div class="map-preview">
+                <div class="map-pins" id="map-pins"></div>
+                <div class="map-center-label">
+                    <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" fill="var(--sage)"/>
+                    </svg>
+                    <span>Tích hợp bản đồ thật khi có API</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách di tích -->
+        <div class="card">
+            <div class="panel-title" style="margin-bottom: 14px;">
+                <h2>Danh sách</h2>
+                <div class="nav" id="filter-bar">
+                    <button type="button" class="active" data-filter="ALL">Tất cả</button>
+                    <button type="button" data-filter="HAS_COORD">Có tọa độ</button>
+                    <button type="button" data-filter="NO_COORD">Chưa có tọa độ</button>
+                </div>
+            </div>
+
+            <div class="hs-table-wrap">
+                <table class="table" id="sites-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên di tích</th>
+                            <th>Địa chỉ</th>
+                            <th>Tọa độ</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sites-body"></tbody>
+                </table>
+            </div>
+            <div class="hs-empty muted" id="sites-empty" hidden>
+                Không có di tích nào.
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm / Sửa -->
+    <div class="hs-modal" id="site-modal" role="dialog" aria-modal="true">
+        <div class="hs-modal-card">
+            <h2 class="hs-modal-title" id="modal-title">Thêm di tích</h2>
+            <form id="site-form" onsubmit="handleSubmit(event)">
+                <input type="hidden" id="edit-id">
+                <div class="hs-form-group">
+                    <label for="f-name">Tên di tích *</label>
+                    <input type="text" id="f-name" placeholder="VD: Văn Miếu - Quốc Tử Giám" required>
+                </div>
+                <div class="hs-form-group">
+                    <label for="f-location">Địa chỉ</label>
+                    <input type="text" id="f-location" placeholder="VD: 58 Quốc Tử Giám, Đống Đa, Hà Nội">
+                </div>
+                <div class="hs-form-group">
+                    <label for="f-map-url">URL ảnh bản đồ</label>
+                    <input type="text" id="f-map-url" placeholder="https://...">
+                </div>
+                <div class="hs-form-row">
+                    <div class="hs-form-group">
+                        <label for="f-lat">Vĩ độ (Latitude)</label>
+                        <input type="number" id="f-lat" step="0.0000001" placeholder="21.0277644">
+                    </div>
+                    <div class="hs-form-group">
+                        <label for="f-lng">Kinh độ (Longitude)</label>
+                        <input type="number" id="f-lng" step="0.0000001" placeholder="105.8354028">
+                    </div>
+                </div>
+                <div class="hs-modal-actions">
+                    <button type="button" class="btn hs-cancel hs-sm" onclick="closeModal()">Hủy</button>
+                    <button type="submit" class="btn hs-sm" id="modal-submit-btn">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./heritage-sites.js"></script>
+</body>
+</html>
