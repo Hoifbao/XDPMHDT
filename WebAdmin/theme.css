@@ -360,3 +360,91 @@ h1 {
         flex-direction: column
     }
 }
+
+
+
+/** ===== Trang quản lý phản hồi ===== */
+
+.fb-head {
+    margin-bottom: 16px
+}
+
+.fb-title {
+    font-size: clamp(28px,5vw,40px);
+    margin: 5px 0
+}
+
+.fb-note {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px dashed var(--gold);
+    border-radius: 14px;
+    background: #f2e8d2;
+    color: #795b26;
+    font-size: 14px
+}
+
+.fb-section {
+    margin-top: 18px
+}
+
+.fb-list-head {
+    flex-wrap: wrap;
+    margin-bottom: 12px
+}
+
+.fb-table-wrap {
+    overflow-x: auto
+}
+
+.fb-comment {
+    min-width: 220px
+}
+
+.fb-nowrap {
+    white-space: nowrap
+}
+
+.fb-empty {
+    padding: 28px 8px;
+    text-align: center
+}
+
+.fb-stars {
+    letter-spacing: 2px
+}
+
+.fb-star-on {
+    color: var(--gold)
+}
+
+.fb-star-off {
+    color: var(--line)
+}
+
+.pill.fb-pending {
+    background: #f2e8d2;
+    color: #795b26
+}
+
+.pill.fb-rejected {
+    background: #f4e1e1;
+    color: #9a4545
+}
+
+.fb-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap
+}
+
+.btn.fb-sm {
+    padding: 7px 11px;
+    border-radius: 11px;
+    font-size: 13px
+}
+
+.btn.fb-danger {
+    background: #f4e1e1;
+    color: #9a4545
+}

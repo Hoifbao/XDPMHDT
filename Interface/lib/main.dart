@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'features/feedback/feedback_screen.dart';
 
 void main() {
   runApp(const SmartHeritageApp());
@@ -55,7 +56,7 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
-  void openArtifact(Map<String, dynamic> artifact) {
+    void openArtifact(Map<String, dynamic> artifact) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -89,6 +90,24 @@ class _HomePageState extends State<HomePage> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FeedbackScreen(
+                          artifactName: artifact['name'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Đánh giá hiện vật'),
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
