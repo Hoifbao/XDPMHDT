@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý phản hồi - Smart Heritage</title>
+    <link rel="stylesheet" href="../../theme.css">
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="mark">SH</div>
+                <span>Smart Heritage</span>
+            </div>
+            <span class="pill">Dữ liệu mẫu</span>
+        </div>
+
+        <div class="panel-title fb-head">
+            <div>
+                <div class="eyebrow">Kiểm duyệt</div>
+                <h1 class="fb-title">Quản lý phản hồi</h1>
+                <!-- <p class="muted">Xem, duyệt hoặc từ chối đánh giá và bình luận của du khách về hiện vật.</p> -->
+            </div>
+        </div>
+
+        <!-- <div class="fb-note" role="note">
+            Đây là dữ liệu mẫu minh họa, lấy theo các bản ghi trong <b>Infra/init_db.sql</b>.
+            Nút Duyệt/Từ chối chỉ đổi trạng thái trong trình duyệt, tải lại trang sẽ trở về ban đầu
+            và chưa lưu vào Backend hay Database.
+        </div> -->
+
+        <div class="dashboard-grid">
+            <div class="card stat">
+                <strong id="stat-total">0</strong>
+                <span class="muted">Tổng phản hồi</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-pending">0</strong>
+                <span class="muted">Chờ duyệt</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-approved">0</strong>
+                <span class="muted">Đã duyệt</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-average">0.0</strong>
+                <span class="muted">Điểm TB (tất cả phản hồi)</span>
+            </div>
+        </div>
+
+        <div class="card fb-section">
+            <div class="panel-title fb-list-head">
+                <h2>Danh sách phản hồi</h2>
+                <div class="nav" id="filter-bar">
+                    <button type="button" class="active" data-filter="ALL" aria-pressed="true">Tất cả</button>
+                    <button type="button" data-filter="PENDING" aria-pressed="false">Chờ duyệt</button>
+                    <button type="button" data-filter="APPROVED" aria-pressed="false">Đã duyệt</button>
+                    <button type="button" data-filter="REJECTED" aria-pressed="false">Từ chối</button>
+                </div>
+            </div>
+
+            <div class="fb-table-wrap">
+                <table class="table" id="feedback-table">
+                    <thead>
+                        <tr>
+                            <th>Người dùng</th>
+                            <th>Hiện vật</th>
+                            <th>Số sao</th>
+                            <th>Nội dung</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedback-body"></tbody>
+                </table>
+            </div>
+
+            <div class="fb-empty muted" id="feedback-empty" hidden>
+                Không có phản hồi nào ở trạng thái này.
+            </div>
+        </div>
+    </div>
+
+    <script src="./feedback.js"></script>
+</body>
+</html>
