@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Heritage</title>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body></body>
+<body>
+    <div id="app">
+        <div class="shell">
+            <div class="topbar">
+                <div class="brand">
+                    <div class="mark">SH</div>
+                    <span>Smart Heritage</span>
+                </div>
+                <div class="nav">
+                    <button class="active" onclick="mode='admin';render()">Quản trị</button>
+                    <div class="lang">
+                        <button class="sel" onclick="setLang('vi')">VI</button>
+                        <button class="" onclick="setLang('en')">EN</button>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-title" style="margin-bottom:16px">
+                <div>
+                    <div class="eyebrow">Phân tích</div>
+                    <h1 style="font-size:40px;margin:5px 0">Bảng quản trị</h1>
+                </div>
+                <span class="pill">Admin prototype</span>
+            </div>
+            <div class="dashboard-grid">
+                <div class="card stat">
+                    <strong>1</strong>
+                    <span class="muted">Khách</span>
+                </div>
+                <div class="card stat">
+                    <strong>2</strong>
+                    <span class="muted">Lượt tương tác</span>
+                </div>
+                <div class="card stat">
+                    <strong>4.0</strong>
+                    <span class="muted">Điểm TB</span>
+                </div>
+                <div class="card stat">
+                    <strong>1</strong>
+                    <span class="muted">Feedback</span>
+                </div>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <div class="panel-title">
+                        <h2>Tương tác nhiều nhất</h2>
+                        <span class="pill">Live</span>
+                    </div>
+                    <div style="margin-top:17px">
+                        <div style="display:flex;justify-content:space-between">
+                            <span>Khue Van Cac</span>
+                            <b>2</b>
+                        </div>
+                        <div class="bar" style="margin-top:7px">
+                            <i style="width:44%"></i>
+                        </div>
+                    </div>
+                    <div style="margin-top:17px">
+                        <div style="display:flex;justify-content:space-between">
+                            <span>Doctors’ Stelae</span>
+                            <b>0</b>
+                        </div>
+                        <div class="bar" style="margin-top:7px">
+                            <i style="width:4%"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
