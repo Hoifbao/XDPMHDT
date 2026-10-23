@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm hiện vật - Smart Heritage</title>
+    <link rel="stylesheet" href="./artifacts.css">
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <a class="brand" href="../../admin.html" aria-label="Smart Heritage - Trang quản trị">
+                <span class="mark">SH</span>
+                <span>Smart Heritage</span>
+            </a>
+            <span class="pill">Giao diện mẫu</span>
+        </header>
+
+        <div class="page-heading">
+            <div>
+                <p class="eyebrow">Quản lý di sản</p>
+                <h1>Thêm hiện vật</h1>
+                <p class="muted">Nhập thông tin hiện vật, nội dung thuyết minh và tài nguyên đa phương tiện.</p>
+            </div>
+            <a class="button button-secondary" href="../../admin.html">Quay lại</a>
+        </div>
+
+        <form id="artifact-form">
+            <section class="card form-section" aria-labelledby="artifact-info-heading">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Thông tin chung</p>
+                        <h2 id="artifact-info-heading">Thông tin hiện vật</h2>
+                    </div>
+                    <span class="required-note">* Thông tin bắt buộc</span>
+                </div>
+
+                <div class="form-grid">
+                    <label class="field field-wide">
+                        <span>Địa điểm di tích <span class="required">*</span></span>
+                        <select name="location_id" required>
+                            <option value="">Chọn địa điểm</option>
+                            <option value="1">Văn Miếu - Quốc Tử Giám</option>
+                            <option value="2">Bảo tàng Lịch sử Quốc gia</option>
+                            <option value="3">Hoàng thành Thăng Long</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span>Tên hiện vật <span class="required">*</span></span>
+                        <input name="name" type="text" maxlength="200" placeholder="Ví dụ: Trống đồng Đông Sơn" required>
+                    </label>
+                    <label class="field">
+                        <span>Mã hiện vật</span>
+                        <input name="artifact_code" type="text" maxlength="50" placeholder="Ví dụ: ART-001">
+                    </label>
+
+                    <label class="field field-wide">
+                        <span>Mô tả</span>
+                        <textarea name="description" rows="4" placeholder="Giới thiệu khái quát về hiện vật"></textarea>
+                    </label>
+
+                    <label class="field field-wide">
+                        <span>URL ảnh đại diện</span>
+                        <input name="thumbnail_url" type="url" maxlength="1000" placeholder="https://example.com/image.jpg">
+                    </label>
+                    <label class="field">
+                        <span>Niên đại / thời kỳ</span>
+                        <input name="period" type="text" maxlength="100" placeholder="Ví dụ: Thế kỷ VII - I TCN">
+                    </label>
+                    <label class="field">
+                        <span>Chất liệu</span>
+                        <input name="material" type="text" maxlength="200" placeholder="Ví dụ: Đồng">
+                    </label>
+                    <label class="field">
+                        <span>Kích thước</span>
+                        <input name="dimensions" type="text" maxlength="200" placeholder="Ví dụ: Cao 60 cm, đường kính 80 cm">
+                    </label>
+                    <label class="field">
+                        <span>Beacon UUID</span>
+                        <input name="beacon_uuid" type="text" maxlength="100" placeholder="UUID của iBeacon (nếu có)">
+                    </label>
+                    <label class="field">
+                        <span>Trạng thái</span>
+                        <select name="status">
+                            <option value="ACTIVE">Đang hoạt động</option>
+                            <option value="INACTIVE">Ngừng hoạt động</option>
+                        </select>
+                    </label>
+                </div>
+            </section>
+
+            <section class="card form-section" aria-labelledby="translation-heading">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Nội dung đa ngôn ngữ</p>
+                        <h2 id="translation-heading">Bản dịch và thuyết minh</h2>
+                    </div>
+                    <button class="button button-secondary" id="add-translation" type="button">+ Thêm ngôn ngữ</button>
+                </div>
+
+                <div class="repeat-list" id="translations">
+                    <fieldset class="repeat-item translation-item">
+                        <legend class="visually-hidden">Bản dịch</legend>
+                        <div class="form-grid">
+                            <label class="field">
+                                <span>Ngôn ngữ <span class="required">*</span></span>
+                                <select name="language_code[]" required>
+                                    <option value="vi">Tiếng Việt (vi)</option>
+                                    <option value="en">Tiếng Anh (en)</option>
+                                    <option value="fr">Tiếng Pháp (fr)</option>
+                                    <option value="ja">Tiếng Nhật (ja)</option>
+                                    <option value="ko">Tiếng Hàn (ko)</option>
+                                    <option value="zh">Tiếng Trung (zh)</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <span>Tiêu đề</span>
+                                <input name="content_title[]" type="text" maxlength="200" placeholder="Tên hiển thị theo ngôn ngữ">
+                            </label>
+                            <label class="field field-wide">
+                                <span>Nội dung thuyết minh</span>
+                                <textarea name="content_description[]" rows="4" placeholder="Nội dung dành cho du khách"></textarea>
+                            </label>
+                            <label class="field">
+                                <span>URL audio</span>
+                                <input name="audio_url[]" type="url" maxlength="1000" placeholder="https://example.com/audio.mp3">
+                            </label>
+                            <label class="field">
+                                <span>URL video</span>
+                                <input name="video_url[]" type="url" maxlength="1000" placeholder="https://example.com/video.mp4">
+                            </label>
+                            <label class="field field-wide">
+                                <span>URL hình ảnh</span>
+                                <textarea name="image_urls[]" rows="2" placeholder="Mỗi URL trên một dòng"></textarea>
+                            </label>
+                        </div>
+                        <button class="text-button remove-item" type="button" aria-label="Xóa bản dịch" disabled>Xóa bản dịch</button>
+                    </fieldset>
+                </div>
+            </section>
+
+            <section class="card form-section" aria-labelledby="media-heading">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Tài nguyên</p>
+                        <h2 id="media-heading">Tài nguyên đa phương tiện</h2>
+                    </div>
+                    <button class="button button-secondary" id="add-media" type="button">+ Thêm tài nguyên</button>
+                </div>
+
+                <div class="repeat-list" id="media-resources">
+                    <fieldset class="repeat-item media-item">
+                        <legend class="visually-hidden">Tài nguyên đa phương tiện</legend>
+                        <div class="form-grid media-grid">
+                            <label class="field">
+                                <span>Loại tài nguyên <span class="required">*</span></span>
+                                <select name="media_type[]" required>
+                                    <option value="IMAGE">Hình ảnh</option>
+                                    <option value="AUDIO">Âm thanh</option>
+                                    <option value="VIDEO">Video</option>
+                                </select>
+                            </label>
+                            <label class="field field-wide">
+                                <span>URL tệp <span class="required">*</span></span>
+                                <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg" required>
+                            </label>
+                            <label class="field field-wide">
+                                <span>Chú thích</span>
+                                <input name="caption[]" type="text" maxlength="255" placeholder="Mô tả ngắn về tài nguyên">
+                            </label>
+                        </div>
+                        <button class="text-button remove-item" type="button" aria-label="Xóa tài nguyên" disabled>Xóa tài nguyên</button>
+                    </fieldset>
+                </div>
+            </section>
+
+            <div class="form-footer">
+                <p class="prototype-note" id="form-message" role="status" aria-live="polite">
+                    Giao diện tĩnh: thông tin chưa được gửi hoặc lưu vào Backend.
+                </p>
+                <div class="form-actions">
+                    <button class="button button-secondary" type="reset">Xóa nội dung</button>
+                    <button class="button button-primary" type="submit">Lưu hiện vật</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <template id="translation-template">
+        <fieldset class="repeat-item translation-item">
+            <legend class="visually-hidden">Bản dịch</legend>
+            <div class="form-grid">
+                <label class="field">
+                    <span>Ngôn ngữ <span class="required">*</span></span>
+                    <select name="language_code[]" required>
+                        <option value="vi">Tiếng Việt (vi)</option>
+                        <option value="en">Tiếng Anh (en)</option>
+                        <option value="fr">Tiếng Pháp (fr)</option>
+                        <option value="ja">Tiếng Nhật (ja)</option>
+                        <option value="ko">Tiếng Hàn (ko)</option>
+                        <option value="zh">Tiếng Trung (zh)</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Tiêu đề</span>
+                    <input name="content_title[]" type="text" maxlength="200" placeholder="Tên hiển thị theo ngôn ngữ">
+                </label>
+                <label class="field field-wide">
+                    <span>Nội dung thuyết minh</span>
+                    <textarea name="content_description[]" rows="4" placeholder="Nội dung dành cho du khách"></textarea>
+                </label>
+                <label class="field">
+                    <span>URL audio</span>
+                    <input name="audio_url[]" type="url" maxlength="1000" placeholder="https://example.com/audio.mp3">
+                </label>
+                <label class="field">
+                    <span>URL video</span>
+                    <input name="video_url[]" type="url" maxlength="1000" placeholder="https://example.com/video.mp4">
+                </label>
+                <label class="field field-wide">
+                    <span>URL hình ảnh</span>
+                    <textarea name="image_urls[]" rows="2" placeholder="Mỗi URL trên một dòng"></textarea>
+                </label>
+            </div>
+            <button class="text-button remove-item" type="button" aria-label="Xóa bản dịch">Xóa bản dịch</button>
+        </fieldset>
+    </template>
+
+    <template id="media-template">
+        <fieldset class="repeat-item media-item">
+            <legend class="visually-hidden">Tài nguyên đa phương tiện</legend>
+            <div class="form-grid media-grid">
+                <label class="field">
+                    <span>Loại tài nguyên <span class="required">*</span></span>
+                    <select name="media_type[]" required>
+                        <option value="IMAGE">Hình ảnh</option>
+                        <option value="AUDIO">Âm thanh</option>
+                        <option value="VIDEO">Video</option>
+                    </select>
+                </label>
+                <label class="field field-wide">
+                    <span>URL tệp <span class="required">*</span></span>
+                    <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg" required>
+                </label>
+                <label class="field field-wide">
+                    <span>Chú thích</span>
+                    <input name="caption[]" type="text" maxlength="255" placeholder="Mô tả ngắn về tài nguyên">
+                </label>
+            </div>
+            <button class="text-button remove-item" type="button" aria-label="Xóa tài nguyên">Xóa tài nguyên</button>
+        </fieldset>
+    </template>
+
+    <script src="./artifacts.js"></script>
+</body>
+</html>
