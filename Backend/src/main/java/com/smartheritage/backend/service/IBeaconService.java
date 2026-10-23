@@ -3,8 +3,10 @@ package com.smartheritage.backend.service;
 import com.smartheritage.backend.dto.IBeaconRequest;
 import com.smartheritage.backend.dto.IBeaconResponse;
 import com.smartheritage.backend.entity.Artifact;
+import com.smartheritage.backend.entity.HeritageSite;
 import com.smartheritage.backend.entity.IBeacon;
 import com.smartheritage.backend.repository.ArtifactRepository;
+import com.smartheritage.backend.repository.HeritageSiteRepository;
 import com.smartheritage.backend.repository.IBeaconRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -23,16 +26,21 @@ public class IBeaconService {
     private static final String DUPLICATE_MESSAGE = "iBeacon với UUID/Major/Minor này đã tồn tại";
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$");
+    private static final Set<String> VALID_STATUSES = Set.of("ACTIVE", "INACTIVE");
 
     private final IBeaconRepository beaconRepository;
     private final ArtifactRepository artifactRepository;
+    private final HeritageSiteRepository siteRepository;
 
     // ──────────────────────────── READ ────────────────────────────
 
+    /** Lấy tất cả beacon, hoặc lọc theo di tích nếu có siteId */
     @Transactional(readOnly = true)
-    public List<IBeaconResponse> getAllBeacons() {
-        return beaconRepository.findAll()
-                .stream()
+    public List<IBeaconResponse> getBeacons(Long siteId) {
+        List<IBeacon> beacons = siteId != null
+                ? beaconRepository.findBySiteId(siteId)
+                : beaconRepository.findAll();
+        return beacons.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -46,7 +54,6 @@ public class IBeaconService {
 
     public IBeaconResponse createBeacon(IBeaconRequest request) {
         String uuid = normalizeAndValidate(request);
-
         if (beaconRepository.existsByUuidAndMajorAndMinor(uuid, request.getMajor(), request.getMinor())) {
             throw new IllegalArgumentException(DUPLICATE_MESSAGE);
         }
@@ -94,6 +101,16 @@ public class IBeaconService {
         }
         validateRange("Major", request.getMajor());
         validateRange("Minor", request.getMinor());
+        if (request.getSiteId() == null) {
+            throw new IllegalArgumentException("Phải chọn di tích (siteId) cho iBeacon");
+        }
+        if (request.getBatteryLevel() != null
+                && (request.getBatteryLevel() < 0 || request.getBatteryLevel() > 100)) {
+            throw new IllegalArgumentException("Pin (batteryLevel) phải nằm trong khoảng 0–100");
+        }
+        if (request.getStatus() != null && !VALID_STATUSES.contains(request.getStatus())) {
+            throw new IllegalArgumentException("Trạng thái chỉ nhận ACTIVE hoặc INACTIVE");
+        }
         return request.getUuid().trim().toUpperCase();
     }
 
@@ -104,10 +121,25 @@ public class IBeaconService {
     }
 
     private void applyFields(IBeacon beacon, IBeaconRequest request, String uuid) {
+        HeritageSite site = siteRepository.findById(request.getSiteId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Không tìm thấy di tích với ID: " + request.getSiteId()));
+        Artifact artifact = findArtifact(request.getArtifactId());
+
+        // Beacon đặt ở di tích nào thì chỉ được gán hiện vật của di tích đó
+        if (artifact != null && !artifact.getSite().getId().equals(site.getId())) {
+            throw new IllegalArgumentException(
+                    "Hiện vật ID " + artifact.getId() + " không thuộc di tích ID " + site.getId());
+        }
+
         beacon.setUuid(uuid);
         beacon.setMajor(request.getMajor());
         beacon.setMinor(request.getMinor());
-        beacon.setArtifact(findArtifact(request.getArtifactId()));
+        beacon.setSite(site);
+        beacon.setArtifact(artifact);
+        beacon.setPosX(request.getPosX());
+        beacon.setPosY(request.getPosY());
+        beacon.setBatteryLevel(request.getBatteryLevel());
         beacon.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE");
     }
 
@@ -122,13 +154,19 @@ public class IBeaconService {
 
     private IBeaconResponse toResponse(IBeacon beacon) {
         Artifact artifact = beacon.getArtifact();
+        HeritageSite site = beacon.getSite();
         return IBeaconResponse.builder()
                 .id(beacon.getId())
                 .uuid(beacon.getUuid())
                 .major(beacon.getMajor())
                 .minor(beacon.getMinor())
+                .siteId(site != null ? site.getId() : null)
+                .siteName(site != null ? site.getName() : null)
                 .artifactId(artifact != null ? artifact.getId() : null)
                 .artifactName(artifact != null ? artifact.getName() : null)
+                .posX(beacon.getPosX())
+                .posY(beacon.getPosY())
+                .batteryLevel(beacon.getBatteryLevel())
                 .status(beacon.getStatus())
                 .createdAt(beacon.getCreatedAt())
                 .updatedAt(beacon.getUpdatedAt())

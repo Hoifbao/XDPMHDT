@@ -16,7 +16,7 @@ import java.util.List;
  * Base URL: /api/ibeacons
  *
  * Endpoints:
- *  GET    /api/ibeacons        – Danh sách tất cả iBeacon
+ *  GET    /api/ibeacons        – Danh sách tất cả iBeacon (?siteId=1 để lọc theo di tích)
  *  GET    /api/ibeacons/{id}   – Chi tiết iBeacon
  *  POST   /api/ibeacons        – Tạo iBeacon mới
  *  PUT    /api/ibeacons/{id}   – Cập nhật iBeacon
@@ -31,8 +31,9 @@ public class IBeaconController {
     private final IBeaconService beaconService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<IBeaconResponse>>> getBeacons() {
-        return ResponseEntity.ok(ApiResponse.ok("Thành công", beaconService.getAllBeacons()));
+    public ResponseEntity<ApiResponse<List<IBeaconResponse>>> getBeacons(
+            @RequestParam(required = false) Long siteId) {
+        return ResponseEntity.ok(ApiResponse.ok("Thành công", beaconService.getBeacons(siteId)));
     }
 
     @GetMapping("/{id}")

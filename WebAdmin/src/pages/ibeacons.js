@@ -8,17 +8,23 @@ const STATUS_CLASS = {
     INACTIVE: 'fb-rejected'
 };
 
+// Địa chỉ Backend (dùng chung cách cấu hình với WebAdmin/src/api/auth.js)
+const API_BASE = (function () {
+    try { return (localStorage.getItem('sh_api_base') || 'http://localhost:8080').replace(/\/+$/, ''); }
+    catch (e) { return 'http://localhost:8080'; }
+})();
+
+// Dữ liệu mẫu khớp với bảng ibeacons trong Infra/init_db.sql.
+// Chỉ dùng khi không gọi được API (Backend chưa chạy).
 const SAMPLE_BEACONS = [
-    { id: 1, uuid: '550E8400-E29B-41D4-A716-446655440000', major: 1, minor: 1, artifactName: 'Trống đồng Đông Sơn', status: 'ACTIVE', updatedAt: '2026-10-05T08:00:00' },
-    { id: 2, uuid: '550E8400-E29B-41D4-A716-446655440000', major: 1, minor: 2, artifactName: 'Khuê Văn Các', status: 'ACTIVE', updatedAt: '2026-10-05T08:10:00' },
-    { id: 3, uuid: '550E8400-E29B-41D4-A716-446655440000', major: 1, minor: 3, artifactName: null, status: 'ACTIVE', updatedAt: '2026-10-06T09:00:00' },
-    { id: 4, uuid: '550E8400-E29B-41D4-A716-446655440000', major: 2, minor: 1, artifactName: 'Bia Tiến sĩ', status: 'INACTIVE', updatedAt: '2026-10-07T15:30:00' }
+    { id: 1, uuid: 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', major: 1, minor: 1, siteName: 'Văn Miếu - Quốc Tử Giám', artifactName: 'Khuê Văn Các', batteryLevel: 87, status: 'ACTIVE', updatedAt: '2026-10-05T08:00:00' },
+    { id: 2, uuid: 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', major: 1, minor: 2, siteName: 'Văn Miếu - Quốc Tử Giám', artifactName: 'Bia Tiến sĩ', batteryLevel: 64, status: 'ACTIVE', updatedAt: '2026-10-05T08:10:00' },
+    { id: 3, uuid: 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', major: 2, minor: 1, siteName: 'Hoàng thành Thăng Long', artifactName: 'Đoan Môn', batteryLevel: 92, status: 'ACTIVE', updatedAt: '2026-10-06T09:00:00' },
+    { id: 4, uuid: 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', major: 1, minor: 3, siteName: 'Văn Miếu - Quốc Tử Giám', artifactName: null, batteryLevel: 15, status: 'INACTIVE', updatedAt: '2026-10-07T15:30:00' }
 ];
 
-// Bản sao để thay đổi lọc mà không làm hỏng dữ liệu mẫu gốc.
-const beacons = SAMPLE_BEACONS.map(function (item) {
-    return Object.assign({}, item);
-});
+// Danh sách đang hiển thị (lấy từ API, lỗi thì dùng dữ liệu mẫu)
+let beacons = [];
 let currentFilter = 'ALL';
 
 const bodyElement = document.getElementById('beacon-body');
@@ -66,6 +72,22 @@ function createArtifactCell(artifactName) {
     return cell;
 }
 
+// Pin dưới 20% tô đỏ để admin biết cần thay
+function createBatteryCell(level) {
+    const cell = createCell('fb-nowrap');
+    if (level === null || level === undefined) {
+        cell.textContent = '—';
+        cell.classList.add('muted');
+    } else {
+        cell.textContent = level + '%';
+        if (level < 20) {
+            cell.style.color = 'var(--danger)';
+            cell.style.fontWeight = '700';
+        }
+    }
+    return cell;
+}
+
 function createActionsCell() {
     const cell = createCell();
     const group = document.createElement('div');
@@ -75,12 +97,16 @@ function createActionsCell() {
     editButton.type = 'button';
     editButton.className = 'btn alt fb-sm';
     editButton.textContent = 'Sửa';
+    editButton.disabled = true;
+    editButton.title = 'Làm ở tuần 4';
     group.appendChild(editButton);
 
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
     deleteButton.className = 'btn fb-danger fb-sm';
     deleteButton.textContent = 'Xóa';
+    deleteButton.disabled = true;
+    deleteButton.title = 'Làm ở tuần 4';
     group.appendChild(deleteButton);
 
     cell.appendChild(group);
@@ -93,7 +119,9 @@ function createRow(item) {
     row.appendChild(createCell('fb-nowrap')).textContent = item.uuid;
     row.appendChild(createCell()).textContent = item.major;
     row.appendChild(createCell()).textContent = item.minor;
+    row.appendChild(createCell()).textContent = item.siteName || '—';
     row.appendChild(createArtifactCell(item.artifactName));
+    row.appendChild(createBatteryCell(item.batteryLevel));
 
     const statusCell = createCell('fb-nowrap');
     statusCell.appendChild(createStatusPill(item.status));
@@ -162,4 +190,24 @@ filterBar.addEventListener('click', function (event) {
     render();
 });
 
-render();
+// Gọi GET /api/ibeacons; Backend chưa chạy thì hiện dữ liệu mẫu
+async function loadBeacons() {
+    const sourceLabel = document.getElementById('data-source');
+    try {
+        const response = await fetch(API_BASE + '/api/ibeacons');
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
+        const body = await response.json();
+        beacons = Array.isArray(body.data) ? body.data : [];
+        sourceLabel.textContent = 'Dữ liệu từ API';
+    } catch (error) {
+        beacons = SAMPLE_BEACONS.map(function (item) {
+            return Object.assign({}, item);
+        });
+        sourceLabel.textContent = 'Dữ liệu mẫu (chưa kết nối Backend)';
+    }
+    render();
+}
+
+loadBeacons();

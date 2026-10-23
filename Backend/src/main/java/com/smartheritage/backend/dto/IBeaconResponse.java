@@ -17,8 +17,17 @@ public class IBeaconResponse {
     private String uuid;
     private Integer major;
     private Integer minor;
+
+    private Long siteId;
+    private String siteName;
+
     private Long artifactId;
     private String artifactName;
+
+    private Double posX;
+    private Double posY;
+    private Integer batteryLevel;
+
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
