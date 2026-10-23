@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Smart Heritage</title>
+    <link rel="stylesheet" href="../../theme.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="mark">SH</div>
+                <span>Smart Heritage</span>
+            </div>
+            <a href="../../admin.html">Bảng quản trị</a>
+        </div>
+
+        <div class="auth-wrap">
+            <div class="card auth-card">
+                <div class="eyebrow">Web Admin</div>
+                <h1>Đăng nhập</h1>
+                <p class="muted">Đăng nhập bằng tài khoản Smart Heritage.</p>
+
+                <form class="auth-form" id="login-form" novalidate>
+                    <label>Tên đăng nhập
+                        <input id="username" name="username" autocomplete="username" required>
+                    </label>
+                    <label>Mật khẩu
+                        <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    </label>
+                    <div class="auth-msg" id="msg" role="alert"></div>
+                    <button class="btn" type="submit" id="submit">Đăng nhập</button>
+                </form>
+
+                <div class="auth-switch">
+                    Chưa có tài khoản? <a href="register.html">Đăng ký</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../api/auth.js"></script>
+    <script>
+        (function () {
+            // Đã đăng nhập thì vào thẳng trang Hồ sơ
+            if (SHAuth.currentUser()) {
+                window.location.replace('profile.html');
+                return;
+            }
+
+            const form = document.getElementById('login-form');
+            const msg = document.getElementById('msg');
+            const submit = document.getElementById('submit');
+
+            // Điền sẵn username sau khi đăng ký
+            const preset = new URLSearchParams(window.location.search).get('username');
+            if (preset) {
+                document.getElementById('username').value = preset;
+                msg.className = 'auth-msg ok';
+                msg.textContent = 'Đăng ký thành công! Mời bạn đăng nhập.';
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const username = form.username.value.trim();
+                const password = form.password.value;
+
+                if (!username || !password) {
+                    msg.className = 'auth-msg error';
+                    msg.textContent = 'Vui lòng nhập tên đăng nhập và mật khẩu!';
+                    return;
+                }
+
+                submit.disabled = true;
+                submit.textContent = 'Đang đăng nhập...';
+                msg.textContent = '';
+
+                const result = await SHAuth.login(username, password);
+
+                if (result.error) {
+                    msg.className = 'auth-msg error';
+                    msg.textContent = result.error;
+                    submit.disabled = false;
+                    submit.textContent = 'Đăng nhập';
+                    return;
+                }
+                window.location.replace('profile.html');
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'features/feedback/feedback_screen.dart';
+import 'features/auth/auth_service.dart';
+import 'features/auth/login_screen.dart';
+import 'features/auth/profile_screen.dart';
+import 'shared/app_sidebar.dart';
 
 void main() {
   runApp(const SmartHeritageApp());
@@ -158,6 +162,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5EF),
+      drawer: const AppSidebar(),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -190,6 +195,20 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          // Nút tài khoản: chưa đăng nhập -> Login, đã đăng nhập -> Profile
+          ValueListenableBuilder<AuthUser?>(
+            valueListenable: AuthService.currentUser,
+            builder: (context, user, _) => IconButton(
+              tooltip: user == null ? 'Đăng nhập' : 'Hồ sơ cá nhân',
+              icon: Icon(user == null ? Icons.login : Icons.account_circle),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => user == null ? const LoginScreen() : const ProfileScreen(),
+                ),
+              ),
+            ),
+          ),
           TextButton(
             onPressed: () {
               setState(() {
@@ -632,4 +651,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+}
