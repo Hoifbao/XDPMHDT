@@ -3,10 +3,10 @@ package com.smartheritage.backend.service;
 import com.smartheritage.backend.dto.*;
 import com.smartheritage.backend.entity.Artifact;
 import com.smartheritage.backend.entity.ArtifactContent;
-import com.smartheritage.backend.entity.HeritageLocation;
+import com.smartheritage.backend.entity.HeritageSite;
 import com.smartheritage.backend.repository.ArtifactContentRepository;
 import com.smartheritage.backend.repository.ArtifactRepository;
-import com.smartheritage.backend.repository.HeritageLocationRepository;
+import com.smartheritage.backend.repository.HeritageSiteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ public class ArtifactService {
 
     private final ArtifactRepository artifactRepository;
     private final ArtifactContentRepository contentRepository;
-    private final HeritageLocationRepository locationRepository;
+    private final HeritageSiteRepository siteRepository;
 
     // ──────────────────────────── READ ────────────────────────────
 
@@ -37,7 +37,7 @@ public class ArtifactService {
     /** Lấy hiện vật theo địa điểm */
     @Transactional(readOnly = true)
     public List<ArtifactSummaryResponse> getArtifactsByLocation(Long locationId) {
-        return artifactRepository.findByLocationId(locationId)
+        return artifactRepository.findBySiteId(locationId)
                 .stream()
                 .map(this::toSummary)
                 .collect(Collectors.toList());
@@ -72,9 +72,9 @@ public class ArtifactService {
 
     /** Tạo mới hiện vật (có thể kèm contents đa ngôn ngữ) */
     public ArtifactResponse createArtifact(ArtifactRequest request) {
-        HeritageLocation location = locationRepository.findById(request.getLocationId())
+        HeritageSite site = siteRepository.findById(request.getLocationId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Không tìm thấy địa điểm với ID: " + request.getLocationId()));
+                        "Không tìm thấy di tích với ID: " + request.getLocationId()));
 
         if (request.getArtifactCode() != null
                 && artifactRepository.existsByArtifactCode(request.getArtifactCode())) {
@@ -89,7 +89,7 @@ public class ArtifactService {
         }
 
         Artifact artifact = Artifact.builder()
-                .location(location)
+                .site(site)
                 .name(request.getName())
                 .artifactCode(request.getArtifactCode())
                 .description(request.getDescription())
@@ -122,10 +122,10 @@ public class ArtifactService {
         Artifact artifact = findOrThrow(id);
 
         if (request.getLocationId() != null) {
-            HeritageLocation location = locationRepository.findById(request.getLocationId())
+            HeritageSite site = siteRepository.findById(request.getLocationId())
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "Không tìm thấy địa điểm với ID: " + request.getLocationId()));
-            artifact.setLocation(location);
+                            "Không tìm thấy di tích với ID: " + request.getLocationId()));
+            artifact.setSite(site);
         }
 
         if (request.getName() != null) artifact.setName(request.getName());
@@ -247,8 +247,8 @@ public class ArtifactService {
     private ArtifactSummaryResponse toSummary(Artifact a) {
         return ArtifactSummaryResponse.builder()
                 .id(a.getId())
-                .locationId(a.getLocation().getId())
-                .locationName(a.getLocation().getName())
+                .locationId(a.getSite().getId())
+                .locationName(a.getSite().getName())
                 .name(a.getName())
                 .artifactCode(a.getArtifactCode())
                 .thumbnailUrl(a.getThumbnailUrl())
@@ -268,8 +268,8 @@ public class ArtifactService {
 
         return ArtifactResponse.builder()
                 .id(a.getId())
-                .locationId(a.getLocation().getId())
-                .locationName(a.getLocation().getName())
+                .locationId(a.getSite().getId())
+                .locationName(a.getSite().getName())
                 .name(a.getName())
                 .artifactCode(a.getArtifactCode())
                 .description(a.getDescription())

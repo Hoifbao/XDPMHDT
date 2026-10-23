@@ -12,11 +12,11 @@ import java.util.Optional;
 @Repository
 public interface ArtifactRepository extends JpaRepository<Artifact, Long> {
 
-    List<Artifact> findByLocationId(Long locationId);
+    List<Artifact> findBySiteId(Long siteId);
 
     List<Artifact> findByStatus(String status);
 
-    List<Artifact> findByLocationIdAndStatus(Long locationId, String status);
+    List<Artifact> findBySiteIdAndStatus(Long siteId, String status);
 
     Optional<Artifact> findByBeaconUuid(String beaconUuid);
 

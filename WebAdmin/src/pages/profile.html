@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ cá nhân - Smart Heritage</title>
+    <link rel="stylesheet" href="../../theme.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="mark">SH</div>
+                <span>Smart Heritage</span>
+            </div>
+            <a href="../../admin.html">Bảng quản trị</a>
+        </div>
+
+        <div class="auth-wrap">
+            <div class="card auth-card">
+                <div class="eyebrow">Tài khoản</div>
+                <h1 id="greeting">Hồ sơ cá nhân</h1>
+
+                <dl class="profile-list">
+                    <dt>Tên đăng nhập</dt><dd id="p-username">—</dd>
+                    <dt>Email</dt><dd id="p-email">—</dd>
+                    <dt>Họ và tên</dt><dd id="p-fullName">—</dd>
+                    <dt>Vai trò</dt><dd><span class="pill" id="p-role">—</span></dd>
+                    <dt>Ngày tạo</dt><dd id="p-createdAt">—</dd>
+                </dl>
+
+                <div class="auth-msg" id="msg" role="alert"></div>
+                <div class="auth-actions">
+                    <button class="btn alt" type="button" id="refresh">Tải lại</button>
+                    <button class="btn" type="button" id="logout">Đăng xuất</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../api/auth.js"></script>
+    <script>
+        (function () {
+            const user = SHAuth.requireLogin('login.html');
+            if (!user) return;
+
+            const msg = document.getElementById('msg');
+
+            function text(value) {
+                return value === undefined || value === null || value === '' ? '—' : String(value);
+            }
+
+            function render(u) {
+                document.getElementById('greeting').textContent = 'Xin chào, ' + (u.fullName || u.username) + '!';
+                document.getElementById('p-username').textContent = text(u.username);
+                document.getElementById('p-email').textContent = text(u.email);
+                document.getElementById('p-fullName').textContent = text(u.fullName);
+                document.getElementById('p-role').textContent = text(u.role);
+                document.getElementById('p-createdAt').textContent = u.createdAt ? u.createdAt.replace('T', ' ').slice(0, 16) : '—';
+            }
+
+            async function refresh() {
+                msg.textContent = '';
+                const result = await SHAuth.refreshProfile();
+                if (result.error) {
+                    msg.className = 'auth-msg error';
+                    msg.textContent = result.error;
+                    return;
+                }
+                render(result);
+            }
+
+            render(user);
+            refresh();
+
+            document.getElementById('refresh').addEventListener('click', refresh);
+            document.getElementById('logout').addEventListener('click', function () {
+                SHAuth.logout();
+                window.location.replace('login.html');
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,6 +1,10 @@
 # Flutter and Dart build output
 **/.dart_tool/
 **/.flutter-plugins-dependencies
+**/.gradle/
+**/.kotlin/
+**/local.properties
+**/GeneratedPluginRegistrant.java
 **/build/
 **/coverage/
 
@@ -17,3 +21,5 @@
 # JVM crash logs
 hs_err_pid*.log
 replay_pid*.log
+# File rác sinh ra khi chạy lệnh nhầm
+/stdout
