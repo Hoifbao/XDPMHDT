@@ -188,6 +188,28 @@ CREATE TABLE IF NOT EXISTS feedbacks (
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+-- ------------------------------------------------------------
+-- 5. iBeacons  (thiết bị iBeacon gán cho hiện vật)
+-- Chạy sau khi bảng Artifacts đã tồn tại (xem Infra/init_db.sql)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS iBeacons (
+    id              BIGINT        NOT NULL AUTO_INCREMENT,
+    uuid            VARCHAR(36)   NOT NULL,
+    major           INT           NOT NULL,
+    minor           INT           NOT NULL,
+    artifact_id     BIGINT        NULL,              -- NULL = chưa gán hiện vật
+    status          VARCHAR(20)   NOT NULL DEFAULT 'ACTIVE',
+                                  -- ACTIVE | INACTIVE
+    created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME      NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_ibeacon_uuid_major_minor UNIQUE (uuid, major, minor),
+    CONSTRAINT fk_ibeacon_artifact
+        FOREIGN KEY (artifact_id) REFERENCES Artifacts(id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX idx_ibeacon_artifact (artifact_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =====================================================================
 -- DỮ LIỆU MẪU (giả, chỉ để kiểm thử). Thứ tự: bảng cha trước, bảng con sau.
 -- Mật khẩu của mọi tài khoản mẫu: Test@1234 (hash BCrypt cost 10).
