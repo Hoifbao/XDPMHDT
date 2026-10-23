@@ -18,12 +18,12 @@ public class Artifact {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Thuộc địa điểm di tích nào */
+    /** Thuộc khu di tích nào (bảng heritage_sites - entity HeritageSite của Ân) */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "location_id", nullable = false)
+    @JoinColumn(name = "site_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private HeritageLocation location;
+    private HeritageSite site;
 
     @Column(nullable = false, length = 200)
     private String name;
