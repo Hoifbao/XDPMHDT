@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 -- 3. CÁC BẢNG CON CẤP 2
 -- ---------------------------------------------------------------------
 
--- ERD: iBeacons (Khoa)  |  Chưa có entity
+-- ERD: iBeacons (Khoa)  |  Entity: IBeacon
 -- Located_At: Heritage_Sites (0,n) - iBeacons (1,1)  => site_id NOT NULL.
 -- Assigned_To: Artifacts (0,n) - iBeacons (0,1)      => artifact_id NULL.
 CREATE TABLE IF NOT EXISTS ibeacons (
@@ -99,6 +99,9 @@ CREATE TABLE IF NOT EXISTS ibeacons (
     x_coord       DOUBLE   NULL,
     y_coord       DOUBLE   NULL,
     battery_level INT      NULL,
+    status        VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE | INACTIVE
+    created_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY uq_ibeacons_identity (uuid, major, minor),
     CONSTRAINT chk_ibeacons_major   CHECK (major BETWEEN 0 AND 65535),
@@ -188,28 +191,6 @@ CREATE TABLE IF NOT EXISTS feedbacks (
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- ------------------------------------------------------------
--- 5. iBeacons  (thiết bị iBeacon gán cho hiện vật)
--- Chạy sau khi bảng Artifacts đã tồn tại (xem Infra/init_db.sql)
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS iBeacons (
-    id              BIGINT        NOT NULL AUTO_INCREMENT,
-    uuid            VARCHAR(36)   NOT NULL,
-    major           INT           NOT NULL,
-    minor           INT           NOT NULL,
-    artifact_id     BIGINT        NULL,              -- NULL = chưa gán hiện vật
-    status          VARCHAR(20)   NOT NULL DEFAULT 'ACTIVE',
-                                  -- ACTIVE | INACTIVE
-    created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME      NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    CONSTRAINT uk_ibeacon_uuid_major_minor UNIQUE (uuid, major, minor),
-    CONSTRAINT fk_ibeacon_artifact
-        FOREIGN KEY (artifact_id) REFERENCES Artifacts(id)
-        ON DELETE SET NULL ON UPDATE CASCADE,
-    INDEX idx_ibeacon_artifact (artifact_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- =====================================================================
 -- DỮ LIỆU MẪU (giả, chỉ để kiểm thử). Thứ tự: bảng cha trước, bảng con sau.
 -- Mật khẩu của mọi tài khoản mẫu: Test@1234 (hash BCrypt cost 10).
@@ -237,11 +218,11 @@ INSERT INTO artifacts (id, site_id, name, artifact_code, category, description, 
         'Cổng chính phía nam của khu Hoàng thành Thăng Long.',
         'https://example.com/media/dm-thumb.jpg', 'Thời Lê', 'Gạch, đá', NULL, NULL, 'ACTIVE');
 
-INSERT INTO ibeacons (id, site_id, artifact_id, uuid, major, minor, x_coord, y_coord, battery_level) VALUES
-    (1, 1, 1,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 1, 12.5, 30.0, 87),
-    (2, 1, 2,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 2, 25.0, 42.5, 64),
-    (3, 2, 3,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 2, 1,  8.0, 15.0, 92),
-    (4, 1, NULL, 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 3, 40.0, 10.0, 15);
+INSERT INTO ibeacons (id, site_id, artifact_id, uuid, major, minor, x_coord, y_coord, battery_level, status) VALUES
+    (1, 1, 1,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 1, 12.5, 30.0, 87, 'ACTIVE'),
+    (2, 1, 2,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 2, 25.0, 42.5, 64, 'ACTIVE'),
+    (3, 2, 3,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 2, 1,  8.0, 15.0, 92, 'ACTIVE'),
+    (4, 1, NULL, 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 3, 40.0, 10.0, 15, 'INACTIVE');
 
 INSERT INTO artifact_contents (id, artifact_id, language_code, title, description, audio_url) VALUES
     (1, 1, 'vi', 'Khuê Văn Các',   'Khuê Văn Các là gác vuông nằm ở khu vực trung tâm Văn Miếu, được xem là biểu tượng của Hà Nội.', 'https://example.com/audio/kvc-vi.mp3'),
