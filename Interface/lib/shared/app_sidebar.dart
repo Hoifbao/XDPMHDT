@@ -4,6 +4,8 @@ import '../features/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/profile_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/favorites/favorites_screen.dart';
+import '../features/visit_history/visit_history_screen.dart';
 
 /// Menu bên (Drawer) dùng chung cho các màn hình của app.
 class AppSidebar extends StatelessWidget {
@@ -60,6 +62,16 @@ class AppSidebar extends StatelessWidget {
                   leading: const Icon(Icons.account_circle_outlined),
                   title: const Text('Hồ sơ cá nhân'),
                   onTap: () => _open(context, const ProfileScreen()),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.favorite_border),
+                  title: const Text('Hiện vật yêu thích'),
+                  onTap: () => _open(context, const FavoritesScreen()),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: const Text('Lịch sử tham quan'),
+                  onTap: () => _open(context, const VisitHistoryScreen()),
                 ),
                 ListTile(
                   leading: const Icon(Icons.logout),
