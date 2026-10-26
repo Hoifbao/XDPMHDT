@@ -31,10 +31,10 @@
                 <div class="eyebrow">Phân tích &amp; báo cáo</div>
                 <h1>Dashboard thống kê</h1>
             </div>
-            <span class="pill">Dữ liệu mô phỏng</span>
+            <span class="pill">Dữ liệu từ API</span>
         </div>
 
-        <!-- Bo loc va nut xuat: chi giao dien o tuan 2, tat het de khong gay hieu nham -->
+        <!-- Bo loc va nut xuat: chua lam, tat het de khong gay hieu nham -->
         <div class="card toolbar">
             <label>Di tích
                 <select id="site-filter" disabled></select>
@@ -45,7 +45,7 @@
                 <button class="btn alt" type="button" disabled title="Sẽ làm ở tuần sau">Xuất PDF</button>
                 <button class="btn gold" type="button" disabled title="Sẽ làm ở tuần sau">Xuất Excel</button>
             </div>
-            <span class="muted note">Toàn bộ số liệu trên trang là dữ liệu mô phỏng, chưa kết nối API. Bộ lọc và xuất báo cáo sẽ hoạt động ở tuần sau.</span>
+            <span class="muted note" id="status-note" role="status">Đang tải số liệu…</span>
         </div>
 
         <div class="dashboard-grid kpi-grid" id="kpis"></div>
@@ -61,7 +61,7 @@
             <div class="card">
                 <div class="panel-title">
                     <h2>Lượt tương tác theo ngày</h2>
-                    <span class="pill">7 ngày</span>
+                    <span class="pill">Tối đa 7 ngày có dữ liệu</span>
                 </div>
                 <div class="chart-box"><canvas id="chart-daily" aria-label="Biểu đồ đường lượt tương tác theo ngày" role="img"></canvas></div>
             </div>
