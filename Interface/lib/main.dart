@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'core/network/auth_http_client.dart';
 import 'features/feedback/feedback_screen.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/login_screen.dart';
@@ -6,7 +8,17 @@ import 'features/auth/profile_screen.dart';
 import 'shared/app_sidebar.dart';
 
 void main() {
-  runApp(const SmartHeritageApp());
+  // Client thật tạo NGOÀI runWithClient (tránh gọi đệ quy). Bên trong zone,
+  // mọi http.get/post/put/delete ở mọi màn hình đều đi qua AuthHttpClient
+  // để tự gắn "Authorization: Bearer <token>" và tự refresh khi hết hạn.
+  final inner = http.Client();
+  http.runWithClient(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    AuthService.rawClient = inner;
+    // Khôi phục phiên đăng nhập đã lưu (JWT) trước khi vẽ giao diện
+    await AuthService.init();
+    runApp(const SmartHeritageApp());
+  }, () => AuthHttpClient(inner));
 }
 
 class SmartHeritageApp extends StatelessWidget {
