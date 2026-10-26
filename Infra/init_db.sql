@@ -153,7 +153,10 @@ CREATE TABLE IF NOT EXISTS visits (
     artifact_id      BIGINT   NOT NULL,
     detected_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     duration_seconds INT      NULL DEFAULT 0,
+    client_event_id  CHAR(36) NULL, -- UUID ổn định từ mobile; hỗ trợ retry không ghi trùng
+    source           VARCHAR(20) NOT NULL DEFAULT 'MANUAL', -- BEACON | MAP | MANUAL
     PRIMARY KEY (id),
+    UNIQUE KEY uq_visits_user_event (user_id, client_event_id),
     CONSTRAINT chk_visits_duration CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
     CONSTRAINT fk_visits_user
         FOREIGN KEY (user_id) REFERENCES users (id),

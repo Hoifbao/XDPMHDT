@@ -23,3 +23,6 @@ hs_err_pid*.log
 replay_pid*.log
 # File rác sinh ra khi chạy lệnh nhầm
 /stdout
+
+# Do not commit the standalone personalization delivery ZIP
+Smart_Heritage_Personalization_History_Favorites_Offline_Cache.zip
