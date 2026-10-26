@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Heritage</title>
     <link rel="stylesheet" href="theme.css">
+    <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
+    <script src="src/api/auth.js" data-guard="admin"></script>
 </head>
 <body>
     <div id="app">
@@ -16,7 +18,7 @@
                 </div>
                 <div class="nav">
                     <button class="active" onclick="mode='admin';render()">Quản trị</button>
-                    <button type="button" onclick="location.href='src/pages/login.html'">Tài khoản</button>
+                    <button type="button" onclick="location.href='src/pages/profile.html'">Tài khoản</button>
                     <div class="lang">
                         <button class="sel" onclick="setLang('vi')">VI</button>
                         <button class="" onclick="setLang('en')">EN</button>

@@ -39,11 +39,11 @@
         </div>
     </div>
 
-    <script src="../api/auth.js"></script>
+    <script src="../api/auth.js" data-guard="login"></script>
     <script>
         (function () {
-            const user = SHAuth.requireLogin('login.html');
-            if (!user) return;
+            const user = SHAuth.currentUser();
+            if (!user) return; // auth.js đã chuyển về login.html
 
             const msg = document.getElementById('msg');
 
@@ -75,8 +75,8 @@
             refresh();
 
             document.getElementById('refresh').addEventListener('click', refresh);
-            document.getElementById('logout').addEventListener('click', function () {
-                SHAuth.logout();
+            document.getElementById('logout').addEventListener('click', async function () {
+                await SHAuth.logout();
                 window.location.replace('login.html');
             });
         })();
