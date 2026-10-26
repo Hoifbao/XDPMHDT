@@ -35,6 +35,8 @@ import java.util.Map;
  *  1. Swagger, /api/auth/register|login|refresh|logout       -> công khai
  *  2. /api/auth/me, /api/auth/users/{id}                       -> phải đăng nhập (chỉ xem hồ sơ của mình, ADMIN xem được tất cả)
  *  3. /api/users/{userId}/** (yêu thích, lịch sử - Phú)       -> phải đăng nhập, đúng chủ tài khoản hoặc ADMIN
+ *     /api/me/** (dữ liệu của người đang đăng nhập - Phú)      -> phải đăng nhập (VISITOR hoặc ADMIN)
+ *     /api/admin/** (API quản trị)                              -> chỉ ADMIN
  *  4. POST /api/artifacts/{id}/feedbacks (gửi đánh giá - Tường) -> VISITOR hoặc ADMIN đã đăng nhập
  *  5. /api/statistics/** (Dashboard - Tuấn)                    -> chỉ ADMIN
  *  6. /api/demo/** (demo Redis - Phú)                          -> công khai, chỉ để demo
@@ -73,6 +75,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/me", "/api/auth/users/**").authenticated()
                 // 3. Dữ liệu cá nhân theo userId trên URL
                 .requestMatchers("/api/users/{userId}/**").access(ownerOrAdmin())
+                .requestMatchers("/api/me/**").authenticated()
+                .requestMatchers("/api/admin/**").hasRole(Roles.ADMIN)
                 // 4. Du khách gửi đánh giá
                 .requestMatchers(HttpMethod.POST, "/api/artifacts/*/feedbacks").hasAnyRole(Roles.VISITOR, Roles.ADMIN)
                 // 5. Thống kê
