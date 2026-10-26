@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thêm hiện vật - Smart Heritage</title>
     <link rel="stylesheet" href="./artifacts.css">
+    <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
+    <script src="../api/auth.js" data-guard="admin"></script>
 </head>
 <body>
     <main class="shell">

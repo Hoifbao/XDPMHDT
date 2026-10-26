@@ -44,9 +44,18 @@
     <script src="../api/auth.js"></script>
     <script>
         (function () {
-            // Đã đăng nhập thì vào thẳng trang Hồ sơ
-            if (SHAuth.currentUser()) {
-                window.location.replace('profile.html');
+            const params = new URLSearchParams(window.location.search);
+            const reason = params.get('reason');
+            const current = SHAuth.currentUser();
+
+            // ADMIN: về trang quản trị (hoặc trang đang mở dở). Du khách: về trang Hồ sơ.
+            function goNext(user) {
+                window.location.replace(user && user.role === 'ADMIN' ? SHAuth.nextUrl() : 'profile.html');
+            }
+
+            // Đã đăng nhập thì chuyển đi luôn, trừ khi vừa bị chặn vì không đủ quyền
+            if (current && reason !== 'forbidden') {
+                goNext(current);
                 return;
             }
 
@@ -60,6 +69,17 @@
                 document.getElementById('username').value = preset;
                 msg.className = 'auth-msg ok';
                 msg.textContent = 'Đăng ký thành công! Mời bạn đăng nhập.';
+            }
+
+            // Lý do bị chuyển về trang đăng nhập (route guard trong auth.js)
+            const REASONS = {
+                login: 'Vui lòng đăng nhập để tiếp tục.',
+                expired: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.',
+                forbidden: 'Tài khoản hiện tại không có quyền quản trị. Vui lòng đăng nhập bằng tài khoản ADMIN.',
+            };
+            if (!preset && REASONS[reason]) {
+                msg.className = 'auth-msg error';
+                msg.textContent = REASONS[reason];
             }
 
             form.addEventListener('submit', async function (e) {
@@ -86,7 +106,15 @@
                     submit.textContent = 'Đăng nhập';
                     return;
                 }
-                window.location.replace('profile.html');
+                if (result.role !== 'ADMIN' && params.get('next')) {
+                    // Du khách cố vào trang quản trị: báo rõ thay vì quay vòng về login
+                    msg.className = 'auth-msg error';
+                    msg.textContent = REASONS.forbidden;
+                    submit.disabled = false;
+                    submit.textContent = 'Đăng nhập';
+                    return;
+                }
+                goNext(result);
             });
         })();
     </script>
