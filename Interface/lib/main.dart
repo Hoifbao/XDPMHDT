@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'features/personalization/personalization_service.dart';
 import 'features/feedback/feedback_screen.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/login_screen.dart';
@@ -61,6 +64,20 @@ class _HomePageState extends State<HomePage> {
   ];
 
     void openArtifact(Map<String, dynamic> artifact) {
+
+      unawaited(PersonalizationService.recordVisit(
+
+        artifactId: (artifact['id'] as num).toInt(),
+
+        artifactName: artifact['name']?.toString() ?? 'Hiện vật',
+
+        siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
+
+        thumbnailUrl: artifact['image']?.toString() ?? '',
+
+        source: 'MANUAL',
+
+      ));
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -94,6 +111,26 @@ class _HomePageState extends State<HomePage> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final result = await PersonalizationService.addFavorite(
+                      artifactId: (artifact['id'] as num).toInt(),
+                      artifactName: artifact['name']?.toString() ?? 'Hiện vật',
+                      siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
+                      thumbnailUrl: artifact['image']?.toString() ?? '',
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result.message)),
+                    );
+                  },
+                  icon: const Icon(Icons.favorite_border),
+                  label: const Text('Lưu yêu thích'),
+                ),
+              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -651,4 +688,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+}

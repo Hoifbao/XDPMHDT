@@ -1,0 +1,24 @@
+workflows:
+  smart-heritage-ios-validation:
+    name: Smart Heritage iOS validation (unsigned)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Resolve Flutter dependencies
+        script: |
+          cd Interface
+          flutter pub get
+      - name: Run Flutter widget tests
+        script: |
+          cd Interface
+          flutter test
+      - name: Build iOS app without code signing
+        script: |
+          cd Interface
+          flutter build ios --debug --no-codesign
+    artifacts:
+      - Interface/build/ios/iphoneos/*.app
+      - /tmp/xcodebuild_logs/**/*.log
