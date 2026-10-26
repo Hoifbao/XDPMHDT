@@ -8,6 +8,8 @@
 | `POST/PUT/PATCH/DELETE` (thêm/sửa/xóa) | Chỉ **ADMIN** | Có |
 | `POST /api/artifacts/{id}/feedbacks` (gửi đánh giá – Tường) | VISITOR hoặc ADMIN | Có |
 | `/api/users/{userId}/**` (yêu thích, lịch sử – Phú) | Chính chủ `userId` hoặc ADMIN | Có |
+| `/api/me/**` (dữ liệu của người đang đăng nhập – Phú) | VISITOR hoặc ADMIN đã đăng nhập | Có |
+| `/api/admin/**` | Chỉ **ADMIN** | Có |
 | `/api/statistics/**` (Dashboard – Tuấn) | Chỉ **ADMIN** | Có |
 | `/api/auth/me`, `/api/auth/users/{id}` | Chính chủ hoặc ADMIN | Có |
 | `/api/auth/register`, `login`, `refresh`, `logout` | Ai cũng gọi được | Không |
