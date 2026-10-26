@@ -1,77 +1,154 @@
+
 package com.smartheritage.backend.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartheritage.backend.dto.ApiResponse;
-import com.smartheritage.backend.service.RedisDemoService;
+import com.smartheritage.backend.dto.ArtifactResponse;
+import com.smartheritage.backend.service.ArtifactService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Enable only for local demonstration with app.redis-demo.enabled=true. */
+/**
+ * Demo Redis và cache-aside cho hiện vật Smart Heritage.
+ *
+ * POST /api/demo/redis?key=...&value=...&ttlSeconds=60
+ * GET  /api/demo/redis/{key}
+ * GET  /api/demo/redis/artifacts/{id}
+ */
 @RestController
-@RequestMapping("/api/cache/demo")
+@RequestMapping("/api/demo/redis")
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.redis-demo.enabled", havingValue = "true")
+@CrossOrigin(origins = "*")
 public class RedisDemoController {
-    private final RedisDemoService redisDemoService;
 
-    @Value("${app.redis-demo.default-ttl-seconds:600}")
-    private long defaultTtlSeconds;
+    private static final Duration ARTIFACT_TTL =
+            Duration.ofSeconds(60);
+
+    private final StringRedisTemplate redis;
+    private final ArtifactService artifactService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Map<String, Object>>> write(
-        @RequestParam String key,
-        @RequestParam String value,
-        @RequestParam(required = false) Long ttlSeconds) {
-        if (value == null || value.isBlank() || value.length() > 2000) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "value phải có 1–2000 ký tự.");
+    public ResponseEntity<ApiResponse<Map<String, Object>>> put(
+            @RequestParam String key,
+            @RequestParam String value,
+            @RequestParam(defaultValue = "60") long ttlSeconds) {
+
+        if (key == null || key.isBlank()
+                || value == null || value.isBlank()
+                || value.length() > 2000) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(
+                            "Key không được để trống; value phải có 1–2000 ký tự."));
         }
-        long ttl = ttlSeconds == null ? defaultTtlSeconds : ttlSeconds;
-        if (ttl < 1 || ttl > 86400) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "TTL phải từ 1 đến 86400 giây.");
+
+        if (ttlSeconds < 1 || ttlSeconds > 86400) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(
+                            "TTL phải từ 1 đến 86400 giây."));
         }
+
         try {
-            redisDemoService.write(key, value, Duration.ofSeconds(ttl));
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+            redis.opsForValue().set(
+                    key, value, Duration.ofSeconds(ttlSeconds));
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("key", key);
+            result.put("value", value);
+            result.put("ttlSeconds", ttlSeconds);
+
+            return ResponseEntity.ok(
+                    ApiResponse.ok("Đã lưu vào Redis", result));
+        } catch (DataAccessException e) {
+            return redisDown();
         }
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("key", key);
-        body.put("value", value);
-        body.put("ttlSeconds", ttl);
-        body.put("stored", true);
-        return ResponseEntity.ok(ApiResponse.ok("Đã ghi dữ liệu vào Redis", body));
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> read(@PathVariable String key) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> get(
+            @PathVariable String key) {
+
         try {
-            var cached = redisDemoService.read(key);
-            if (cached.isEmpty()) {
+            String value = redis.opsForValue().get(key);
+
+            if (value == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.<Map<String, Object>>error("Không tìm thấy key trong Redis hoặc TTL đã hết."));
+                        .body(ApiResponse.error(
+                                "Key không tồn tại hoặc đã hết hạn: " + key));
             }
-            return ResponseEntity.ok(ApiResponse.ok("Đọc dữ liệu từ Redis",
-                Map.<String, Object>of("key", key, "value", cached.get(), "hit", true)));
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("key", key);
+            result.put("value", value);
+            result.put("ttlSecondsRemaining", redis.getExpire(key));
+
+            return ResponseEntity.ok(
+                    ApiResponse.ok("Đọc dữ liệu từ Redis", result));
+        } catch (DataAccessException e) {
+            return redisDown();
         }
     }
 
-    @DeleteMapping("/{key}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> delete(@PathVariable String key) {
+    @GetMapping("/artifacts/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getArtifactCached(
+            @PathVariable Long id) {
+
+        String cacheKey = "artifact:" + id;
+        long start = System.nanoTime();
+
         try {
-            boolean deleted = redisDemoService.delete(key);
-            return ResponseEntity.ok(ApiResponse.ok("Đã xử lý xóa key Redis", Map.of("key", key, "deleted", deleted)));
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+            String cached = redis.opsForValue().get(cacheKey);
+            String source;
+            JsonNode data;
+
+            if (cached != null) {
+                source = "REDIS";
+                data = objectMapper.readTree(cached);
+            } else {
+                source = "MYSQL";
+
+                ArtifactResponse artifact =
+                        artifactService.getArtifactById(id);
+
+                String json = objectMapper.writeValueAsString(artifact);
+                redis.opsForValue().set(cacheKey, json, ARTIFACT_TTL);
+                data = objectMapper.readTree(json);
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("source", source);
+            result.put(
+                    "elapsedMs",
+                    (System.nanoTime() - start) / 1_000_000.0);
+            result.put("artifact", data);
+
+            return ResponseEntity.ok(
+                    ApiResponse.ok("Đọc hiện vật từ " + source, result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (DataAccessException e) {
+            return redisDown();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error(
+                            "Không thể xử lý dữ liệu hiện vật."));
         }
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> redisDown() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(
+                        "Không kết nối được Redis. "
+                                + "Kiểm tra service redis-cache trong Docker Compose."));
     }
 }

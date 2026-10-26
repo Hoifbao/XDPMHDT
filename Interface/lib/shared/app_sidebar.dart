@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../features/auth/auth_service.dart';
@@ -12,13 +13,17 @@ class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
 
   void _open(BuildContext context, Widget screen) {
-    Navigator.pop(context); // đóng Drawer
-    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     const sage = Color(0xFF718B78);
+
     return Drawer(
       child: ValueListenableBuilder<AuthUser?>(
         valueListenable: AuthService.currentUser,
@@ -32,10 +37,19 @@ class AppSidebar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Text('Smart Heritage', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Smart Heritage',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Text(
-                      user == null ? 'Khách tham quan' : 'Xin chào, ${user.displayName}',
+                      user == null
+                          ? 'Khách tham quan'
+                          : 'Xin chào, ${user.displayName}',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],
@@ -65,7 +79,7 @@ class AppSidebar extends StatelessWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.favorite_border),
-                  title: const Text('Yêu thích'),
+                  title: const Text('Hiện vật yêu thích'),
                   onTap: () => _open(context, const FavoritesScreen()),
                 ),
                 ListTile(
