@@ -1,0 +1,11 @@
+# Giảm dung lượng gửi vào docker build (context = thư mục gốc repo)
+.git
+**/target
+**/.idea
+**/.vscode
+Interface
+WebAdmin
+Docs
+Diagram
+*.zip
+**/.env

@@ -1,0 +1,41 @@
+# auth-service (Bảo - Sprint 4). Chạy: mvn -pl services/auth-service spring-boot:run
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    # Tuần 4: mặc định vẫn dùng smart_heritage_db để giữ tài khoản mẫu (admin / Test@1234) và
+    # khóa ngoại users <- visits/likes/feedbacks của Backend cũ. Khi Tường có script auth_db
+    # (Infra/db/01_auth.sql), chỉ cần đặt AUTH_DB_URL=jdbc:mysql://localhost:3307/auth_db?...
+    url: "${AUTH_DB_URL:jdbc:mysql://localhost:3307/smart_heritage_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${AUTH_DB_USERNAME:root}
+    password: ${AUTH_DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+# Phải TRÙNG khóa với api-gateway và Backend cũ (cùng biến môi trường JWT_SECRET)
+app:
+  jwt:
+    secret: ${JWT_SECRET:smart-heritage-dev-secret-key-change-me-0123456789abcdef}
+    access-token-ttl-seconds: ${JWT_ACCESS_TTL:900}
+    refresh-token-ttl-seconds: ${JWT_REFRESH_TTL:604800}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

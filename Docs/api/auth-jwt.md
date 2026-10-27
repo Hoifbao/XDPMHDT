@@ -104,3 +104,21 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 `application.properties`: `app.jwt.secret` (≥ 32 ký tự; deploy thật thì đặt biến môi trường `JWT_SECRET`),
 `app.jwt.access-token-ttl-seconds` (mặc định 900), `app.jwt.refresh-token-ttl-seconds` (mặc định 604800 = 7 ngày).
+
+## 6. Từ tuần 4: đăng nhập đi qua API Gateway
+
+- Client **không đổi gì**: vẫn gọi `http://localhost:8080` với cùng đường dẫn và cùng JSON.
+  Cổng 8080 giờ là **api-gateway**; `/api/auth/**` được chuyển tới **auth-service (8081)**; Backend cũ chuyển sang **8090**.
+- Luật phân quyền ở mục 1 giờ được kiểm tra tại Gateway (`services/api-gateway/.../security/AccessRules.java`).
+  Backend cũ vẫn tự kiểm tra thêm một lần như cũ.
+- Swagger: login thử ở `http://localhost:8081/swagger-ui.html`. API `/api/auth/me` chỉ chạy khi gọi qua Gateway
+  (vì đọc header `X-User-*` do Gateway gắn).
+- Service mới lấy người đang đăng nhập bằng:
+  ```java
+  import com.smartheritage.common.web.CurrentUser;
+  Long userId = CurrentUser.requireUserId();   // chưa đăng nhập -> 401
+  boolean admin = CurrentUser.isAdmin();
+  ```
+  Không dùng `SecurityUtils` / `@AuthenticationPrincipal` trong service mới (chỉ Backend cũ còn dùng).
+- Gateway xóa mọi header `X-User-*` client tự gửi, nên app **không được** tự gắn `X-User-Id`.
+- Kiến trúc chi tiết: `Docs/architecture/microservices.md`.
