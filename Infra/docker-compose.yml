@@ -1,16 +1,36 @@
-﻿services:
+# Smart Heritage - Docker Compose (Bảo - Sprint 4)
+#
+# Cách dùng (chạy ở thư mục gốc repo):
+#   docker compose -f Infra/docker-compose.yml up -d                       -> chỉ MySQL + Redis (như tuần 1-3)
+#   docker compose -f Infra/docker-compose.yml --profile core up -d --build -> + Backend cũ, auth-service, Gateway
+#   docker compose -f Infra/docker-compose.yml --profile mq up -d          -> + RabbitMQ
+#   docker compose -f Infra/docker-compose.yml --profile monitoring up -d  -> + Prometheus, Grafana
+#   docker compose -f Infra/docker-compose.yml --profile nifi up -d        -> + Apache NiFi (Tuấn)
+# Bật nhiều profile: --profile core --profile monitoring
+#
+# Lưu ý: profile core chiếm cổng 8080/8081/8090. Nếu đang chạy Gateway/auth/Backend bằng
+# mvn spring-boot:run thì KHÔNG bật profile core (trùng cổng).
+# Mật khẩu, khóa JWT: copy Infra/.env.example thành Infra/.env rồi sửa.
+
+services:
+  # ---------- Luôn chạy (không gắn profile) ----------
   mysql-db:
     image: mysql:8.0
     container_name: smart_heritage_mysql
     restart: always
     environment:
       MYSQL_DATABASE: smart_heritage_db
-      MYSQL_ROOT_PASSWORD: rootpassword123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpassword123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis-cache:
     image: redis:7.2-alpine
@@ -19,5 +39,113 @@
     ports:
       - "6379:6379"
 
+  # ---------- profile: core ----------
+  backend:
+    profiles: ["core"]
+    build:
+      context: ../Backend
+    container_name: smart_heritage_backend
+    environment:
+      SERVER_PORT: 8090
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/smart_heritage_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      SPRING_DATA_REDIS_HOST: redis-cache
+      JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
+    ports:
+      - "8090:8090"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  auth-service:
+    profiles: ["core"]
+    build:
+      context: ..
+      dockerfile: services/auth-service/Dockerfile
+    container_name: smart_heritage_auth
+    environment:
+      AUTH_DB_URL: jdbc:mysql://mysql-db:3306/smart_heritage_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      AUTH_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  api-gateway:
+    profiles: ["core"]
+    build:
+      context: ..
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: smart_heritage_gateway
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      LEGACY_BACKEND_URL: http://backend:8090
+      # Tách xong service nào thì thêm 1 dòng, vd: SITE_SERVICE_URL: http://site-service:8082
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - backend
+
+  # ---------- profile: mq ----------
+  rabbitmq:
+    profiles: ["mq"]
+    image: rabbitmq:3.13-management
+    container_name: smart_heritage_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-smartheritage}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me-rabbit}
+    ports:
+      - "5672:5672"     # AMQP cho service
+      - "15672:15672"   # giao diện quản trị
+
+  # ---------- profile: monitoring ----------
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.54.1
+    container_name: smart_heritage_prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # cần trên Linux; Windows/Mac đã có sẵn
+    ports:
+      - "9090:9090"
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:11.2.0
+    container_name: smart_heritage_grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-grafana}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  # ---------- profile: nifi (Tuấn gắn luồng) ----------
+  nifi:
+    profiles: ["nifi"]
+    image: apache/nifi:1.28.1
+    container_name: smart_heritage_nifi
+    environment:
+      SINGLE_USER_CREDENTIALS_USERNAME: ${NIFI_USERNAME:-admin}
+      SINGLE_USER_CREDENTIALS_PASSWORD: ${NIFI_PASSWORD:-change-me-nifi-123}
+      NIFI_JVM_HEAP_INIT: 512m
+      NIFI_JVM_HEAP_MAX: 1g
+    volumes:
+      - ./nifi/drivers:/opt/nifi/nifi-current/drivers
+    ports:
+      - "8443:8443"     # https://localhost:8443/nifi
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
 volumes:
   mysql_data:
+  grafana_data:

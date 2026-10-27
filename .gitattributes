@@ -1,0 +1,25 @@
+# Chuẩn hóa xuống dòng (Bảo - Sprint 4): tránh lỗi CRLF/LF khi merge giữa máy Windows và Linux/Mac.
+# Lưu trong Git là LF; khi checkout trên Windows Git tự đổi sang CRLF (trừ các file ghi eol=lf).
+* text=auto
+
+# File chạy trong Linux/Docker phải giữ LF
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+
+# File chạy trên Windows giữ CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# File nhị phân: không đổi
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.jar  binary
+*.zip  binary
+*.docx binary
+*.xlsx binary
+*.pdf  binary
