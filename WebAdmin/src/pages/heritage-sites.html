@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Di tích - Smart Heritage</title>
     <link rel="stylesheet" href="../../theme.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTR9BMY=" crossorigin="">
     <style>
         .hs-coord {
             font-size: 12px;
@@ -64,35 +66,17 @@
             width: 100%;
             min-height: 200px;
             border-radius: 16px;
-            background: radial-gradient(circle at 30% 40%, #c9ddca 0 4%, transparent 5%),
-                        radial-gradient(circle at 70% 60%, #d6c79f 0 5%, transparent 6%),
-                        linear-gradient(135deg, #e7eee4, #dfe8dc);
+            background: linear-gradient(135deg, #e7eee4, #dfe8dc);
             position: relative;
             overflow: hidden;
             margin-top: 14px;
         }
-        .map-preview::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: repeating-linear-gradient(35deg, transparent 0 30px, rgba(255,255,255,.45) 31px 33px);
+        .map-overview {
+            height: 230px;
+            width: 100%;
+            border-radius: 16px;
+            z-index: 0;
         }
-        .map-pins {
-            position: absolute;
-            inset: 0;
-        }
-        .map-center-label {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 6px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
         /* Modal */
         .hs-modal {
             display: none;
@@ -153,6 +137,23 @@
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
+        .hs-map-picker {
+            height: 300px;
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #e7eee4;
+            z-index: 0;
+        }
+        .hs-map-help {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        @media (max-width: 520px) {
+            .hs-form-row { grid-template-columns: 1fr; gap: 0; }
+            .hs-map-picker { height: 240px; }
+        }
         .hs-modal-actions {
             display: flex;
             gap: 10px;
@@ -192,10 +193,9 @@
             <button type="button" class="btn" onclick="openModal('create')">+ Thêm di tích</button>
         </div>
 
-        <!-- Note -->
-        <div class="hs-note" role="note">
-            Dữ liệu mẫu từ <b>Infra/init_db.sql</b>. Nút Sửa/Xóa chỉ thay đổi trong trình duyệt,
-            chưa kết nối API.
+        <!-- Trạng thái kết nối Backend -->
+        <div class="hs-note" id="api-note" role="status" aria-live="polite">
+            Đang tải danh sách di tích từ Backend…
         </div>
 
         <!-- Stats -->
@@ -218,23 +218,17 @@
             </div>
         </div>
 
-        <!-- Bản đồ tổng quan (placeholder) -->
+        <!-- Bản đồ tổng quan -->
         <div class="card" style="margin-bottom: 18px;">
             <div class="panel-title">
                 <div>
                     <div class="eyebrow">Bản đồ</div>
                     <h2 style="margin: 4px 0;">Vị trí Di tích</h2>
                 </div>
-                <span class="pill">Placeholder</span>
+                <span class="pill">OpenStreetMap</span>
             </div>
             <div class="map-preview">
-                <div class="map-pins" id="map-pins"></div>
-                <div class="map-center-label">
-                    <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" fill="var(--sage)"/>
-                    </svg>
-                    <span>Tích hợp bản đồ thật khi có API</span>
-                </div>
+                <div id="overview-map" class="map-overview" aria-label="Bản đồ vị trí các di tích"></div>
             </div>
         </div>
 
@@ -287,6 +281,11 @@
                     <label for="f-map-url">URL ảnh bản đồ</label>
                     <input type="text" id="f-map-url" placeholder="https://...">
                 </div>
+                <div class="hs-form-group">
+                    <label for="site-map-picker">Chọn tọa độ trên bản đồ</label>
+                    <p class="hs-map-help">Bấm vào bản đồ để đặt ghim; kéo bản đồ để tìm vị trí. Tọa độ sẽ tự điền bên dưới.</p>
+                    <div id="site-map-picker" class="hs-map-picker" role="application" aria-label="Bản đồ chọn vị trí di tích"></div>
+                </div>
                 <div class="hs-form-row">
                     <div class="hs-form-group">
                         <label for="f-lat">Vĩ độ (Latitude)</label>
@@ -305,6 +304,8 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="./heritage-sites.js"></script>
 </body>
 </html>
