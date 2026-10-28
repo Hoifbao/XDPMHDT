@@ -140,6 +140,9 @@ services:
       NIFI_JVM_HEAP_MAX: 1g
     volumes:
       - ./nifi/drivers:/opt/nifi/nifi-current/drivers
+      # Giữ flow/cấu hình NiFi khi chạy docker compose down (chỉ mất khi down -v)
+      - nifi_conf:/opt/nifi/nifi-current/conf
+      - nifi_state:/opt/nifi/nifi-current/state
     ports:
       - "8443:8443"     # https://localhost:8443/nifi
     depends_on:
@@ -149,3 +152,5 @@ services:
 volumes:
   mysql_data:
   grafana_data:
+  nifi_conf:
+  nifi_state:
