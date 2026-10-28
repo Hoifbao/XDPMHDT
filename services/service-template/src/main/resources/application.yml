@@ -1,0 +1,32 @@
+# MẪU cấu hình service. Khi copy, đổi 3 chỗ có ghi "ĐỔI": tên, cổng, schema.
+server:
+  port: ${SERVER_PORT:8099}            # ĐỔI: site 8082, content 8083, beacon 8084, personalization 8085, feedback 8086, analytics 8087
+
+spring:
+  application:
+    name: service-template             # ĐỔI: site-service, content-service...
+  datasource:
+    # ĐỔI tên schema: site_db, content_db, beacon_db... (createDatabaseIfNotExist tự tạo nếu chưa có)
+    url: "${DB_URL:jdbc:mysql://localhost:3307/template_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
