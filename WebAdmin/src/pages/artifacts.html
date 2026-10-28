@@ -13,7 +13,7 @@
                 <span class="mark">SH</span>
                 <span>Smart Heritage</span>
             </a>
-            <span class="pill">Giao diện mẫu</span>
+            <span class="pill">CMS Hiện vật</span>
         </header>
 
         <div class="page-heading">
@@ -25,6 +25,7 @@
             <a class="button button-secondary" href="../../admin.html">Quay lại</a>
         </div>
 
+        <section class="card form-section"><h2>Danh sách hiện vật</h2><div id="artifact-list" role="status">Đang tải…</div></section>
         <form id="artifact-form">
             <section class="card form-section" aria-labelledby="artifact-info-heading">
                 <div class="section-heading">
@@ -40,9 +41,6 @@
                         <span>Địa điểm di tích <span class="required">*</span></span>
                         <select name="location_id" required>
                             <option value="">Chọn địa điểm</option>
-                            <option value="1">Văn Miếu - Quốc Tử Giám</option>
-                            <option value="2">Bảo tàng Lịch sử Quốc gia</option>
-                            <option value="3">Hoàng thành Thăng Long</option>
                         </select>
                     </label>
 
@@ -108,10 +106,6 @@
                                 <select name="language_code[]" required>
                                     <option value="vi">Tiếng Việt (vi)</option>
                                     <option value="en">Tiếng Anh (en)</option>
-                                    <option value="fr">Tiếng Pháp (fr)</option>
-                                    <option value="ja">Tiếng Nhật (ja)</option>
-                                    <option value="ko">Tiếng Hàn (ko)</option>
-                                    <option value="zh">Tiếng Trung (zh)</option>
                                 </select>
                             </label>
                             <label class="field">
@@ -163,7 +157,7 @@
                             </label>
                             <label class="field field-wide">
                                 <span>URL tệp <span class="required">*</span></span>
-                                <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg" required>
+                                <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg">
                             </label>
                             <label class="field field-wide">
                                 <span>Chú thích</span>
@@ -177,7 +171,7 @@
 
             <div class="form-footer">
                 <p class="prototype-note" id="form-message" role="status" aria-live="polite">
-                    Giao diện tĩnh: thông tin chưa được gửi hoặc lưu vào Backend.
+                    Đang tải dữ liệu qua Gateway…
                 </p>
                 <div class="form-actions">
                     <button class="button button-secondary" type="reset">Xóa nội dung</button>
@@ -196,10 +190,6 @@
                     <select name="language_code[]" required>
                         <option value="vi">Tiếng Việt (vi)</option>
                         <option value="en">Tiếng Anh (en)</option>
-                        <option value="fr">Tiếng Pháp (fr)</option>
-                        <option value="ja">Tiếng Nhật (ja)</option>
-                        <option value="ko">Tiếng Hàn (ko)</option>
-                        <option value="zh">Tiếng Trung (zh)</option>
                     </select>
                 </label>
                 <label class="field">
@@ -241,7 +231,7 @@
                 </label>
                 <label class="field field-wide">
                     <span>URL tệp <span class="required">*</span></span>
-                    <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg" required>
+                    <input name="file_url[]" type="url" maxlength="500" placeholder="https://example.com/media.jpg">
                 </label>
                 <label class="field field-wide">
                     <span>Chú thích</span>

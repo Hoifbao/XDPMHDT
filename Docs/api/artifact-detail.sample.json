@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "siteId": 1,
+    "name": "Dong Son bronze drum",
+    "artifactCode": "ART-001",
+    "description": "An artifact of the Dong Son culture.",
+    "thumbnailUrl": "https://example.com/media/drum.jpg",
+    "period": "Thế kỷ VII - I TCN",
+    "material": "Đồng",
+    "dimensions": "Cao 60 cm",
+    "beaconUuid": "fda50693-a4e2-4fb1-afcf-c6eb07647825",
+    "status": "ACTIVE",
+    "contents": [
+      {
+        "languageCode": "vi",
+        "title": "Trống đồng Đông Sơn",
+        "description": "Hiện vật tiêu biểu của văn hóa Đông Sơn.",
+        "audioUrl": "https://example.com/media/drum-vi.mp3",
+        "videoUrl": "https://example.com/media/drum.mp4",
+        "imageUrls": "[\"https://example.com/media/drum.jpg\"]",
+        "transcript": "Lời thuyết minh tiếng Việt.",
+        "id": 1,
+        "artifactId": 1,
+        "createdAt": "2026-10-28T12:00:00",
+        "updatedAt": "2026-10-28T12:00:00"
+      },
+      {
+        "languageCode": "en",
+        "title": "Dong Son bronze drum",
+        "description": "An artifact of the Dong Son culture.",
+        "audioUrl": "https://example.com/media/drum-en.mp3",
+        "videoUrl": "",
+        "imageUrls": "[]",
+        "transcript": "English narration.",
+        "id": 2,
+        "artifactId": 1,
+        "createdAt": "2026-10-28T12:00:00",
+        "updatedAt": "2026-10-28T12:00:00"
+      }
+    ],
+    "media": [
+      {
+        "mediaType": "IMAGE",
+        "fileUrl": "https://example.com/media/drum.jpg",
+        "caption": "Mặt trống",
+        "id": 1,
+        "artifactId": 1
+      },
+      {
+        "mediaType": "AUDIO",
+        "fileUrl": "https://example.com/media/drum-vi.mp3",
+        "caption": "Thuyết minh",
+        "id": 2,
+        "artifactId": 1
+      },
+      {
+        "mediaType": "VIDEO",
+        "fileUrl": "https://example.com/media/drum.mp4",
+        "caption": "Giới thiệu",
+        "id": 3,
+        "artifactId": 1
+      }
+    ],
+    "id": 1,
+    "locationId": 1,
+    "locationName": "Museum",
+    "createdAt": "2026-10-28T12:00:00",
+    "updatedAt": "2026-10-28T12:00:00",
+    "requestedLanguage": "en",
+    "languageCode": "en",
+    "fallback": false,
+    "content": {
+      "languageCode": "en",
+      "title": "Dong Son bronze drum",
+      "description": "An artifact of the Dong Son culture.",
+      "audioUrl": "https://example.com/media/drum-en.mp3",
+      "videoUrl": "",
+      "imageUrls": "[]",
+      "transcript": "English narration.",
+      "id": 2,
+      "artifactId": 1,
+      "createdAt": "2026-10-28T12:00:00",
+      "updatedAt": "2026-10-28T12:00:00"
+    }
+  }
+}

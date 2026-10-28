@@ -1,0 +1,7 @@
+{
+  "java.compile.nullAnalysis.mode": "disabled",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.jdt.ls.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot",
+  "maven.terminal.useJavaHome": true,
+  "java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot"
+}

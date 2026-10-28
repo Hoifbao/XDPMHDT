@@ -1,0 +1,37 @@
+{
+  "siteId": 1,
+  "name": "Trống đồng Đông Sơn",
+  "artifactCode": "ART-001",
+  "description": "Hiện vật tiêu biểu của văn hóa Đông Sơn.",
+  "thumbnailUrl": "https://example.com/media/drum.jpg",
+  "period": "Thế kỷ VII - I TCN",
+  "material": "Đồng",
+  "dimensions": "Cao 60 cm",
+  "beaconUuid": "fda50693-a4e2-4fb1-afcf-c6eb07647825",
+  "status": "ACTIVE",
+  "contents": [
+    {
+      "languageCode": "vi",
+      "title": "Trống đồng Đông Sơn",
+      "description": "Hiện vật tiêu biểu của văn hóa Đông Sơn.",
+      "audioUrl": "https://example.com/media/drum-vi.mp3",
+      "videoUrl": "https://example.com/media/drum.mp4",
+      "imageUrls": "[\"https://example.com/media/drum.jpg\"]",
+      "transcript": "Lời thuyết minh tiếng Việt."
+    },
+    {
+      "languageCode": "en",
+      "title": "Dong Son bronze drum",
+      "description": "An artifact of the Dong Son culture.",
+      "audioUrl": "https://example.com/media/drum-en.mp3",
+      "videoUrl": "",
+      "imageUrls": "[]",
+      "transcript": "English narration."
+    }
+  ],
+  "media": [
+    { "mediaType": "IMAGE", "fileUrl": "https://example.com/media/drum.jpg", "caption": "Mặt trống" },
+    { "mediaType": "AUDIO", "fileUrl": "https://example.com/media/drum-vi.mp3", "caption": "Thuyết minh" },
+    { "mediaType": "VIDEO", "fileUrl": "https://example.com/media/drum.mp4", "caption": "Giới thiệu" }
+  ]
+}
