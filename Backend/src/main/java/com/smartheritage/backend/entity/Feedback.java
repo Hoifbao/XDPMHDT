@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * kéo theo việc nạp lazy quan hệ user.
  */
 @Entity
-@Table(name = "Feedbacks")
+@Table(name = "feedbacks")
 @Getter
 @Setter
 @NoArgsConstructor
