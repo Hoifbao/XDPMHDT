@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS ibeacons (
     battery_level INT      NULL,
     status        VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE | INACTIVE
     created_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY uq_ibeacons_identity (uuid, major, minor),
     CONSTRAINT chk_ibeacons_major   CHECK (major BETWEEN 0 AND 65535),
