@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,7 +56,7 @@ public class ArtifactService {
     @Transactional(readOnly = true)
     public ArtifactResponse getArtifactByBeaconUuid(String beaconUuid) {
         Artifact artifact = artifactRepository.findByBeaconUuid(beaconUuid)
-                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy hiện vật với Beacon UUID: " + beaconUuid));
         return toFullResponse(artifact);
     }
@@ -231,7 +232,7 @@ public class ArtifactService {
     /** Xóa một bản nội dung ngôn ngữ */
     public void deleteContent(Long contentId) {
         ArtifactContent content = contentRepository.findById(contentId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy nội dung với ID: " + contentId));
         if ("vi".equals(content.getLanguageCode())) throw new IllegalArgumentException("Vietnamese content is required");
         contentRepository.delete(content);
@@ -316,7 +317,7 @@ public class ArtifactService {
 
     private Artifact findOrThrow(Long id) {
         return artifactRepository.findById(id)
-                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy hiện vật với ID: " + id));
     }
 

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * REST Controller – Artifact CRUD
@@ -76,6 +77,9 @@ public class ArtifactController {
         try {
             ArtifactResponse response = artifactService.localize(artifactService.getArtifactById(id), lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", response));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -92,6 +96,9 @@ public class ArtifactController {
         try {
             ArtifactResponse response = artifactService.localize(artifactService.getArtifactByBeaconUuid(uuid), lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", response));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -125,6 +132,9 @@ public class ArtifactController {
         try {
             ArtifactResponse response = artifactService.updateArtifact(id, request);
             return ResponseEntity.ok(ApiResponse.ok("Cập nhật hiện vật thành công", response));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -138,6 +148,9 @@ public class ArtifactController {
         try {
             artifactService.deleteArtifact(id);
             return ResponseEntity.ok(ApiResponse.ok("Xóa hiện vật thành công", null));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -158,6 +171,9 @@ public class ArtifactController {
         try {
             List<ArtifactContentResponse> contents = artifactService.getContents(id);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", contents));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -176,6 +192,9 @@ public class ArtifactController {
         try {
             ArtifactContentResponse content = artifactService.getContentByLanguage(id, lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", content));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -193,6 +212,9 @@ public class ArtifactController {
         try {
             ArtifactContentResponse response = artifactService.upsertContent(id, request);
             return ResponseEntity.ok(ApiResponse.ok("Lưu nội dung ngôn ngữ thành công", response));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -207,6 +229,9 @@ public class ArtifactController {
         try {
             artifactService.deleteContent(contentId);
             return ResponseEntity.ok(ApiResponse.ok("Xóa nội dung ngôn ngữ thành công", null));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
