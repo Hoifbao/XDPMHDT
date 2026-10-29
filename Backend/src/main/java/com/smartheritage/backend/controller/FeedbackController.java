@@ -29,7 +29,6 @@ import java.util.NoSuchElementException;
 @RestController
 @RequestMapping("/api/artifacts/{artifactId}/feedbacks")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class FeedbackController {
 
     private static final String NOT_LOGGED_IN = "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!";
