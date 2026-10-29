@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  POM cha của Smart Heritage (Bảo - Sprint 4).
+  - Quản lý phiên bản chung cho mọi service: Spring Boot, Spring Cloud, jjwt, springdoc, Lombok.
+  - Liệt kê các module để build một lần: mvn clean install (chạy ở thư mục gốc repo).
+  - Service mới: thêm 1 dòng <module> bên dưới (xem services/README.md, bước 2).
+  Backend (monolith cũ, cổng 8090) vẫn giữ parent riêng để không làm xung đột các PR đang mở;
+  nó chỉ được liệt kê ở đây để build cùng.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.smartheritage</groupId>
+    <artifactId>smart-heritage-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>smart-heritage-parent</name>
+    <description>Smart Heritage - POM cha cho các microservice</description>
+
+    <modules>
+        <module>services/common</module>
+        <module>services/auth-service</module>
+        <module>services/api-gateway</module>
+        <module>services/service-template</module>
+        <!-- Ân, Xuân Anh, Khoa thêm module của mình ở đây, vd: <module>services/site-service</module> -->
+        <module>Backend</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <!-- Lombok >= 1.18.40 mới hỗ trợ JDK 24/25 -->
+        <lombok.version>1.18.42</lombok.version>
+        <springdoc.version>2.8.9</springdoc.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <!-- Spring Cloud 2025.0.x (Northfields) là release train dành cho Spring Boot 3.5.x -->
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <smart-heritage.version>0.0.1-SNAPSHOT</smart-heritage.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.smartheritage</groupId>
+                <artifactId>common</artifactId>
+                <version>${smart-heritage.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Khai báo rõ Lombok là annotation processor (từ JDK 23 javac không tự chạy nữa) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

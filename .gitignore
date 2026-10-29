@@ -23,3 +23,6 @@ hs_err_pid*.log
 replay_pid*.log
 # File rác sinh ra khi chạy lệnh nhầm
 /stdout
+
+# JDBC driver cho NiFi: mỗi người tự tải (Infra/nifi/drivers/README.md)
+Infra/nifi/drivers/*.jar

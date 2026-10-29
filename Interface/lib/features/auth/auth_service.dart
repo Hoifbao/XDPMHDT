@@ -31,12 +31,12 @@ class AuthUser {
   }
 
   Map<String, dynamic> toJson() => {
-        'userId': userId,
-        'username': username,
-        'email': email,
-        'fullName': fullName,
-        'role': role,
-      };
+    'userId': userId,
+    'username': username,
+    'email': email,
+    'fullName': fullName,
+    'role': role,
+  };
 
   bool get isAdmin => role == 'ADMIN';
 
@@ -76,7 +76,9 @@ class AuthService {
   static const String _kRefresh = 'sh_refresh_token';
 
   /// Người dùng hiện tại; các màn hình lắng nghe để tự cập nhật.
-  static final ValueNotifier<AuthUser?> currentUser = ValueNotifier<AuthUser?>(null);
+  static final ValueNotifier<AuthUser?> currentUser = ValueNotifier<AuthUser?>(
+    null,
+  );
 
   static String? _accessToken;
   static String? _refreshToken;
@@ -97,7 +99,9 @@ class AuthService {
       _refreshToken = prefs.getString(_kRefresh);
       final rawUser = prefs.getString(_kUser);
       if (rawUser != null && _refreshToken != null) {
-        currentUser.value = AuthUser.fromJson(jsonDecode(rawUser) as Map<String, dynamic>);
+        currentUser.value = AuthUser.fromJson(
+          jsonDecode(rawUser) as Map<String, dynamic>,
+        );
       } else {
         await _clearSession();
       }
@@ -121,7 +125,10 @@ class AuthService {
     });
   }
 
-  static Future<Map<String, dynamic>> login(String username, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+  ) async {
     final result = await _post('/api/auth/login', {
       'username': username.trim(),
       'password': password,
@@ -137,7 +144,9 @@ class AuthService {
     if (currentUser.value == null) return {'error': 'Bạn chưa đăng nhập.'};
     try {
       // http.get đi qua AuthHttpClient nên tự có Bearer token
-      final response = await http.get(Uri.parse('$baseUrl/api/auth/me')).timeout(_timeout);
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/auth/me'))
+          .timeout(_timeout);
       if (response.statusCode == 401 && !hasRefreshToken) {
         return {'error': 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'};
       }
@@ -172,7 +181,9 @@ class AuthService {
           )
           .timeout(_timeout);
       if (response.statusCode == 200) {
-        await _saveSession(jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
+        await _saveSession(
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+        );
         return true;
       }
       if (response.statusCode == 401) {
@@ -231,7 +242,10 @@ class AuthService {
   static String get _connectionError =>
       'Không kết nối được máy chủ ($baseUrl). Hãy kiểm tra Backend đã chạy chưa.';
 
-  static Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+  static Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await rawClient
           .post(
@@ -259,7 +273,9 @@ class AuthService {
       return data;
     }
     return {
-      'error': data['message']?.toString() ?? 'Có lỗi xảy ra (mã ${response.statusCode}).',
+      'error':
+          data['message']?.toString() ??
+          'Có lỗi xảy ra (mã ${response.statusCode}).',
     };
   }
 }
