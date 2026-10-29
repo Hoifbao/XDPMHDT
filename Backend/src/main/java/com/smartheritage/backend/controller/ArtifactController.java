@@ -50,10 +50,12 @@ public class ArtifactController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ArtifactSummaryResponse>>> getArtifacts(
             @RequestParam(required = false) Long locationId,
+            @RequestParam(required = false) Long siteId,
             @RequestParam(required = false) String search) {
 
         List<ArtifactSummaryResponse> result;
 
+        if (siteId != null) locationId = siteId;
         if (locationId != null) {
             result = artifactService.getArtifactsByLocation(locationId);
         } else if (search != null && !search.isBlank()) {
@@ -70,12 +72,12 @@ public class ArtifactController {
      * Trả về chi tiết đầy đủ kèm contents đa ngôn ngữ.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ArtifactResponse>> getArtifactById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ArtifactResponse>> getArtifactById(@PathVariable Long id, @RequestParam(defaultValue = "vi") String lang) {
         try {
-            ArtifactResponse response = artifactService.getArtifactById(id);
+            ArtifactResponse response = artifactService.localize(artifactService.getArtifactById(id), lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", response));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -86,12 +88,12 @@ public class ArtifactController {
      */
     @GetMapping("/beacon/{uuid}")
     public ResponseEntity<ApiResponse<ArtifactResponse>> getByBeaconUuid(
-            @PathVariable String uuid) {
+            @PathVariable String uuid, @RequestParam(defaultValue = "vi") String lang) {
         try {
-            ArtifactResponse response = artifactService.getArtifactByBeaconUuid(uuid);
+            ArtifactResponse response = artifactService.localize(artifactService.getArtifactByBeaconUuid(uuid), lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", response));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -137,7 +139,7 @@ public class ArtifactController {
             artifactService.deleteArtifact(id);
             return ResponseEntity.ok(ApiResponse.ok("Xóa hiện vật thành công", null));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -157,7 +159,7 @@ public class ArtifactController {
             List<ArtifactContentResponse> contents = artifactService.getContents(id);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", contents));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -175,7 +177,7 @@ public class ArtifactController {
             ArtifactContentResponse content = artifactService.getContentByLanguage(id, lang);
             return ResponseEntity.ok(ApiResponse.ok("Thành công", content));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -206,7 +208,7 @@ public class ArtifactController {
             artifactService.deleteContent(contentId);
             return ResponseEntity.ok(ApiResponse.ok("Xóa nội dung ngôn ngữ thành công", null));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         }
     }

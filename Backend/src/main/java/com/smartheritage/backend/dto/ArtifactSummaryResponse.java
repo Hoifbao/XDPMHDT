@@ -11,6 +11,7 @@ import lombok.Data;
 public class ArtifactSummaryResponse {
 
     private Long id;
+    private Long siteId;
     private Long locationId;
     private String locationName;
     private String name;
