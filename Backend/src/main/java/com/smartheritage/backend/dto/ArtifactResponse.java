@@ -13,6 +13,7 @@ import java.util.List;
 public class ArtifactResponse {
 
     private Long id;
+    private Long siteId;
     private Long locationId;
     private String locationName;
     private String name;
@@ -29,4 +30,9 @@ public class ArtifactResponse {
 
     /** Nội dung đa ngôn ngữ */
     private List<ArtifactContentResponse> contents;
+    private List<com.smartheritage.backend.entity.MediaResource> media;
+    private String requestedLanguage;
+    private String languageCode;
+    private boolean fallback;
+    private ArtifactContentResponse content;
 }

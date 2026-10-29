@@ -1,0 +1,33 @@
+# api-gateway (Bảo - Sprint 4). Chạy: mvn -pl services/api-gateway spring-boot:run
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+app:
+  # Phải TRÙNG khóa với auth-service và Backend cũ (cùng biến môi trường JWT_SECRET)
+  jwt:
+    secret: ${JWT_SECRET:smart-heritage-dev-secret-key-change-me-0123456789abcdef}
+  # Địa chỉ các service. Service chưa tách -> trỏ về Backend cũ (LEGACY_BACKEND_URL, cổng 8090).
+  # Tách xong service nào thì đặt biến môi trường tương ứng, hoặc sửa giá trị mặc định ở đây.
+  routes:
+    legacy: ${LEGACY_BACKEND_URL:http://localhost:8090}
+    auth: ${AUTH_SERVICE_URL:http://localhost:8081}
+    site: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    content: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    beacon: ${BEACON_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    personalization: ${PERSONALIZATION_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    feedback: ${FEEDBACK_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    analytics: ${ANALYTICS_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+
+# Giám sát: http://localhost:8080/actuator/prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

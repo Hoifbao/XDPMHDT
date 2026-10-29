@@ -2,5 +2,4 @@
 
 Store the OpenAPI/Swagger specification and API usage notes here. Keep the specification aligned with the REST API implemented in `Backend/`.
 
-Artifact APIs, localization, Gateway setup and beacon handoff:
-[Artifacts & Localization](artifacts-localization.md).
+Hiện vật và đa ngôn ngữ (backend chính W3): [Artifacts & Localization](artifacts-localization.md).

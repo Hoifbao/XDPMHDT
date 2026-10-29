@@ -1,0 +1,8 @@
+# Grafana tự thêm nguồn dữ liệu Prometheus khi khởi động (không phải cấu hình tay).
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true

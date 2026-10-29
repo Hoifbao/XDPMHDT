@@ -38,6 +38,9 @@ dependencies:
   # Gọi REST API Backend (Đăng nhập / Đăng ký)
   http: ^1.2.2
 
+  # Lưu JWT sau khi đăng nhập (Bảo - Sprint 3)
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

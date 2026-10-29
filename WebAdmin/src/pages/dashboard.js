@@ -1,58 +1,27 @@
 // =====================================================================
-// DU LIEU GIA – tuan 2, se thay bang API thong ke.
-// Ten di tich / hien vat / ma hien vat / trang thai lay theo du lieu mau
-// trong Infra/init_db.sql (nhanh Feedback_Rating). So luot da duoc phong to
-// cho bieu do de nhin, khong phai so lieu that.
+// Dashboard thong ke – tuan 3: lay so lieu that tu GET /api/statistics/overview
+// (Backend: StatisticsController). Bo loc va xuat bao cao van chua lam.
 // =====================================================================
-const DATA = {
-    // heritage_sites (id, name)
-    sites: [
-        { id: 1, name: 'Văn Miếu - Quốc Tử Giám' },
-        { id: 2, name: 'Hoàng thành Thăng Long' }
-    ],
+const API_BASE = (function () {
+    try { return (localStorage.getItem('sh_api_base') || 'http://localhost:8080').replace(/\/+$/, ''); }
+    catch (e) { return 'http://localhost:8080'; }
+})();
 
-    kpis: [
-        // users co role = 'VISITOR' (dem DISTINCT visits.user_id neu chi tinh nguoi da ghe)
-        { label: 'Tổng khách', value: 1248 },
-        // COUNT(*) bang visits
-        { label: 'Lượt tương tác', value: 3560 },
-        // AVG(feedbacks.rating); tinh tat ca hay chi status = 'APPROVED': can thong nhat khi lam API
-        { label: 'Điểm đánh giá TB', value: 4.2 },
-        // COUNT(*) bang feedbacks
-        { label: 'Số phản hồi', value: 312 },
-        // AVG(visits.duration_seconds), hien thi theo phut:giay
-        { label: 'Thời gian dừng TB', value: '3:05' }
-    ],
+async function loadOverview() {
+    const response = await fetch(API_BASE + '/api/statistics/overview?top=5');
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body || !body.success) {
+        throw new Error((body && body.message) || ('Máy chủ trả lỗi HTTP ' + response.status));
+    }
+    return body.data;
+}
 
-    // visits GROUP BY artifact_id; ten lay tu artifact_translations.name (language_code = 'vi')
-    topArtifacts: [
-        { code: 'KVC-01', name: 'Khuê Văn Các', siteId: 1, visits: 1640 },
-        { code: 'BTS-01', name: 'Bia Tiến sĩ', siteId: 1, visits: 1150 },
-        { code: 'DM-01', name: 'Đoan Môn', siteId: 2, visits: 770 }
-    ],
-
-    // visits GROUP BY DATE(detected_at)
-    daily: [
-        { date: '2026-10-05', visits: 420 },
-        { date: '2026-10-06', visits: 465 },
-        { date: '2026-10-07', visits: 510 },
-        { date: '2026-10-08', visits: 380 },
-        { date: '2026-10-09', visits: 455 },
-        { date: '2026-10-10', visits: 640 },
-        { date: '2026-10-11', visits: 690 }
-    ],
-
-    // feedbacks (created_at, artifact_id, rating 1-5, comment co the NULL, status)
-    // Giu nguyen 6 dong mau trong init_db.sql.
-    recentFeedbacks: [
-        { createdAt: '2026-10-07 11:00', artifact: 'Khuê Văn Các', rating: 1, comment: 'Nội dung quảng cáo không liên quan đến hiện vật.', status: 'REJECTED' },
-        { createdAt: '2026-10-07 10:50', artifact: 'Đoan Môn', rating: 5, comment: 'The English audio guide is clear and helpful.', status: 'APPROVED' },
-        { createdAt: '2026-10-06 14:40', artifact: 'Bia Tiến sĩ', rating: 2, comment: null, status: 'PENDING' },
-        { createdAt: '2026-10-06 14:20', artifact: 'Khuê Văn Các', rating: 3, comment: 'Tín hiệu beacon hơi chậm khi đông người.', status: 'PENDING' },
-        { createdAt: '2026-10-05 09:45', artifact: 'Bia Tiến sĩ', rating: 4, comment: 'Thông tin về bia Tiến sĩ hay, mong có thêm video.', status: 'APPROVED' },
-        { createdAt: '2026-10-05 09:30', artifact: 'Khuê Văn Các', rating: 5, comment: 'Khuê Văn Các rất đẹp, phần thuyết minh dễ hiểu.', status: 'APPROVED' }
-    ]
-};
+// 185.5 giay -> "3:06"
+function formatDuration(seconds) {
+    if (seconds === null || seconds === undefined) return '—';
+    const total = Math.round(seconds);
+    return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+}
 
 const STATUS_LABEL = { PENDING: 'Chờ duyệt', APPROVED: 'Đã duyệt', REJECTED: 'Từ chối' };
 
@@ -67,38 +36,55 @@ function el(tag, text, className) {
 function renderFilters() {
     const select = document.getElementById('site-filter');
     select.append(new Option('Tất cả di tích', ''));
-    DATA.sites.forEach(s => select.append(new Option(s.name, s.id)));
 }
 
-function renderKpis() {
+function renderKpis(data) {
     const box = document.getElementById('kpis');
-    DATA.kpis.forEach(k => {
+    const kpis = [
+        { label: 'Tổng khách', value: data.totalVisitors },
+        { label: 'Lượt tương tác', value: data.totalViews },
+        // Chi tinh feedback da duyet (APPROVED), con "So phan hoi" dem moi trang thai
+        { label: 'Điểm đánh giá TB (đã duyệt)', value: data.averageRatingApproved ?? '—' },
+        { label: 'Số phản hồi', value: data.totalFeedbackCount },
+        { label: 'Thời gian dừng TB', value: formatDuration(data.averageDurationSeconds) }
+    ];
+    kpis.forEach(k => {
         const card = el('div', undefined, 'card stat');
         card.append(el('strong', k.value.toLocaleString('vi-VN')), el('span', k.label, 'muted'));
         box.append(card);
     });
 }
 
-function renderFeedbacks() {
+function renderFeedbacks(feedbacks) {
     const body = document.getElementById('feedback-rows');
-    DATA.recentFeedbacks.forEach(f => {
+    if (feedbacks.length === 0) {
+        const td = el('td', 'Chưa có phản hồi.', 'muted');
+        td.colSpan = 5;
+        const tr = document.createElement('tr');
+        tr.append(td);
+        body.append(tr);
+    }
+    feedbacks.forEach(f => {
         const tr = document.createElement('tr');
         tr.append(
-            el('td', f.createdAt),
-            el('td', f.artifact),
+            // "2026-10-07T11:00:00" -> "2026-10-07 11:00"
+            el('td', f.createdAt ? f.createdAt.replace('T', ' ').slice(0, 16) : '—'),
+            el('td', f.artifactName),
             // Kem "x/5" de trinh doc man hinh doc duoc diem, khong chi doc ky tu sao
             el('td', '★'.repeat(f.rating) + '☆'.repeat(5 - f.rating) + ' ' + f.rating + '/5'),
             el('td', f.comment ?? '—', f.comment ? '' : 'muted')
         );
         const status = el('td');
-        status.append(el('span', STATUS_LABEL[f.status], 'status ' + f.status));
+        status.append(el('span', STATUS_LABEL[f.status] ?? f.status, 'status ' + f.status));
         tr.append(status);
         body.append(tr);
     });
-    document.getElementById('feedback-count').textContent = DATA.recentFeedbacks.length + ' mới nhất';
+    const count = document.getElementById('feedback-count');
+    count.textContent = feedbacks.length + ' mới nhất';
+    count.style.display = feedbacks.length === 0 ? 'none' : '';
 }
 
-function renderCharts() {
+function renderCharts(data) {
     // Lay mau tu bien CSS cua theme.css de bieu do cung tong mau voi trang
     const css = getComputedStyle(document.documentElement);
     const sage = css.getPropertyValue('--sage').trim();
@@ -113,11 +99,11 @@ function renderCharts() {
     new Chart(document.getElementById('chart-artifacts'), {
         type: 'bar',
         data: {
-            labels: DATA.topArtifacts.map(a => a.name),
+            labels: data.topArtifacts.map(a => a.artifactName),
             datasets: [{
                 label: 'Lượt tương tác',
-                data: DATA.topArtifacts.map(a => a.visits),
-                backgroundColor: DATA.topArtifacts.map(a => (a.siteId === 1 ? sage : gold)),
+                data: data.topArtifacts.map(a => a.views),
+                backgroundColor: data.topArtifacts.map(a => (a.siteId === 1 ? sage : gold)),
                 borderRadius: 10,
                 maxBarThickness: 64
             }]
@@ -128,25 +114,26 @@ function renderCharts() {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        afterLabel: ctx => DATA.sites.find(s => s.id === DATA.topArtifacts[ctx.dataIndex].siteId).name
+                        afterLabel: ctx => data.topArtifacts[ctx.dataIndex].siteName
                     }
                 }
             },
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid } }
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid, ticks: { precision: 0 } } }
         }
     });
 
     new Chart(document.getElementById('chart-daily'), {
         type: 'line',
         data: {
-            labels: DATA.daily.map(d => d.date.slice(8, 10) + '/' + d.date.slice(5, 7)),
+            labels: data.dailyViews.map(d => d.date.slice(8, 10) + '/' + d.date.slice(5, 7)),
             datasets: [{
                 label: 'Lượt tương tác',
-                data: DATA.daily.map(d => d.visits),
+                data: data.dailyViews.map(d => d.views),
                 borderColor: sage,
                 backgroundColor: sage + '22',
                 fill: true,
                 tension: 0.35,
+                cubicInterpolationMode: 'monotone',
                 pointRadius: 4,
                 pointBackgroundColor: sage
             }]
@@ -154,17 +141,40 @@ function renderCharts() {
         options: {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid } }
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid, ticks: { precision: 0 } } }
         }
     });
 }
 
-renderFilters();
-renderKpis();
-renderFeedbacks();
-if (window.Chart) {
-    renderCharts();
-} else {
-    // CDN khong tai duoc (vd mo khi khong co mang): trang van hien KPI va bang.
-    document.querySelectorAll('.chart-box').forEach(b => b.replaceChildren(el('p', 'Không tải được Chart.js (cần Internet).', 'muted')));
+function showInChartBoxes(message) {
+    document.querySelectorAll('.chart-box').forEach(b => b.replaceChildren(el('p', message, 'muted')));
 }
+
+async function init() {
+    const note = document.getElementById('status-note');
+    renderFilters();
+    let data;
+    try {
+        data = await loadOverview();
+    } catch (e) {
+        const message = e instanceof TypeError
+            ? 'Không gọi được ' + API_BASE + '. Hãy chạy Backend rồi tải lại trang.'
+            : 'Không tải được số liệu: ' + e.message;
+        note.textContent = message;
+        showInChartBoxes(message);
+        return;
+    }
+    note.textContent = 'Số liệu lấy từ API thống kê. Bộ lọc và xuất báo cáo sẽ hoạt động ở tuần sau.';
+    renderKpis(data);
+    renderFeedbacks(data.recentFeedbacks);
+    if (data.totalViews === 0) {
+        showInChartBoxes('Chưa có lượt tương tác nào.');
+    } else if (window.Chart) {
+        renderCharts(data);
+    } else {
+        // CDN khong tai duoc (vd mo khi khong co mang): trang van hien KPI va bang.
+        showInChartBoxes('Không tải được Chart.js (cần Internet).');
+    }
+}
+
+init();

@@ -3,7 +3,7 @@ const mediaResources = document.getElementById('media-resources');
 const form = document.getElementById('artifact-form');
 const message = document.getElementById('form-message');
 const submit = form.querySelector('[type="submit"]');
-const base = location.protocol === 'file:' ? 'http://localhost:8080' : location.origin;
+const base = (window.SHAuth && window.SHAuth.apiBase) || 'http://localhost:8080';
 let id = new URLSearchParams(location.search).get('id');
 let busy = false;
 const fields = { name: 'name', artifact_code: 'artifactCode', description: 'description', thumbnail_url: 'thumbnailUrl', period: 'period', material: 'material', dimensions: 'dimensions', beacon_uuid: 'beaconUuid', status: 'status' };

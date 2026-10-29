@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../features/auth/auth_service.dart';
+import '../features/favorites/personalization_service.dart';
+
 // ─────────────────────────────────────────────────────────────
 //  DATA MODELS  (sẽ thay bằng API response)
 // ─────────────────────────────────────────────────────────────
@@ -87,6 +90,45 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       length: 4, // Mô tả | Hình ảnh | Âm thanh | Thông tin
       vsync: this,
     );
+    _loadFavorite();
+  }
+
+  // ── Yêu thích (API của Phú) ───────────────────
+
+  /// Đọc trạng thái yêu thích từ Backend khi đã đăng nhập.
+  Future<void> _loadFavorite() async {
+    if (!AuthService.isLoggedIn) return;
+    try {
+      final liked = await PersonalizationService.isFavorite(widget.artifactId);
+      if (mounted) setState(() => _isFavorite = liked);
+    } catch (_) {
+      // Backend chưa chạy: giữ trạng thái mặc định
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!AuthService.isLoggedIn) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Đăng nhập để lưu hiện vật yêu thích')),
+      );
+      return;
+    }
+    final next = !_isFavorite;
+    setState(() => _isFavorite = next);
+    try {
+      if (next) {
+        await PersonalizationService.addFavorite(widget.artifactId);
+      } else {
+        await PersonalizationService.removeFavorite(widget.artifactId);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isFavorite = !next); // hoàn tác khi gọi API lỗi
+      messenger.showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 
   @override
@@ -179,7 +221,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
             color: _isFavorite ? Colors.red.shade300 : Colors.white,
           ),
           tooltip: 'Yêu thích',
-          onPressed: () => setState(() => _isFavorite = !_isFavorite),
+          onPressed: _toggleFavorite,
         ),
         IconButton(
           icon: const Icon(Icons.share_outlined),
