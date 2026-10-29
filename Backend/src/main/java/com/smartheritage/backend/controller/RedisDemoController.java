@@ -95,7 +95,7 @@ public class RedisDemoController {
             result.put("elapsedMs", (System.nanoTime() - start) / 1_000_000.0);
             result.put("artifact", data);
             return ResponseEntity.ok(ApiResponse.ok("Đọc hiện vật (" + source + ")", result));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | java.util.NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
         } catch (DataAccessException e) {
             return redisDown();

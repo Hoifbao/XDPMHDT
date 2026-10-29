@@ -3,15 +3,16 @@ package com.smartheritage.backend.service;
 import com.smartheritage.backend.dto.*;
 import com.smartheritage.backend.entity.Artifact;
 import com.smartheritage.backend.entity.ArtifactContent;
-import com.smartheritage.backend.entity.HeritageSite;
+
 import com.smartheritage.backend.repository.ArtifactContentRepository;
 import com.smartheritage.backend.repository.ArtifactRepository;
-import com.smartheritage.backend.repository.HeritageSiteRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,7 +22,8 @@ public class ArtifactService {
 
     private final ArtifactRepository artifactRepository;
     private final ArtifactContentRepository contentRepository;
-    private final HeritageSiteRepository siteRepository;
+    private final com.smartheritage.backend.repository.HeritageSiteRepository siteRepository;
+    private final com.smartheritage.backend.repository.MediaResourceRepository mediaRepository;
 
     // ──────────────────────────── READ ────────────────────────────
 
@@ -54,7 +56,7 @@ public class ArtifactService {
     @Transactional(readOnly = true)
     public ArtifactResponse getArtifactByBeaconUuid(String beaconUuid) {
         Artifact artifact = artifactRepository.findByBeaconUuid(beaconUuid)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy hiện vật với Beacon UUID: " + beaconUuid));
         return toFullResponse(artifact);
     }
@@ -72,9 +74,9 @@ public class ArtifactService {
 
     /** Tạo mới hiện vật (có thể kèm contents đa ngôn ngữ) */
     public ArtifactResponse createArtifact(ArtifactRequest request) {
-        HeritageSite site = siteRepository.findById(request.getLocationId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Không tìm thấy di tích với ID: " + request.getLocationId()));
+        validate(request, true);
+        com.smartheritage.backend.entity.HeritageSite site = siteRepository.findById(siteId(request))
+                .orElseThrow(() -> new IllegalArgumentException("Site does not exist"));
 
         if (request.getArtifactCode() != null
                 && artifactRepository.existsByArtifactCode(request.getArtifactCode())) {
@@ -103,6 +105,8 @@ public class ArtifactService {
 
         artifactRepository.save(artifact);
 
+        saveMedia(artifact.getId(), request.getMedia());
+
         // Lưu kèm contents nếu có
         if (request.getContents() != null && !request.getContents().isEmpty()) {
             List<ArtifactContent> contents = request.getContents().stream()
@@ -119,12 +123,12 @@ public class ArtifactService {
 
     /** Cập nhật thông tin hiện vật */
     public ArtifactResponse updateArtifact(Long id, ArtifactRequest request) {
+        validate(request, false);
         Artifact artifact = findOrThrow(id);
 
-        if (request.getLocationId() != null) {
-            HeritageSite site = siteRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Không tìm thấy di tích với ID: " + request.getLocationId()));
+        if (siteId(request) != null) {
+            com.smartheritage.backend.entity.HeritageSite site = siteRepository.findById(siteId(request))
+                .orElseThrow(() -> new IllegalArgumentException("Site does not exist"));
             artifact.setSite(site);
         }
 
@@ -143,7 +147,7 @@ public class ArtifactService {
                 throw new IllegalArgumentException(
                         "Mã hiện vật đã tồn tại: " + request.getArtifactCode());
             }
-            artifact.setArtifactCode(request.getArtifactCode());
+            artifact.setArtifactCode(request.getArtifactCode().isBlank() ? null : request.getArtifactCode());
         }
 
         // Beacon UUID — kiểm tra trùng trừ chính nó
@@ -153,10 +157,17 @@ public class ArtifactService {
                 throw new IllegalArgumentException(
                         "Beacon UUID đã được gán cho hiện vật khác: " + request.getBeaconUuid());
             }
-            artifact.setBeaconUuid(request.getBeaconUuid());
+            artifact.setBeaconUuid(request.getBeaconUuid().isBlank() ? null : request.getBeaconUuid());
         }
 
         artifactRepository.save(artifact);
+        if (request.getContents() != null) {
+            var languages = request.getContents().stream().map(ArtifactContentRequest::getLanguageCode).toList();
+            contentRepository.deleteAll(contentRepository.findByArtifactId(id).stream()
+                    .filter(c -> !languages.contains(c.getLanguageCode())).toList());
+            for (ArtifactContentRequest c : request.getContents()) upsertContent(id, c);
+        }
+        saveMedia(artifact.getId(), request.getMedia());
         return toFullResponse(artifact);
     }
 
@@ -165,6 +176,7 @@ public class ArtifactService {
     /** Xóa hiện vật và toàn bộ nội dung liên quan */
     public void deleteArtifact(Long id) {
         Artifact artifact = findOrThrow(id);
+        mediaRepository.deleteAll(mediaRepository.findByArtifactId(id));
         contentRepository.deleteByArtifactId(id);
         artifactRepository.delete(artifact);
     }
@@ -173,6 +185,7 @@ public class ArtifactService {
 
     /** Thêm hoặc cập nhật nội dung theo ngôn ngữ */
     public ArtifactContentResponse upsertContent(Long artifactId, ArtifactContentRequest request) {
+        validateContent(request);
         Artifact artifact = findOrThrow(artifactId);
 
         ArtifactContent content = contentRepository
@@ -206,9 +219,10 @@ public class ArtifactService {
     /** Lấy nội dung theo ngôn ngữ cụ thể (fallback về tiếng Việt nếu không có) */
     @Transactional(readOnly = true)
     public ArtifactContentResponse getContentByLanguage(Long artifactId, String languageCode) {
+        String normalizedLanguage = language(languageCode);
         findOrThrow(artifactId);
         return contentRepository
-                .findByArtifactIdAndLanguageCode(artifactId, languageCode)
+                .findByArtifactIdAndLanguageCode(artifactId, normalizedLanguage)
                 .or(() -> contentRepository.findByArtifactIdAndLanguageCode(artifactId, "vi"))
                 .map(this::toContentResponse)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -218,16 +232,92 @@ public class ArtifactService {
     /** Xóa một bản nội dung ngôn ngữ */
     public void deleteContent(Long contentId) {
         ArtifactContent content = contentRepository.findById(contentId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy nội dung với ID: " + contentId));
+        if ("vi".equals(content.getLanguageCode())) throw new IllegalArgumentException("Vietnamese content is required");
         contentRepository.delete(content);
     }
 
     // ─────────────────────── PRIVATE HELPERS ───────────────────────
 
+    public ArtifactResponse localize(ArtifactResponse response, String lang) {
+        String requested = language(lang);
+        ArtifactContentResponse selected = getContentByLanguage(response.getId(), requested);
+        response.setRequestedLanguage(requested);
+        response.setLanguageCode(selected.getLanguageCode());
+        response.setFallback(!requested.equals(selected.getLanguageCode()));
+        response.setContent(selected);
+        response.setName(selected.getTitle());
+        response.setDescription(selected.getDescription());
+        return response;
+    }
+    private Long siteId(ArtifactRequest r) {
+        if (r.getSiteId() != null && r.getLocationId() != null && !r.getSiteId().equals(r.getLocationId()))
+            throw new IllegalArgumentException("siteId and locationId disagree");
+        return r.getSiteId() != null ? r.getSiteId() : r.getLocationId();
+    }
+    private String language(String lang) {
+        String value = lang == null ? "vi" : lang.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("vi", "en").contains(value)) throw new IllegalArgumentException("lang must be vi or en");
+        return value;
+    }
+    private void url(String value) {
+        if (value == null || value.isBlank()) return;
+        try {
+            var uri = java.net.URI.create(value);
+            if (!java.util.Set.of("http", "https").contains(uri.getScheme()) || uri.getHost() == null) throw new IllegalArgumentException();
+        } catch (IllegalArgumentException e) { throw new IllegalArgumentException("Media URL must use http or https"); }
+    }
+    private void validateContent(ArtifactContentRequest c) {
+        if (c == null || c.getLanguageCode() == null) throw new IllegalArgumentException("languageCode is required");
+        max(c.getAudioUrl(), 1000); max(c.getVideoUrl(), 1000);
+        c.setLanguageCode(language(c.getLanguageCode()));
+        if (c.getTitle() == null || c.getTitle().isBlank() || c.getTitle().length() > 200 || c.getDescription() == null || c.getDescription().isBlank())
+            throw new IllegalArgumentException("Translation title and description are required");
+        url(c.getAudioUrl()); url(c.getVideoUrl());
+        if (c.getImageUrls() != null && !c.getImageUrls().isBlank()) {
+            try {
+                var images = new com.fasterxml.jackson.databind.ObjectMapper().readTree(c.getImageUrls());
+                if (!images.isArray()) throw new IllegalArgumentException();
+                for (var image : images) { if (!image.isTextual()) throw new IllegalArgumentException(); url(image.asText()); }
+            } catch (Exception e) { throw new IllegalArgumentException("imageUrls must be a JSON string containing HTTP(S) URLs"); }
+        }
+    }
+    private void validate(ArtifactRequest r, boolean create) {
+        max(r.getArtifactCode(), 50); max(r.getBeaconUuid(), 100); max(r.getPeriod(), 100);
+        max(r.getMaterial(), 200); max(r.getDimensions(), 200); max(r.getThumbnailUrl(), 1000);
+        if ((create || r.getName() != null) && (r.getName() == null || r.getName().isBlank() || r.getName().length() > 200)) throw new IllegalArgumentException("name is required (max 200)");
+        if (r.getStatus() != null && !java.util.Set.of("ACTIVE", "INACTIVE").contains(r.getStatus())) throw new IllegalArgumentException("Invalid status");
+        url(r.getThumbnailUrl());
+
+        var languages = new java.util.HashSet<String>();
+        if (r.getContents() != null) for (var c : r.getContents()) {
+            validateContent(c);
+            if (!languages.add(c.getLanguageCode())) throw new IllegalArgumentException("Duplicate language");
+        }
+        if ((create || r.getContents() != null) && !languages.contains("vi")) throw new IllegalArgumentException("Vietnamese translation is required");
+        if (create && siteId(r) == null) throw new IllegalArgumentException("siteId is required");
+        if (r.getMedia() != null) for (var m : r.getMedia()) {
+            if (m == null) throw new IllegalArgumentException("Media is required");
+            if (m.getMediaType() == null || !java.util.Set.of("IMAGE", "AUDIO", "VIDEO").contains(m.getMediaType()) || m.getFileUrl() == null || m.getFileUrl().isBlank()) throw new IllegalArgumentException("Media type and URL required");
+            url(m.getFileUrl());
+            if (m.getFileUrl().length() > 500 || (m.getCaption() != null && m.getCaption().length() > 255)) throw new IllegalArgumentException("Media field too long");
+        }
+    }
+    private void saveMedia(Long id, List<com.smartheritage.backend.entity.MediaResource> media) {
+        if (media == null) return;
+        mediaRepository.deleteAll(mediaRepository.findByArtifactId(id));
+        for (var m : media) { m.setId(null); m.setArtifactId(id); }
+        mediaRepository.saveAll(media);
+    }
+
+    private void max(String value, int limit) {
+        if (value != null && value.length() > limit) throw new IllegalArgumentException("Field exceeds max length " + limit);
+    }
+
     private Artifact findOrThrow(Long id) {
         return artifactRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new NoSuchElementException(
                         "Không tìm thấy hiện vật với ID: " + id));
     }
 
@@ -247,7 +337,7 @@ public class ArtifactService {
     private ArtifactSummaryResponse toSummary(Artifact a) {
         return ArtifactSummaryResponse.builder()
                 .id(a.getId())
-                .locationId(a.getSite().getId())
+                .siteId(a.getSite().getId()).locationId(a.getSite().getId())
                 .locationName(a.getSite().getName())
                 .name(a.getName())
                 .artifactCode(a.getArtifactCode())
@@ -268,7 +358,7 @@ public class ArtifactService {
 
         return ArtifactResponse.builder()
                 .id(a.getId())
-                .locationId(a.getSite().getId())
+                .siteId(a.getSite().getId()).locationId(a.getSite().getId())
                 .locationName(a.getSite().getName())
                 .name(a.getName())
                 .artifactCode(a.getArtifactCode())
@@ -281,6 +371,7 @@ public class ArtifactService {
                 .status(a.getStatus())
                 .createdAt(a.getCreatedAt())
                 .updatedAt(a.getUpdatedAt())
+                .media(mediaRepository.findByArtifactId(a.getId()))
                 .contents(contents)
                 .build();
     }
