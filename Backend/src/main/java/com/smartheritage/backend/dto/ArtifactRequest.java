@@ -10,6 +10,7 @@ import java.util.List;
 public class ArtifactRequest {
 
     /** ID của địa điểm di tích */
+    private Long siteId;
     private Long locationId;
 
     private String name;
@@ -33,4 +34,5 @@ public class ArtifactRequest {
 
     /** Nội dung đa ngôn ngữ (tuỳ chọn, tạo kèm hiện vật) */
     private List<ArtifactContentRequest> contents;
+    private List<com.smartheritage.backend.entity.MediaResource> media;
 }
