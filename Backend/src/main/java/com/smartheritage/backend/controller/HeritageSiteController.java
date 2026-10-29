@@ -2,6 +2,7 @@ package com.smartheritage.backend.controller;
 
 import com.smartheritage.backend.dto.HeritageSiteRequest;
 import com.smartheritage.backend.dto.HeritageSiteResponse;
+import com.smartheritage.backend.dto.NearbyHeritageSiteResponse;
 import com.smartheritage.backend.service.HeritageSiteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/heritage-sites")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class HeritageSiteController {
 
     private final HeritageSiteService service;
@@ -27,6 +27,27 @@ public class HeritageSiteController {
     @GetMapping
     public ResponseEntity<List<HeritageSiteResponse>> getAll() {
         return ResponseEntity.ok(service.getAll());
+    }
+
+    /**
+     * GET /api/heritage-sites/nearby?lat=&amp;lng=&amp;radius=
+     * Tìm các di tích có tọa độ trong bán kính (km), gần nhất xếp trước.
+     *
+     * @param lat    vĩ độ WGS-84 (-90 đến 90), bắt buộc
+     * @param lng    kinh độ WGS-84 (-180 đến 180), bắt buộc
+     * @param radius bán kính tìm kiếm km, tuỳ chọn (mặc định 10, tối đa 100)
+     */
+    @GetMapping("/nearby")
+    public ResponseEntity<?> getNearby(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "10") double radius) {
+        try {
+            List<NearbyHeritageSiteResponse> nearby = service.getNearby(lat, lng, radius);
+            return ResponseEntity.ok(nearby);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     /** GET /api/heritage-sites/{id} – Lấy chi tiết một di tích. */
