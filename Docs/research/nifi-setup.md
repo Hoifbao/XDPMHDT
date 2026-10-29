@@ -21,6 +21,14 @@ smart_heritage_db                                         analytics_db
                                                      Funnel "Loi ghi - xem tai day"
 ```
 
+Process group trên màn hình chính NiFi (tam giác xanh: 2 processor đang chạy):
+
+![Process group Tuan - visits to analytics_db](nifi-images/nifi-01-process-group.png)
+
+Bên trong process group:
+
+![Flow Doc visits moi -> Ghi fact_visits](nifi-images/nifi-02-flow.png)
+
 ## 2. Các file liên quan
 
 | File | Nội dung |
@@ -133,6 +141,7 @@ Flow được lưu trong volume `nifi_conf`, bật lại không phải import l�
 ### Chống nhân đôi dữ liệu (2 lớp)
 
 1. **Trạng thái NiFi:** processor nhớ `visit_id` lớn nhất đã đọc (xem: chuột phải processor → **View state**). Lần sau chỉ đọc `visit_id` lớn hơn.
+   ![Trạng thái processor: visits@!@visit_id = 5](nifi-images/nifi-03-state.png)
 2. **Khóa chính `fact_visits.visit_id` + `UPSERT`:** nếu trạng thái bị xóa và NiFi đọc lại từ đầu, dòng đã có chỉ bị ghi đè, không sinh dòng mới.
 
 ## 6. Kết quả chạy thử (29/10/2026)
@@ -144,6 +153,10 @@ Flow được lưu trong volume `nifi_conf`, bật lại không phải import l�
 | Thêm 1 dòng `visits` mới | Lần chạy kế tiếp: 5 dòng, chỉ dòng `visit_id = 5` được thêm |
 | Xóa trạng thái NiFi rồi chạy lại | Vẫn 5 dòng, 5 `visit_id` khác nhau |
 | Xóa flow, làm trống `fact_visits`, import lại từ file JSON, nhập mật khẩu, chạy | 5/5 dòng, hàng đợi lỗi trống |
+
+Dữ liệu trong `analytics_db.fact_visits` sau khi chạy (4 dòng mẫu + 1 dòng thêm khi test):
+
+![Kết quả fact_visits](nifi-images/nifi-04-ket-qua.png)
 
 ## 7. Lỗi thường gặp
 
