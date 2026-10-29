@@ -15,4 +15,5 @@ public class HeritageSiteRequest {
     private String mapImageUrl;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private Boolean clearCoordinates;
 }

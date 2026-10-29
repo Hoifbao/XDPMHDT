@@ -1,28 +1,38 @@
-// Dữ liệu mẫu khớp với Infra/init_db.sql (heritage_sites + latitude/longitude đã thêm).
-// Khi backend sẵn sàng, thay bằng fetch('/api/heritage-sites').
-let SITES = [
-    {
-        id: 1,
-        name: 'Văn Miếu - Quốc Tử Giám',
-        location: '58 Quốc Tử Giám, Đống Đa, Hà Nội',
-        mapImageUrl: 'https://example.com/maps/van-mieu.png',
-        latitude: 21.0277644,
-        longitude: 105.8354028,
-    },
-    {
-        id: 2,
-        name: 'Hoàng thành Thăng Long',
-        location: '19C Hoàng Diệu, Ba Đình, Hà Nội',
-        mapImageUrl: 'https://example.com/maps/hoang-thanh.png',
-        latitude: 21.0354430,
-        longitude: 105.8349380,
-    },
-];
-
+let SITES = [];
 let currentFilter = 'ALL';
-let nextId = 3;
+let nextId = 1;
+let siteMap;
+let selectedMarker;
+let overviewMap;
+let overviewMarkers;
 
 // ─── Render ──────────────────────────────────────────────────────────────────
+
+const API_BASE = (window.SHAuth && window.SHAuth.apiBase)
+    || (function () {
+        try { return (localStorage.getItem('sh_api_base') || 'http://localhost:8080').replace(/\/+$/, ''); }
+        catch (e) { return 'http://localhost:8080'; }
+    })();
+
+async function loadSites() {
+    const note = document.getElementById('api-note');
+    try {
+        const response = await fetch(API_BASE + '/api/heritage-sites');
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error((body && body.message) || ('Không tải được di tích (HTTP ' + response.status + ')'));
+        if (!Array.isArray(body) && !(body && Array.isArray(body.data))) {
+            throw new Error('Backend trả về danh sách di tích không đúng định dạng.');
+        }
+        SITES = Array.isArray(body) ? body : body.data;
+        nextId = SITES.reduce((maxId, site) => Math.max(maxId, site.id + 1), 1);
+        if (note) note.textContent = 'Dữ liệu đang được đồng bộ trực tiếp với Backend.';
+        render();
+    } catch (error) {
+        SITES = [];
+        if (note) note.textContent = error.message + '. Kiểm tra Backend rồi tải lại trang.';
+        render();
+    }
+}
 
 function getFiltered() {
     if (currentFilter === 'HAS_COORD') {
@@ -42,20 +52,74 @@ function renderStats() {
     document.getElementById('stat-no-coords').textContent = total - withCoord;
 }
 
-function renderMapPins() {
-    const container = document.getElementById('map-pins');
-    container.innerHTML = '';
-    SITES.forEach((site, i) => {
-        if (site.latitude == null || site.longitude == null) return;
-        // Tính vị trí tương đối đơn giản cho placeholder map
-        const left = 15 + (i * 35) % 70;
-        const top  = 20 + (i * 28) % 60;
-        const pin = document.createElement('div');
-        pin.className = 'pin';
-        pin.style.cssText = `left:${left}%;top:${top}%;position:absolute;`;
-        pin.title = site.name;
-        container.appendChild(pin);
+function initializeSiteMap() {
+    const mapElement = document.getElementById('site-map-picker');
+    if (!mapElement) return;
+    if (!window.L) {
+        mapElement.textContent = 'Không tải được bản đồ. Bạn vẫn có thể nhập tọa độ thủ công.';
+        return;
+    }
+
+    siteMap = L.map(mapElement).setView([21.0277644, 105.8354028], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(siteMap);
+    siteMap.on('click', function (event) {
+        setSelectedCoordinates(event.latlng.lat, event.latlng.lng);
     });
+
+    document.getElementById('f-lat').addEventListener('change', syncMarkerFromInputs);
+    document.getElementById('f-lng').addEventListener('change', syncMarkerFromInputs);
+}
+
+function setSelectedCoordinates(latitude, longitude) {
+    document.getElementById('f-lat').value = latitude.toFixed(7);
+    document.getElementById('f-lng').value = longitude.toFixed(7);
+    if (!siteMap) return;
+    if (selectedMarker) selectedMarker.setLatLng([latitude, longitude]);
+    else selectedMarker = L.marker([latitude, longitude]).addTo(siteMap);
+}
+
+function syncMarkerFromInputs() {
+    const latitudeText = document.getElementById('f-lat').value;
+    const longitudeText = document.getElementById('f-lng').value;
+    if (latitudeText === '' && longitudeText === '') {
+        if (selectedMarker && siteMap) siteMap.removeLayer(selectedMarker);
+        selectedMarker = null;
+        return;
+    }
+    if (latitudeText === '' || longitudeText === '') return;
+    const latitude = Number(latitudeText);
+    const longitude = Number(longitudeText);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)
+        && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+        if (selectedMarker) selectedMarker.setLatLng([latitude, longitude]);
+        else selectedMarker = L.marker([latitude, longitude]).addTo(siteMap);
+        siteMap.setView([latitude, longitude], 15);
+    }
+}
+
+function renderOverviewMap() {
+    const mapElement = document.getElementById('overview-map');
+    if (!mapElement || !window.L) return;
+    if (!overviewMap) {
+        overviewMap = L.map(mapElement).setView([21.0277644, 105.8354028], 6);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(overviewMap);
+        overviewMarkers = L.featureGroup().addTo(overviewMap);
+    }
+    overviewMarkers.clearLayers();        SITES.forEach(site => {
+        if (site.latitude == null || site.longitude == null) return;
+        const point = [Number(site.latitude), Number(site.longitude)];
+        if (!point.every(Number.isFinite)) return;
+        L.marker(point).bindPopup(escHtml(site.name)).addTo(overviewMarkers);
+    });
+    if (overviewMarkers.getLayers().length) {
+        overviewMap.fitBounds(overviewMarkers.getBounds().pad(0.15), { maxZoom: 15 });
+    }
 }
 
 function renderTable() {
@@ -96,7 +160,7 @@ function renderTable() {
 
 function render() {
     renderStats();
-    renderMapPins();
+    renderOverviewMap();
     renderTable();
 }
 
@@ -138,6 +202,25 @@ function openModal(mode, id) {
     }
 
     modal.classList.add('open');
+    if (siteMap) {
+        window.setTimeout(function () {
+            siteMap.invalidateSize();
+            const latitudeText = document.getElementById('f-lat').value;
+            const longitudeText = document.getElementById('f-lng').value;
+            const latitude = Number(latitudeText);
+            const longitude = Number(longitudeText);
+            if (latitudeText !== '' && longitudeText !== ''
+                && Number.isFinite(latitude) && Number.isFinite(longitude)
+                && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+                siteMap.setView([latitude, longitude], 15);
+                setSelectedCoordinates(latitude, longitude);
+            } else {
+                if (selectedMarker) siteMap.removeLayer(selectedMarker);
+                selectedMarker = null;
+                siteMap.setView([21.0277644, 105.8354028], 13);
+            }
+        }, 0);
+    }
 }
 
 function closeModal() {
@@ -148,6 +231,8 @@ function closeModal() {
 function clearForm() {
     document.getElementById('site-form').reset();
     document.getElementById('edit-id').value = '';
+    if (selectedMarker && siteMap) siteMap.removeLayer(selectedMarker);
+    selectedMarker = null;
 }
 
 // Đóng modal khi click nền
@@ -168,27 +253,70 @@ function handleSubmit(e) {
     const latitude  = latVal  !== '' ? parseFloat(latVal)  : null;
     const longitude = lngVal  !== '' ? parseFloat(lngVal) : null;
 
-    if (editId) {
-        // Cập nhật
-        const idx = SITES.findIndex(s => s.id === parseInt(editId));
-        if (idx !== -1) {
-            SITES[idx] = { ...SITES[idx], name, location, mapImageUrl: mapUrl, latitude, longitude };
-        }
-    } else {
-        // Tạo mới
-        SITES.push({ id: nextId++, name, location, mapImageUrl: mapUrl, latitude, longitude });
+    if (latitude === null && longitude === null && editId) {
+        const existingSite = SITES.find(site => site.id === parseInt(editId));
+        if (existingSite && existingSite.latitude != null && existingSite.longitude != null
+            && !confirm('Để trống tọa độ sẽ xóa vị trí hiện tại. Bạn có muốn tiếp tục?')) return;
     }
 
-    closeModal();
-    render();
+    if ((latitude === null) !== (longitude === null)) {
+        alert('Nhập cả vĩ độ và kinh độ hoặc để trống cả hai.');
+        return;
+    }
+    if (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+        || !Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+        alert('Tọa độ không hợp lệ. Vĩ độ phải từ -90 đến 90, kinh độ từ -180 đến 180.');
+        return;
+    }
+
+    const payload = {
+        name,
+        location: location || null,
+        mapImageUrl: mapUrl || null,
+        latitude,
+        longitude,
+        clearCoordinates: Boolean(editId) && latitude === null && longitude === null
+    };
+    const saveButton = document.getElementById('modal-submit-btn');
+    saveButton.disabled = true;
+
+    fetch(API_BASE + '/api/heritage-sites' + (editId ? '/' + editId : ''), {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(async response => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error((body && body.message) || ('Lưu thất bại (HTTP ' + response.status + ')'));
+        const site = body;
+        if (editId) {
+            const index = SITES.findIndex(item => item.id === parseInt(editId));
+            if (index !== -1) SITES[index] = site;
+        } else {
+            SITES.push(site);
+            nextId = Math.max(nextId, site.id + 1);
+        }
+        closeModal();
+        render();
+    }).catch(error => {
+        alert(error.message);
+    }).finally(() => {
+        saveButton.disabled = false;
+    });
 }
 
 // ─── Xóa ─────────────────────────────────────────────────────────────────────
 
-function deleteSite(id) {
+async function deleteSite(id) {
     if (!confirm('Bạn có chắc muốn xóa di tích này không?')) return;
-    SITES = SITES.filter(s => s.id !== id);
-    render();
+    try {
+        const response = await fetch(API_BASE + '/api/heritage-sites/' + id, { method: 'DELETE' });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error((body && body.message) || ('Xóa thất bại (HTTP ' + response.status + ')'));
+        SITES = SITES.filter(site => site.id !== id);
+        render();
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 // ─── Tiện ích ─────────────────────────────────────────────────────────────────
@@ -203,4 +331,6 @@ function escHtml(str) {
 
 // ─── Khởi động ────────────────────────────────────────────────────────────────
 
+initializeSiteMap();
 render();
+loadSites();
