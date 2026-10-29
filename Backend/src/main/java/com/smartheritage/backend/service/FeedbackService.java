@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+import java.util.Locale;
+
 /**
  * Nghiệp vụ đánh giá (số sao và bình luận) của du khách cho hiện vật.
  *
@@ -33,6 +35,7 @@ public class FeedbackService {
 
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
     private static final String STATUS_ACTIVE = "ACTIVE";
 
     private static final int MIN_RATING = 1;
@@ -107,6 +110,29 @@ public class FeedbackService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+        // ──────────────────────────── MODERATE (ADMIN) ───────────────────────────
+
+    /**
+     * ADMIN duyệt hoặc từ chối một đánh giá. Chỉ nhận APPROVED hoặc REJECTED
+     * (không đặt lại PENDING). Đặt lại đúng trạng thái hiện tại vẫn thành công.
+     * Quyền ADMIN do SecurityConfig kiểm tra, không kiểm tra lại ở đây.
+     */
+    public FeedbackResponse updateStatus(Long feedbackId, String status) {
+        if (feedbackId == null) {
+            throw new IllegalArgumentException("ID đánh giá không hợp lệ");
+        }
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        if (!STATUS_APPROVED.equals(normalized) && !STATUS_REJECTED.equals(normalized)) {
+            throw new IllegalArgumentException("Trạng thái chỉ nhận APPROVED hoặc REJECTED");
+        }
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "Không tìm thấy đánh giá với ID: " + feedbackId));
+        feedback.setStatus(normalized);
+        feedbackRepository.save(feedback);
+        return toResponse(feedback);
     }
 
     // ─────────────────────── PRIVATE HELPERS ───────────────────────
