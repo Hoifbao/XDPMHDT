@@ -5,6 +5,7 @@ import 'features/feedback/feedback_screen.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
+import 'features/beacon/beacon_scan_screen.dart';
 import 'shared/app_sidebar.dart';
 
 void main() {
@@ -637,6 +638,18 @@ class _HomePageState extends State<HomePage> {
               child: const Text(
                 'Phát hiện hiện vật gần bạn →',
               ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BeaconScanScreen()),
+              ),
+              icon: const Icon(Icons.bluetooth_searching),
+              label: const Text('Quét iBeacon thật'),
             ),
           ),
         ],
