@@ -1,5 +1,39 @@
 # Xuân Anh review task 3 và 4
 
+## Cập nhật sau góp ý leader — 29/10/2026
+
+**Phần cập nhật này thay thế các kết luận trạng thái bên dưới. Phần cũ được giữ làm lịch sử nhánh XA-task3v4; các đường dẫn content-service/Infra ở phần cũ không thuộc nhánh W3 hiện tại.**
+
+### Đã sửa trong nhánh feature/xa-w3-localization
+
+- Tạo nhánh từ origin/main sau khi fetch, không tiếp tục phát triển trên nhánh cũ chậm main.
+- Chỉ lấy CMS, ba JSON mẫu, tài liệu localization và file review từ nhánh cũ.
+- Chuyển logic localization/fallback vào Backend chính: GET theo ID và beacon nhận lang mặc định vi; response có requestedLanguage, languageCode, fallback, content. Ngôn ngữ không hỗ trợ trả 400; hiện vật không tồn tại trả 404.
+- Bổ sung DTO và xử lý siteId/locationId, media và thay bản dịch khi PUT để CMS hoạt động với backend chính. Giữ transaction cho hiện vật, media và bản dịch; bắt buộc bản Việt, không cho xóa riêng bản Việt.
+- Thêm auth.js với data-guard="admin" ngay trước artifacts.js. CMS lấy base từ window.SHAuth.apiBase để request đi qua cơ chế gắn JWT/refresh có sẵn trên main.
+- Thêm liên kết localization vào Docs/api/README.md; sửa tài liệu để hướng dẫn backend chính thay vì stack W4 cũ.
+- Không đưa Backend/content-service, Infra, file tên git hoặc Interface/pubspec.lock vào phạm vi thay đổi W3. Workspace có thay đổi pubspec.lock ngoài phạm vi; không đưa file này vào commit/PR.
+
+### Kiểm tra và giới hạn
+
+- Đã bổ sung ArtifactLocalizationTest cho backend chính: chọn bản Anh; fallback Việt trên cả ID/beacon; mặc định vi; lang không hỗ trợ; hiện vật không tồn tại; bắt buộc và bảo vệ bản Việt.
+- Test dùng MockMvc standalone và repository giả lập, không xác nhận persistence MySQL hoặc bảo mật toàn stack.
+- Kết quả: `mvn -f Backend/pom.xml test -q` thành công, 8 test (4 JwtServiceTest + 4 ArtifactLocalizationTest), không lỗi hoặc bỏ qua. `node --check WebAdmin/src/pages/artifacts.js` thành công; cả ba JSON mẫu parse hợp lệ.
+- Chưa nghiệm thu Swagger trên database demo hoặc thêm/sửa/xóa bằng trình duyệt đăng nhập thật. Cần chạy checklist trong Docs/api/artifacts-localization.md trước khi báo hoàn tất nghiệm thu.
+- Theo yêu cầu tiếp theo: đưa bản sửa sang `XA-task3v4`, đồng bộ `origin/main` để có JWT mới. Commit code `7129ec5`; file review được commit riêng trên `REVIEW`. Chưa tạo PR.
+- Khi đồng bộ main, xung đột Infra/docker-compose.yml và Interface/pubspec.lock được giải quyết theo bản main; không mang cấu hình W4 cũ hoặc lockfile phát sinh tại workspace vào commit. Nhánh XA vẫn giữ lịch sử và code W4 cũ, không phải PR W3 sạch từ main.
+
+### Phối hợp và W4 còn lại
+
+- Gửi Khoa [JSON chi tiết](Docs/api/artifact-detail.sample.json) để xác nhận envelope, imageUrls, fallback và UUID/major/minor. Chưa gửi hoặc nhận xác nhận trong phiên này.
+- Thống nhất với Phú API cache Redis: đề xuất khóa gồm ID/UUID + lang yêu cầu và vô hiệu cache vi/en khi hiện vật/bản dịch/media đổi; chi tiết trong tài liệu localization. Chưa có xác nhận của Phú.
+- W4 **chưa hoàn thành theo khung chung**. Chờ PR W4 của Bảo merge, đọc services/README.md và dựng lại services/content-service theo 5 bước. Main hiện chưa có thư mục services; không tự dựng khung thay Bảo.
+- Code W4 cũ được giữ nguyên trên nhánh XA-task3v4 để tái sử dụng sau; không kéo cấu hình Infra cũ sang PR W3.
+
+---
+
+## Lịch sử review nhánh XA-task3v4 (trước góp ý leader)
+
 Ngày cập nhật: 28/10/2026.
 
 ## Phạm vi và quy ước
