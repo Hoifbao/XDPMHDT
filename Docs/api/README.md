@@ -28,3 +28,5 @@ GET /api/heritage-sites/nearby?lat=21.0277644&lng=105.8354028&radius=5
 The heritage-site CMS uses Leaflet with OpenStreetMap tiles. Clicking the map sets the site's latitude and longitude; the existing create/update API persists those values. OpenStreetMap attribution is displayed by Leaflet.
 
 Hiện vật và đa ngôn ngữ (backend chính W3): [Artifacts & Localization](artifacts-localization.md).
+
+Luồng quét iBeacon → chi tiết hiện vật (Khoa ↔ Xuân Anh, chốt W3): [beacon-scan-flow.md](beacon-scan-flow.md).

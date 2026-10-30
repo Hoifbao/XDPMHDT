@@ -100,11 +100,13 @@ void main() {
         'uuid': 'e2c56db5-dffb-48d2-b060-d0f5a71096e0',
         'major': 1,
         'minor': 2,
+        'artifactId': 1,
         'artifactName': 'Khuê Văn Các',
         'siteName': 'Văn Miếu',
       });
 
       expect(beacon.uuid, 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0');
+      expect(beacon.artifactId, 1);
       expect(beacon.artifactName, 'Khuê Văn Các');
       expect(beacon.key, 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0-1-2');
     });
@@ -115,10 +117,12 @@ void main() {
         'uuid': 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0',
         'major': 1,
         'minor': 3,
+        'artifactId': null,
         'artifactName': null,
         'siteName': null,
       });
 
+      expect(beacon.artifactId, isNull);
       expect(beacon.artifactName, isNull);
       expect(beacon.siteName, isNull);
     });
