@@ -1,6 +1,7 @@
 
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartheritage.backend.dto.ApiResponse;
@@ -24,6 +25,7 @@ import java.util.Map;
  * GET  /api/demo/redis/{key}
  * GET  /api/demo/redis/artifacts/{id}
  */
+@Tag(name = "5. Redis demo", description = "Cache-aside chi tiết hiện vật, đo thời gian MySQL/Redis (Phú)")
 @RestController
 @RequestMapping("/api/demo/redis")
 @RequiredArgsConstructor

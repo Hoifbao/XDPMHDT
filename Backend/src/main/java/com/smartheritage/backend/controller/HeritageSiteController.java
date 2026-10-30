@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.HeritageSiteRequest;
 import com.smartheritage.backend.dto.HeritageSiteResponse;
 import com.smartheritage.backend.dto.NearbyHeritageSiteResponse;
@@ -16,6 +18,7 @@ import java.util.Map;
  * REST Controller cho Di tích (Heritage Sites).
  * Base URL: /api/heritage-sites
  */
+@Tag(name = "2. Di tích", description = "CRUD di tích, tìm di tích gần (Ân)")
 @RestController
 @RequestMapping("/api/heritage-sites")
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class HeritageSiteController {
      * @param lng    kinh độ WGS-84 (-180 đến 180), bắt buộc
      * @param radius bán kính tìm kiếm km, tuỳ chọn (mặc định 10, tối đa 100)
      */
+    @Operation(summary = "Di tích gần vị trí (Haversine), sắp gần → xa; radius km, mặc định 10, tối đa 100")
     @GetMapping("/nearby")
     public ResponseEntity<?> getNearby(
             @RequestParam double lat,

@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.*;
 import com.smartheritage.backend.service.ArtifactService;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +32,10 @@ import java.util.NoSuchElementException;
  *  POST   /api/artifacts/{id}/contents            – Thêm / cập nhật nội dung ngôn ngữ
  *  DELETE /api/artifacts/contents/{contentId}     – Xóa một bản nội dung ngôn ngữ
  */
+@Tag(name = "3. Hiện vật", description = "CRUD hiện vật, nội dung đa ngôn ngữ ?lang=vi|en có fallback (Xuân Anh)")
 @RestController
 @RequestMapping("/api/artifacts")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ArtifactController {
 
     private final ArtifactService artifactService;
@@ -72,6 +74,7 @@ public class ArtifactController {
      * GET /api/artifacts/{id}
      * Trả về chi tiết đầy đủ kèm contents đa ngôn ngữ.
      */
+    @Operation(summary = "Chi tiết hiện vật; ?lang=vi|en, thiếu bản dịch thì trả bản tiếng Việt (fallback = true)")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ArtifactResponse>> getArtifactById(@PathVariable Long id, @RequestParam(defaultValue = "vi") String lang) {
         try {
@@ -90,6 +93,7 @@ public class ArtifactController {
      * GET /api/artifacts/beacon/{uuid}
      * Mobile app gọi khi phát hiện iBeacon BLE.
      */
+    @Operation(summary = "[Cũ] Tìm hiện vật theo cột beacon_uuid. Luồng quét beacon dùng /api/ibeacons/registry → /api/artifacts/{id} (Docs/api/beacon-scan-flow.md)")
     @GetMapping("/beacon/{uuid}")
     public ResponseEntity<ApiResponse<ArtifactResponse>> getByBeaconUuid(
             @PathVariable String uuid, @RequestParam(defaultValue = "vi") String lang) {
