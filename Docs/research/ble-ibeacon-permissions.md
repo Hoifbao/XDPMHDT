@@ -80,7 +80,7 @@ Tài liệu gốc: Apple – *Determining the proximity to an iBeacon device* (C
 
 ## 5. Không có beacon thật thì test thế nào
 
-- Dùng 1 điện thoại Android khác cài app phát iBeacon giả lập (ví dụ *Beacon Simulator*), nhập đúng UUID của dự án `E2C56DB5-DFFB-48D2-B060-D0F5A71096E0` và Major/Minor trùng dữ liệu mẫu trong `init_db.sql` (1/1 = Khuê Văn Các, 1/2 = Bia Tiến sĩ, 2/1 = Đoan Môn).
+- Dùng 1 điện thoại Android khác cài app phát iBeacon giả lập (ví dụ *Beacon Simulator*), nhập đúng UUID của dự án `E2C56DB5-DFFB-48D2-B060-D0F5A71096E0` và Major/Minor trùng dữ liệu mẫu trong `Infra/db/04_beacon.sql` (1/1 = Khuê Văn Các, 1/2 = Bia Tiến sĩ, 2/1 = Đoan Môn).
 - Lưu ý: điện thoại phát phải hỗ trợ BLE advertising; một số máy cũ không hỗ trợ.
 
 ---
