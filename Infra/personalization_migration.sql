@@ -1,5 +1,6 @@
--- Chỉ chạy MỘT LẦN trên database tạo từ init_db.sql cũ (trước 30/10/2026).
--- Database mới (docker compose down -v rồi up -d): KHÔNG chạy file này, init_db.sql đã có các cột.
+-- Chỉ chạy MỘT LẦN trên smart_heritage_db đã được khởi tạo từ init_db.sql cũ (trước Sprint 4).
+-- Database mới (docker compose down -v rồi up -d): KHÔNG chạy file này; Infra/db/99_init_db_legacy.sql và
+-- Infra/db/05_personalization.sql đã có các cột tương ứng (Tường - Sprint 4).
 -- Nếu Backend (spring.jpa.hibernate.ddl-auto=update) đã tự thêm cột và unique index:
 --   chỉ chạy câu ALTER ... ALTER COLUMN cuối cùng. Kiểm tra trước bằng: SHOW CREATE TABLE visits;
 
