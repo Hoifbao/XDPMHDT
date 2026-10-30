@@ -19,4 +19,7 @@ public interface IBeaconRepository extends JpaRepository<IBeacon, Long> {
 
     /** Beacon đang gán cho một hiện vật (mỗi beacon gán tối đa 1 hiện vật) */
     List<IBeacon> findByArtifactId(Long artifactId);
+
+    /** Beacon theo trạng thái (registry cho Mobile lấy ACTIVE) */
+    List<IBeacon> findByStatus(String status);
 }

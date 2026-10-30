@@ -50,6 +50,15 @@ public class IBeaconService {
         return toResponse(findOrThrow(id));
     }
 
+    /** Danh sách beacon ACTIVE để Mobile tải về và đối chiếu với tín hiệu quét được */
+    @Transactional(readOnly = true)
+    public List<IBeaconResponse> getRegistry() {
+        return beaconRepository.findByStatus("ACTIVE")
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     // ──────────────────────────── CREATE ───────────────────────────
 
     public IBeaconResponse createBeacon(IBeaconRequest request) {
@@ -77,6 +86,23 @@ public class IBeaconService {
                 });
 
         applyFields(beacon, request, uuid);
+        beaconRepository.save(beacon);
+        return toResponse(beacon);
+    }
+
+    // ──────────────────────────── ASSIGN ───────────────────────────
+
+    /** Gán hiện vật cho beacon. artifactId = null để bỏ gán. */
+    public IBeaconResponse assignArtifact(Long id, Long artifactId) {
+        IBeacon beacon = findOrThrow(id);
+        Artifact artifact = findArtifact(artifactId);
+
+        if (artifact != null && !artifact.getSite().getId().equals(beacon.getSite().getId())) {
+            throw new IllegalArgumentException(
+                    "Hiện vật ID " + artifact.getId() + " không thuộc di tích của beacon này");
+        }
+
+        beacon.setArtifact(artifact);
         beaconRepository.save(beacon);
         return toResponse(beacon);
     }
