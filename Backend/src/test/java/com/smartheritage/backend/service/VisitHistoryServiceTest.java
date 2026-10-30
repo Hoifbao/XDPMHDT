@@ -13,8 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,5 +61,25 @@ class VisitHistoryServiceTest {
         ArgumentCaptor<VisitHistory> saved = ArgumentCaptor.forClass(VisitHistory.class);
         verify(visitHistoryRepository).save(saved.capture());
         assertNull(saved.getValue().getDurationSeconds());
+    }
+
+    /** Bảo W3 (thống kê của Tuấn): detectedAt app gửi dạng UTC được đổi sang giờ server trước khi lưu. */
+    @Test
+    void detectedAtFromMobileIsStoredInServerTime() {
+        User user = User.builder().id(10L).username("visitor_an").build();
+        OffsetDateTime sentUtc = OffsetDateTime.of(2026, 10, 30, 2, 0, 0, 0, ZoneOffset.UTC);
+        RecordVisitRequest request = new RecordVisitRequest();
+        request.setArtifactId(1L);
+        request.setSource("BEACON");
+        request.setClientEventId("550e8400-e29b-41d4-a716-446655440002");
+        request.setDetectedAt(sentUtc);
+        when(visitHistoryRepository.existsByUser_IdAndClientEventId(10L, request.getClientEventId())).thenReturn(false);
+        when(artifactRepository.findById(1L)).thenReturn(Optional.of(Artifact.builder().id(1L).status("ACTIVE").build()));
+
+        visitHistoryService.record(user, request);
+
+        ArgumentCaptor<VisitHistory> saved = ArgumentCaptor.forClass(VisitHistory.class);
+        verify(visitHistoryRepository).save(saved.capture());
+        assertEquals(sentUtc.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(), saved.getValue().getDetectedAt());
     }
 }
