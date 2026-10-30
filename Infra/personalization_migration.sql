@@ -1,5 +1,6 @@
--- Chỉ chạy MỘT LẦN trên database đã được khởi tạo từ init_db.sql trước bản sửa.
--- Database mới: không chạy file này; init_db.sql đã có các cột tương ứng.
+-- Chỉ chạy MỘT LẦN trên smart_heritage_db đã được khởi tạo từ init_db.sql cũ (trước Sprint 4).
+-- Database mới (down -v rồi up -d): không chạy file này; Infra/db/99_init_db_legacy.sql và
+-- Infra/db/05_personalization.sql đã có các cột tương ứng (Tường - Sprint 4).
 -- Nếu Spring Boot ddl-auto=update đã tự thêm cột, kiểm tra SHOW COLUMNS trước khi chạy.
 
 ALTER TABLE visits
