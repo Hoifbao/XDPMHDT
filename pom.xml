@@ -30,6 +30,7 @@
         <module>services/auth-service</module>
         <module>services/api-gateway</module>
         <module>services/service-template</module>
+        <module>services/content-service</module>
         <!-- Ân, Xuân Anh, Khoa thêm module của mình ở đây, vd: <module>services/site-service</module> -->
         <module>Backend</module>
     </modules>
