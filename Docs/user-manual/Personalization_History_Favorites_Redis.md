@@ -37,7 +37,7 @@ Mọi response nghiệp vụ tiếp tục dùng wrapper `ApiResponse` hiện có
 
 - Bảng `visits` được dùng lại; thêm `client_event_id` nullable và `source` (`BEACON`, `MAP`, `MANUAL`) để retry idempotent và phân biệt nguồn lượt xem.
 - Bảng `likes` được dùng lại; PK hiện tại `(user_id, artifact_id)` đã ngăn favorite trùng.
-- Database mới nhận cấu trúc từ `Infra/init_db.sql`. Với volume MySQL đã tồn tại trước khi sửa, xem `Infra/personalization_migration.sql` và kiểm tra cột/unique index trước khi chạy migration. Không chạy ALTER lần hai.
+- Database mới nhận cấu trúc từ `Infra/db/` (`99_init_db_legacy.sql` cho Backend cũ, `05_personalization.sql` cho personalization_db). Với volume MySQL đã tồn tại trước khi sửa, xem `Infra/personalization_migration.sql` và kiểm tra cột/unique index trước khi chạy migration. Không chạy ALTER lần hai.
 
 ## Danh tính người dùng — điều quan trọng
 
