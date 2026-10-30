@@ -1,22 +1,23 @@
 package com.smartheritage.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 /**
- * Hiện vật yêu thích của du khách (Phú).
- * Ánh xạ bảng likes trong Infra/init_db.sql – quan hệ Likes (Users N-N Artifacts) của ERD.
- * Một user chỉ thích một hiện vật một lần nhờ khoá chính ghép (user_id, artifact_id).
+ * Entity Favorite ánh xạ tới bảng likes.
+ * Mỗi người dùng chỉ có thể yêu thích một hiện vật một lần,
+ * được xác định bằng khóa chính ghép FavoriteId.
  */
 @Entity
 @Table(name = "likes")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Favorite {
 
     @EmbeddedId
@@ -24,15 +25,47 @@ public class Favorite {
 
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_likes_user"))
+    @JoinColumn(
+            name = "user_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "fk_likes_user"))
     private User user;
 
     @MapsId("artifactId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "artifact_id", foreignKey = @ForeignKey(name = "fk_likes_artifact"))
+    @JoinColumn(
+            name = "artifact_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "fk_likes_artifact"))
     private Artifact artifact;
 
     @Column(name = "saved_at", nullable = false)
-    @Builder.Default
-    private LocalDateTime savedAt = LocalDateTime.now();
+    private LocalDateTime savedAt;
+
+    /**
+     * Constructor đầy đủ và Builder tương thích với các trường của entity.
+     */
+    @Builder
+    public Favorite(
+            FavoriteId id,
+            User user,
+            Artifact artifact,
+            LocalDateTime savedAt) {
+        this.id = id;
+        this.user = user;
+        this.artifact = artifact;
+        this.savedAt = savedAt != null
+                ? savedAt
+                : LocalDateTime.now();
+    }
+
+    /**
+     * Bảo đảm savedAt được thiết lập trước khi entity được lưu.
+     */
+    @PrePersist
+    void beforeInsert() {
+        if (savedAt == null) {
+            savedAt = LocalDateTime.now();
+        }
+    }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/auth/auth_service.dart';
-import '../features/favorites/personalization_service.dart';
+import '../features/personalization/personalization_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  DATA MODELS  (sẽ thay bằng API response)
@@ -116,19 +116,19 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     }
     final next = !_isFavorite;
     setState(() => _isFavorite = next);
-    try {
-      if (next) {
-        await PersonalizationService.addFavorite(widget.artifactId);
-      } else {
-        await PersonalizationService.removeFavorite(widget.artifactId);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isFavorite = !next); // hoàn tác khi gọi API lỗi
-      messenger.showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+    final result = next
+        ? await PersonalizationService.addFavorite(
+            artifactId: widget.artifactId,
+            artifactName: _artifact.name,
+            siteName: _artifact.locationName,
+            thumbnailUrl: _artifact.thumbnailUrl ?? '',
+          )
+        : await PersonalizationService.removeFavorite(widget.artifactId);
+    if (!mounted) return;
+    if (!result.success) {
+      setState(() => _isFavorite = !next); // hoàn tác khi máy chủ từ chối
     }
+    messenger.showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   @override
