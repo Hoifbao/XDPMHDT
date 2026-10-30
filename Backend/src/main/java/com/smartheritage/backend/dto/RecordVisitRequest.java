@@ -20,9 +20,10 @@ public class RecordVisitRequest {
     @Positive
     private Long artifactId;
 
+    /** null = không đo được thời gian dừng (không ghi 0 để không làm sai thống kê). */
     @Min(0)
     @Max(86400)
-    private Integer durationSeconds = 0;
+    private Integer durationSeconds;
 
     @NotBlank
     @Pattern(regexp = "(?i)BEACON|MAP|MANUAL")

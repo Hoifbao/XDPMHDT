@@ -122,7 +122,7 @@ public class VisitHistoryService {
         row.setArtifact(artifact);
         row.setClientEventId(request.getClientEventId());
         row.setSource(request.getSource() == null ? "MANUAL" : request.getSource().toUpperCase());
-        row.setDurationSeconds(request.getDurationSeconds() == null ? 0 : request.getDurationSeconds());
+        row.setDurationSeconds(request.getDurationSeconds()); // null giữ nguyên là null
         row.setDetectedAt(request.getDetectedAt() == null
             ? LocalDateTime.now()
             : request.getDetectedAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime());

@@ -1,12 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartheritage/features/auth/auth_service.dart';
 import 'package:smartheritage/features/favorites/favorites_screen.dart';
 import 'package:smartheritage/features/visit_history/visit_history_screen.dart';
 
 void main() {
-  setUp(() {
-    AuthService.logout();
+  setUp(() async {
+    // AuthService (JWT) lưu phiên bằng shared_preferences: dùng bộ nhớ giả trong test
+    SharedPreferences.setMockInitialValues({});
+    await AuthService.logout();
   });
 
   testWidgets(

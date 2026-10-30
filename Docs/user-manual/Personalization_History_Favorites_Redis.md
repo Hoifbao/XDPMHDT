@@ -41,18 +41,18 @@ Mọi response nghiệp vụ tiếp tục dùng wrapper `ApiResponse` hiện có
 
 ## Danh tính người dùng — điều quan trọng
 
-Backend hiện tại có login demo nhưng **chưa phát JWT hoặc đặt principal xác thực**. Code tích hợp ưu tiên user từ Spring Security khi principal đã có. Để kiểm thử UI cục bộ trước khi nhóm auth tích hợp JWT, có fallback header `X-User-Id` nhưng mặc định bị tắt. Chỉ bật bằng biến môi trường `PERSONALIZATION_ALLOW_DEV_USER_HEADER=true` khi chạy local; tuyệt đối không bật ở production. Khi auth-service phát JWT, các API phải dùng principal/token thật thay vì header phát triển.
+API `/api/me/**` lấy người dùng từ access token (JWT) qua `CurrentUserProvider`. App Flutter tự gắn `Authorization: Bearer <token>` nhờ `AuthHttpClient` trong `main.dart`; không gửi header `X-User-Id` (từ W4 Gateway xóa mọi header `X-User-*` do client gửi). `GET /api/admin/visits` chỉ ADMIN.
 
 ## Redis demo
 
-`RedisDemoController` được vô hiệu hóa mặc định. Bật bằng `REDIS_DEMO_ENABLED=true`. Redis endpoint ghi key dưới tiền tố `smartheritage:personalization-demo:`; TTL phải từ 1 đến 86400 giây. Không lưu token, mật khẩu hoặc thông tin nhạy cảm vào demo cache.
+`RedisCacheDemoController` (`/api/cache/demo`) được vô hiệu hóa mặc định. Bật bằng `REDIS_DEMO_ENABLED=true`. Redis endpoint ghi key dưới tiền tố `smartheritage:personalization-demo:`; TTL phải từ 1 đến 86400 giây. Không lưu token, mật khẩu hoặc thông tin nhạy cảm vào demo cache.
 
 ## Kiểm thử thủ công
 
 1. Đăng nhập trên Flutter bằng user có sẵn trong MySQL seed; User ID hiện trong response login.
-2. Tạm bật dev header cho local demo và mở một hiện vật khi đăng nhập: event xuất hiện trong `visits`.
+2. Mở một hiện vật khi đã đăng nhập: event xuất hiện trong `visits` (duration_seconds để NULL khi không đo được).
 3. Nhấn **Lưu yêu thích**; kiểm tra `likes` có đúng một dòng cho user/artifact.
 4. Mở **Yêu thích** từ drawer; xóa một mục rồi refresh.
 5. Mở **Lịch sử tham quan**; bật chế độ máy bay để kiểm tra dữ liệu cache và event chờ đồng bộ; bật mạng lại, nhấn refresh.
 6. Gọi POST Redis demo, GET lại cùng key và xác nhận giá trị/TTL; tắt Redis để thấy lỗi kết nối được ghi nhận.
-7. Kiểm tra dữ liệu user A không trộn với user B; `X-User-Id` chỉ dùng ở local demo cho tới khi JWT principal sẵn sàng.
+7. Kiểm tra dữ liệu user A không trộn với user B (mỗi token chỉ thấy dữ liệu của chính mình).

@@ -82,9 +82,7 @@ public class VisitHistory {
         this.detectedAt = detectedAt != null
                 ? detectedAt
                 : LocalDateTime.now();
-        this.durationSeconds = durationSeconds != null
-                ? durationSeconds
-                : 0;
+        this.durationSeconds = durationSeconds; // null = không đo được thời gian dừng
         this.clientEventId = clientEventId;
         this.source = source == null || source.isBlank()
                 ? "MANUAL"
@@ -98,10 +96,6 @@ public class VisitHistory {
     void beforeInsert() {
         if (detectedAt == null) {
             detectedAt = LocalDateTime.now();
-        }
-
-        if (durationSeconds == null) {
-            durationSeconds = 0;
         }
 
         if (source == null || source.isBlank()) {
