@@ -1,6 +1,11 @@
 -- =====================================================================
---  SmartHeritage - Database Initialization Script
+--  SmartHeritage - Database Initialization Script (BẢN CŨ / LEGACY)
 --  Database : smart_heritage_db   |   Engine : MySQL 8.x
+--
+--  Sprint 4 (Tường): đổi tên từ Infra/init_db.sql. Chỉ Backend cũ (cổng 8090)
+--  dùng schema này, giữ đến hết tuần 5. Các service mới dùng schema riêng
+--  trong 00_create_schemas.sql ... 07_analytics.sql (xem Infra/db/README.md).
+--  Tiền tố 99 để file chạy SAU các script 00-07.
 --
 --  Bản hợp nhất tuần 2 (gộp từ bản 9 bảng của Tường, entity Artifact /
 --  ArtifactContent của Xuân Anh và HeritageSite của Ân).
@@ -12,7 +17,8 @@
 --   - Khác ERD tuần 1: bảng artifact_translations được thay bằng
 --     artifact_contents (đa ngôn ngữ + audio/video/ảnh) theo code của Xuân Anh.
 --     Cần cập nhật lại ERD cho khớp.
---   - Script chỉ chạy khi volume MySQL còn trống. Muốn chạy lại:
+--   - Docker chạy cả thư mục Infra/db theo thứ tự tên file, chỉ khi volume
+--     MySQL còn trống. Muốn chạy lại:
 --       docker compose -f Infra/docker-compose.yml down -v
 --       docker compose -f Infra/docker-compose.yml up -d
 -- =====================================================================
