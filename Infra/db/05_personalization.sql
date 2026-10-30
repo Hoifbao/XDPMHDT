@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS visits (
     artifact_id      BIGINT      NOT NULL,             -- id trong content_db.artifacts (không FK)
     detected_at      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     duration_seconds INT         NULL DEFAULT NULL,    -- NULL = không đo được thời gian dừng
-    client_event_id  CHAR(36)    NULL,                 -- UUID do app tạo, chống ghi trùng khi đồng bộ offline
+    client_event_id  VARCHAR(36) NULL,                 -- UUID do app tạo, chống ghi trùng khi đồng bộ offline
     source           VARCHAR(20) NOT NULL DEFAULT 'MANUAL',   -- BEACON | MAP | MANUAL
     PRIMARY KEY (id),
     UNIQUE KEY uq_visits_user_event (user_id, client_event_id),

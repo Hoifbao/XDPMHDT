@@ -3,7 +3,8 @@
 ## Chuẩn bị
 1. Chạy MySQL và Redis: `docker compose -f Infra/docker-compose.yml up -d` (Redis ở cổng 6379).
 2. Chạy Backend: Run `BackendApplication` trong VS Code (hoặc `cd Backend` rồi `mvn spring-boot:run`).
-3. Mở Swagger: http://localhost:8080/swagger-ui.html → nhóm **redis-demo-controller**.
+3. Mở Swagger của Backend cũ: http://localhost:8090/swagger-ui/index.html → nhóm **5. Redis demo**
+   (gọi qua Gateway cũng được: http://localhost:8080/api/demo/redis/artifacts/1).
 
 ## Kịch bản demo
 | Bước | API | Kết quả mong đợi |

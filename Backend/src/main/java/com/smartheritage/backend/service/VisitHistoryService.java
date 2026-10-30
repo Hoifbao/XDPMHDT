@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -123,9 +123,11 @@ public class VisitHistoryService {
         row.setClientEventId(request.getClientEventId());
         row.setSource(request.getSource() == null ? "MANUAL" : request.getSource().toUpperCase());
         row.setDurationSeconds(request.getDurationSeconds()); // null giữ nguyên là null
+        // Lưu theo giờ của server (giống LocalDateTime.now() và dữ liệu mẫu), không lưu giờ UTC:
+        // nếu lưu UTC, thống kê theo ngày DATE(detected_at) của Tuấn bị lệch 7 tiếng.
         row.setDetectedAt(request.getDetectedAt() == null
             ? LocalDateTime.now()
-            : request.getDetectedAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime());
+            : request.getDetectedAt().atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime());
         return row;
     }
 }
