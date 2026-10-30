@@ -11,6 +11,9 @@
 # Lưu ý: profile core chiếm cổng 8080/8081/8090. Nếu đang chạy Gateway/auth/Backend bằng
 # mvn spring-boot:run thì KHÔNG bật profile core (trùng cổng).
 # Mật khẩu, khóa JWT: copy Infra/.env.example thành Infra/.env rồi sửa.
+# Database (Tường - Sprint 4): MySQL chạy mọi script trong Infra/db theo thứ tự tên file
+# (00 tạo 7 schema + user riêng, 01..07 từng schema, 99 là smart_heritage_db của Backend cũ).
+# Script chỉ chạy khi volume trống; sửa Infra/db thì chạy lại: down -v rồi up -d (xem Infra/db/README.md).
 
 services:
   # ---------- Luôn chạy (không gắn profile) ----------
@@ -25,7 +28,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpassword123}"]
       interval: 10s
