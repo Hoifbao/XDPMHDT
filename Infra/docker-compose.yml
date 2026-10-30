@@ -73,6 +73,23 @@ services:
       mysql-db:
         condition: service_healthy
 
+  content-service:
+    profiles: ["core"]
+    build:
+      context: ..
+      dockerfile: services/content-service/Dockerfile
+    container_name: smart_heritage_content
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/content_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      # Chưa có site-service thì kiểm tra siteId qua Backend cũ
+      LEGACY_BACKEND_URL: http://backend:8090
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
   api-gateway:
     profiles: ["core"]
     build:
@@ -83,11 +100,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
       AUTH_SERVICE_URL: http://auth-service:8081
       LEGACY_BACKEND_URL: http://backend:8090
+      CONTENT_SERVICE_URL: http://content-service:8083
       # Tách xong service nào thì thêm 1 dòng, vd: SITE_SERVICE_URL: http://site-service:8082
     ports:
       - "8080:8080"
     depends_on:
       - auth-service
+      - content-service
       - backend
 
   # ---------- profile: mq ----------
