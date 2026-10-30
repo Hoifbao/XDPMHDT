@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.dto.RecordVisitRequest;
 import com.smartheritage.backend.dto.SyncVisitsRequest;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "5. Cá nhân hóa - Lịch sử", description = "Lịch sử tham quan, đồng bộ offline theo clientEventId (Phú)")
 @RestController
 @RequestMapping("/api/me/visits")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class VisitHistoryController {
     private final VisitHistoryService visitHistoryService;
     private final CurrentUserProvider currentUserProvider;
 
+    @Operation(summary = "Lịch sử tham quan của tôi (phân trang, mới nhất trước)")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<VisitHistoryResponse>>> list(
         @RequestParam(defaultValue = "0") int page,
@@ -32,6 +36,7 @@ public class VisitHistoryController {
         return ResponseEntity.ok(ApiResponse.ok("Lịch sử tham quan", visitHistoryService.list(user.getId(), pageable)));
     }
 
+    @Operation(summary = "Ghi 1 lượt xem; trùng clientEventId thì không ghi (data = false)")
     @PostMapping
     public ResponseEntity<ApiResponse<Boolean>> record(
         @Valid @RequestBody RecordVisitRequest request) {
@@ -40,6 +45,7 @@ public class VisitHistoryController {
         return ResponseEntity.ok(ApiResponse.ok(created ? "Đã ghi nhận lượt xem" : "Sự kiện đã được đồng bộ trước đó", created));
     }
 
+    @Operation(summary = "Đồng bộ tối đa 100 lượt xem offline; trả received/created/duplicates")
     @PostMapping("/batch")
     public ResponseEntity<ApiResponse<SyncVisitsResponse>> sync(
         @Valid @RequestBody SyncVisitsRequest request) {
