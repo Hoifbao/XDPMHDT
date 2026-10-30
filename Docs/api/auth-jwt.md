@@ -23,7 +23,9 @@ thì tự áp dụng: GET công khai, thêm/sửa/xóa chỉ ADMIN. Cần quy t�
 
 ## 2. Lấy token và dán vào Swagger
 
-1. Chạy Backend: `cd Backend && mvn spring-boot:run`, mở http://localhost:8080/swagger-ui.html
+1. Chạy đủ Backend cũ + auth-service + Gateway: `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1`,
+   mở Swagger của Backend cũ http://localhost:8090/swagger-ui/index.html (Swagger chưa gom về Gateway).
+   Postman, Web Admin, Mobile gọi qua **http://localhost:8080**.
 2. Mở `auth-controller` → `POST /api/auth/login` → **Try it out**, nhập:
    ```json
    { "username": "admin", "password": "Test@1234" }
