@@ -41,6 +41,9 @@ dependencies:
   # Lưu JWT sau khi đăng nhập (Bảo - Sprint 3)
   shared_preferences: ^2.3.2
 
+  # Sinh clientEventId (UUID) cho lượt xem offline (Phú - W3)
+  uuid: ^4.6.0
+
   # Quét iBeacon (BLE) trên Android
   flutter_blue_plus: ^2.3.14
   permission_handler: ^12.0.1

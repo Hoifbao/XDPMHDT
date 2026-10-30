@@ -1,9 +1,15 @@
+
 import 'package:flutter/material.dart';
 
 import '../../screens/artifact_detail_screen.dart';
-import 'personalization_service.dart';
+import '../personalization/personalization_service.dart';
 
-/// Màn hình Hiện vật yêu thích (Phú).
+const _cream = Color(0xFFF7F5EF);
+const _sage = Color(0xFF718B78);
+const _ink = Color(0xFF26352B);
+
+/// Màn hình hiện vật yêu thích.
+/// Hỗ trợ làm mới, thông báo trạng thái cache và bỏ yêu thích.
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -12,139 +18,317 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  late Future<List<FavoriteItem>> _future;
+  bool _loading = true;
+  bool _fromCache = false;
+  String? _warning;
+  List<Map<String, dynamic>> _items = [];
 
   @override
   void initState() {
     super.initState();
-    _future = PersonalizationService.getFavorites();
+    _load();
   }
 
-  Future<void> _reload() async {
-    final next = PersonalizationService.getFavorites();
-    setState(() {
-      _future = next;
-    });
-    await next.catchError((_) => <FavoriteItem>[]);
-  }
+  Future<void> _load({bool showLoader = true}) async {
+    if (showLoader && mounted) {
+      setState(() => _loading = true);
+    }
 
-  Future<void> _remove(FavoriteItem item) async {
     try {
-      await PersonalizationService.removeFavorite(item.artifactId);
+      final result = await PersonalizationService.loadFavorites();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đã bỏ "${item.artifactName}" khỏi yêu thích')),
-      );
-      _reload();
-    } catch (e) {
+
+      setState(() {
+        _items = result.items;
+        _fromCache = result.fromCache;
+        _warning = result.warning;
+        _loading = false;
+      });
+    } catch (error) {
       if (!mounted) return;
+
+      setState(() {
+        _warning = error.toString().replaceFirst('Exception: ', '');
+        _loading = false;
+      });
+    }
+  }
+
+  int? _artifactId(Map<String, dynamic> item) {
+    final rawId =
+        item['artifactId'] ?? item['artifact_id'] ?? item['id'];
+
+    if (rawId is num) {
+      return rawId.toInt();
+    }
+
+    return int.tryParse(rawId?.toString() ?? '');
+  }
+
+  String _string(
+    Map<String, dynamic> item,
+    String key, [
+    String fallback = '',
+  ]) {
+    final value = item[key];
+    return value?.toString() ?? fallback;
+  }
+
+  Future<void> _remove(Map<String, dynamic> item) async {
+    final id = _artifactId(item);
+
+    if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        const SnackBar(
+          content: Text('Không xác định được mã hiện vật.'),
+        ),
       );
+      return;
+    }
+
+    try {
+      final result = await PersonalizationService.removeFavorite(id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+
+      await _load(showLoader: false);
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openDetail(Map<String, dynamic> item) async {
+    final id = _artifactId(item);
+
+    if (id == null) return;
+
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ArtifactDetailScreen(artifactId: id),
+      ),
+    );
+
+    if (mounted) {
+      await _load(showLoader: false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hiện vật yêu thích')),
-      body: FutureBuilder<List<FavoriteItem>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _Message(
-              icon: Icons.cloud_off,
-              text: snapshot.error.toString().replaceFirst('Exception: ', ''),
-              onRetry: _reload,
-            );
-          }
-          final items = snapshot.data ?? [];
-          if (items.isEmpty) {
-            return const _Message(
-              icon: Icons.favorite_border,
-              text: 'Chưa có hiện vật yêu thích.\nBấm biểu tượng trái tim ở trang chi tiết hiện vật để lưu.',
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView.separated(
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return ListTile(
-                  leading: _Thumb(url: item.thumbnailUrl),
-                  title: Text(item.artifactName),
-                  subtitle: Text(item.siteName ?? ''),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.favorite, color: Colors.red),
-                    tooltip: 'Bỏ yêu thích',
-                    onPressed: () => _remove(item),
-                  ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ArtifactDetailScreen(artifactId: item.artifactId),
-                    ),
-                  ).then((_) => _reload()),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _Thumb extends StatelessWidget {
-  final String? url;
-  const _Thumb({this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    const placeholder = CircleAvatar(child: Icon(Icons.museum_outlined));
-    if (url == null || url!.isEmpty) return placeholder;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.network(
-        url!,
-        width: 48,
-        height: 48,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder,
-      ),
-    );
-  }
-}
-
-/// Thông báo giữa màn hình (trống / lỗi), dùng chung cho Yêu thích và Lịch sử.
-class _Message extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final VoidCallback? onRetry;
-  const _Message({required this.icon, required this.text, this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56, color: Colors.grey),
-            const SizedBox(height: 12),
-            Text(text, textAlign: TextAlign.center),
-            if (onRetry != null) ...[
-              const SizedBox(height: 12),
-              OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
-            ],
-          ],
+      backgroundColor: _cream,
+      appBar: AppBar(
+        title: const Text(
+          'Hiện vật yêu thích',
+          style: TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ink),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : () => _load(),
+            tooltip: 'Làm mới',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: _sage),
+              )
+            : RefreshIndicator(
+                onRefresh: () => _load(showLoader: false),
+                color: _sage,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (_warning != null &&
+                        _warning!.trim().isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECEDE5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _fromCache
+                                  ? Icons.cloud_off
+                                  : Icons.info_outline,
+                              color: _sage,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _warning!,
+                                style: const TextStyle(color: _ink),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_items.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 90),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.favorite_border,
+                              size: 64,
+                              color: _sage,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Chưa có hiện vật yêu thích',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: _ink,
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Mở chi tiết hiện vật và chọn '
+                              '“Lưu yêu thích”.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._items.map((item) {
+                        final imageUrl = _string(
+                          item,
+                          'thumbnailUrl',
+                          _string(item, 'image'),
+                        );
+                        final name = _string(
+                          item,
+                          'artifactName',
+                          _string(item, 'name', 'Hiện vật'),
+                        );
+                        final site = _string(
+                          item,
+                          'siteName',
+                          'Di tích',
+                        );
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 0,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _openDetail(item),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: imageUrl.isEmpty
+                                        ? Container(
+                                            width: 88,
+                                            height: 88,
+                                            color: const Color(0xFFECEDE5),
+                                            child: const Icon(
+                                              Icons.account_balance,
+                                              color: _sage,
+                                            ),
+                                          )
+                                        : Image.network(
+                                            imageUrl,
+                                            width: 88,
+                                            height: 88,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                Container(
+                                              width: 88,
+                                              height: 88,
+                                              color: const Color(0xFFECEDE5),
+                                              child: const Icon(
+                                                Icons.account_balance,
+                                                color: _sage,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: _ink,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          site,
+                                          style: const TextStyle(
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Đã lưu: ${_string(item, 'savedAt', '—')}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.black45,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Bỏ yêu thích',
+                                    onPressed: () => _remove(item),
+                                    icon: const Icon(
+                                      Icons.favorite,
+                                      color: _sage,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
       ),
     );
   }

@@ -26,3 +26,6 @@ replay_pid*.log
 
 # JDBC driver cho NiFi: mỗi người tự tải (Infra/nifi/drivers/README.md)
 Infra/nifi/drivers/*.jar
+
+# Do not commit the standalone personalization delivery ZIP
+Smart_Heritage_Personalization_History_Favorites_Offline_Cache.zip

@@ -1,3 +1,4 @@
+
 package com.smartheritage.backend.entity;
 
 import jakarta.persistence.Column;
@@ -8,7 +9,10 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-/** Khoá chính ghép (user_id, artifact_id) của bảng likes. */
+/**
+ * Composite primary key for the likes table.
+ * Maps to likes(user_id, artifact_id).
+ */
 @Embeddable
 @Data
 @NoArgsConstructor
