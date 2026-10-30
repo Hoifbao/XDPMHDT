@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.dto.VisitHistoryResponse;
 import com.smartheritage.backend.entity.User;
@@ -17,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 
 /** Read-only feed used by analytics-service; no aggregation is performed here. */
+@Tag(name = "5. Cá nhân hóa - Admin", description = "Nguồn lượt xem cho analytics-service, chỉ ADMIN (Phú)")
 @RestController
 @RequestMapping("/api/admin/visits")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class AdminVisitHistoryController {
     private final VisitHistoryService visitHistoryService;
     private final CurrentUserProvider currentUserProvider;
 
+    @Operation(summary = "ADMIN: danh sách lượt xem theo from/to/siteId cho analytics-service")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<VisitHistoryResponse>>> list(
         @RequestParam(required = false) LocalDate from,

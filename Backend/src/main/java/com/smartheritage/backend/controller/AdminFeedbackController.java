@@ -1,5 +1,6 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.dto.FeedbackResponse;
 import com.smartheritage.backend.dto.FeedbackStatusRequest;
@@ -22,6 +23,7 @@ import java.util.NoSuchElementException;
  * vì CORS đã cấu hình chung ở SecurityConfig / Gateway.
  * Quy ước lỗi: IllegalArgumentException → 400, NoSuchElementException → 404.
  */
+@Tag(name = "6. Đánh giá - Admin", description = "Duyệt/từ chối đánh giá, chỉ ADMIN (Tường)")
 @RestController
 @RequestMapping("/api/admin/feedbacks")
 @RequiredArgsConstructor

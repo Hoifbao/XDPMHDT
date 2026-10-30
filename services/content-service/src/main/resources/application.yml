@@ -1,0 +1,44 @@
+# content-service (Xuân Anh - Sprint 4): hiện vật, nội dung đa ngôn ngữ, media.
+# Client gọi qua Gateway http://localhost:8080; chạy riêng ở cổng 8083 để test Swagger/Actuator.
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: content-service
+  datasource:
+    # Bảng tạo bởi Infra/db/03_content.sql (Tường); ddl-auto update để chạy thử khi chưa có script
+    url: "${DB_URL:jdbc:mysql://localhost:3307/content_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+# Gọi site-service để kiểm tra siteId và lấy tên di tích.
+# Chưa có site-service (Ân) thì mặc định gọi Backend cũ 8090 (cùng API GET /api/heritage-sites/{id}).
+app:
+  clients:
+    site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    timeout: ${CLIENT_TIMEOUT:2s}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # Cần cho biểu đồ/cảnh báo độ trễ p95 trên Grafana (histogram_quantile)
+      percentiles-histogram:
+        http.server.requests: true

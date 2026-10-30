@@ -166,6 +166,22 @@ Hệ thống bao gồm 6 module cốt lõi[cite: 1]:
 
 ---
 
+## Chạy local — quy ước cổng (thống nhất từ Sprint 4)
+
+> **Cổng chính là 8080 (API Gateway).** Web Admin, app Mobile, Postman và mọi test API đều gọi `http://localhost:8080`.
+> 8090 là Backend cũ đứng sau Gateway, chỉ gọi thẳng khi debug hoặc xem Swagger.
+
+| Cổng | Thành phần | Ghi chú |
+|---|---|---|
+| **8080** | api-gateway | Cổng duy nhất client gọi. Kiểm JWT + phân quyền, chuyển tiếp request |
+| 8081 | auth-service | Nhận `/api/auth/**` từ Gateway |
+| 8090 | Backend cũ (monolith) | Các API chưa tách. Swagger: http://localhost:8090/swagger-ui/index.html |
+| 8082–8087 | site / content / beacon / personalization / feedback / analytics | Dần thay Backend cũ từ W4–W5 |
+| 3307, 6379 | MySQL, Redis (Docker) | |
+
+Chạy đủ bằng 1 lệnh (thư mục gốc repo): `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1`.
+Chi tiết: [services/README.md](services/README.md).
+
 ## 4. Cấu Trúc Repository / Repository Structure
 
 - `Backend/`: Java/Maven REST API; mã nguồn hiện tại dùng package `com.smartheritage.backend`.

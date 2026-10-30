@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.*;
 import com.smartheritage.backend.service.IBeaconService;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +26,10 @@ import java.util.List;
  *  PUT    /api/ibeacons/{id}   – Cập nhật iBeacon
  *  DELETE /api/ibeacons/{id}   – Xóa iBeacon
  */
+@Tag(name = "4. iBeacon", description = "CRUD beacon, registry cho Mobile, gán hiện vật (Khoa)")
 @RestController
 @RequestMapping("/api/ibeacons")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class IBeaconController {
 
     private final IBeaconService beaconService;
@@ -47,11 +49,13 @@ public class IBeaconController {
         }
     }
 
+    @Operation(summary = "Danh sách beacon ACTIVE (uuid, major, minor, artifactId) để Mobile đối chiếu khi quét")
     @GetMapping("/registry")
     public ResponseEntity<ApiResponse<List<IBeaconResponse>>> getRegistry() {
         return ResponseEntity.ok(ApiResponse.ok("Thành công", beaconService.getRegistry()));
     }
 
+    @Operation(summary = "ADMIN gán hiện vật cho beacon (artifactId = null để bỏ gán); hiện vật phải cùng di tích")
     @PostMapping("/{id}/assign")
     public ResponseEntity<ApiResponse<IBeaconResponse>> assignArtifact(
             @PathVariable Long id,

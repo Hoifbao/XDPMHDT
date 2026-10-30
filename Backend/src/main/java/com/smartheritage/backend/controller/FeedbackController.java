@@ -1,5 +1,7 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.dto.FeedbackRequest;
 import com.smartheritage.backend.dto.FeedbackResponse;
@@ -26,6 +28,7 @@ import java.util.NoSuchElementException;
  *
  * Quy ước lỗi: IllegalArgumentException → 400, NoSuchElementException → 404, chưa đăng nhập → 401.
  */
+@Tag(name = "6. Đánh giá", description = "Gửi đánh giá, xem đánh giá đã duyệt theo hiện vật (Tường)")
 @RestController
 @RequestMapping("/api/artifacts/{artifactId}/feedbacks")
 @RequiredArgsConstructor
@@ -49,6 +52,7 @@ public class FeedbackController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
                     description = "Không tìm thấy hiện vật hoặc người dùng")
     })
+    @Operation(summary = "Gửi đánh giá (1–5 sao + bình luận), userId lấy từ token; chờ duyệt")
     @PostMapping
     public ResponseEntity<ApiResponse<FeedbackResponse>> createFeedback(
             @PathVariable Long artifactId,
@@ -80,6 +84,7 @@ public class FeedbackController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
                     description = "Không tìm thấy hiện vật hoặc hiện vật không hoạt động")
     })
+    @Operation(summary = "Đánh giá đã duyệt (APPROVED) của hiện vật")
     @GetMapping
     public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getApprovedFeedbacks(
             @PathVariable Long artifactId) {
