@@ -146,14 +146,19 @@ CREATE TABLE IF NOT EXISTS media_resources (
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- ERD: quan hệ Visits (Users N-N Artifacts) (Phú)  |  Chưa có entity trong Backend
+-- ERD: quan hệ Visits (Users N-N Artifacts) (Phú)  |  Entity: VisitHistory
+-- duration_seconds NULL = không đo được thời gian dừng (không ghi 0 để AVG thống kê của Tuấn đúng).
+-- client_event_id: UUID do app sinh 1 lần cho mỗi lượt xem, gửi lại khi retry/offline không bị ghi trùng.
 CREATE TABLE IF NOT EXISTS visits (
-    id               BIGINT   NOT NULL AUTO_INCREMENT,
-    user_id          BIGINT   NOT NULL,
-    artifact_id      BIGINT   NOT NULL,
-    detected_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    duration_seconds INT      NULL DEFAULT 0,
+    id               BIGINT      NOT NULL AUTO_INCREMENT,
+    user_id          BIGINT      NOT NULL,
+    artifact_id      BIGINT      NOT NULL,
+    detected_at      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    duration_seconds INT         NULL,
+    client_event_id  VARCHAR(36) NULL,
+    source           VARCHAR(20) NOT NULL DEFAULT 'MANUAL',   -- BEACON | MAP | MANUAL
     PRIMARY KEY (id),
+    UNIQUE KEY uq_visits_user_event (user_id, client_event_id),
     CONSTRAINT chk_visits_duration CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
     CONSTRAINT fk_visits_user
         FOREIGN KEY (user_id) REFERENCES users (id),
@@ -161,7 +166,7 @@ CREATE TABLE IF NOT EXISTS visits (
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- ERD: quan hệ Likes (Users N-N Artifacts) (Phú)  |  Chưa có entity trong Backend
+-- ERD: quan hệ Likes (Users N-N Artifacts) (Phú)  |  Entity: Favorite
 CREATE TABLE IF NOT EXISTS likes (
     user_id     BIGINT   NOT NULL,
     artifact_id BIGINT   NOT NULL,

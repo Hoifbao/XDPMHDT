@@ -13,6 +13,10 @@ class RegistryBeacon {
   final String uuid;
   final int major;
   final int minor;
+
+  /// Hiện vật được gán; null = beacon chưa gán. W4: mở chi tiết bằng
+  /// GET /api/artifacts/{artifactId}?lang=vi|en (Docs/api/beacon-scan-flow.md).
+  final int? artifactId;
   final String? artifactName;
   final String? siteName;
 
@@ -21,6 +25,7 @@ class RegistryBeacon {
     required this.uuid,
     required this.major,
     required this.minor,
+    this.artifactId,
     this.artifactName,
     this.siteName,
   });
@@ -31,6 +36,7 @@ class RegistryBeacon {
       uuid: json['uuid'].toString().toUpperCase(),
       major: (json['major'] as num).toInt(),
       minor: (json['minor'] as num).toInt(),
+      artifactId: (json['artifactId'] as num?)?.toInt(),
       artifactName: json['artifactName']?.toString(),
       siteName: json['siteName']?.toString(),
     );

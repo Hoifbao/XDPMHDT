@@ -1,5 +1,6 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.smartheritage.backend.entity.User;
 import com.smartheritage.backend.repository.UserRepository;
 import com.smartheritage.backend.security.AuthPrincipal;
@@ -28,10 +29,10 @@ import java.util.regex.Pattern;
  *  - GET  /api/auth/me        : hồ sơ của người đang đăng nhập (cần Bearer token)
  *  - GET  /api/auth/users/{id}: hồ sơ theo id (chỉ của chính mình, ADMIN xem được tất cả)
  */
+@Tag(name = "1. Xác thực", description = "Đăng ký, đăng nhập, refresh/logout JWT, hồ sơ (Bảo)")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
