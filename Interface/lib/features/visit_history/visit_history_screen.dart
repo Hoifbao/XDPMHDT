@@ -251,12 +251,10 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
                         );
 
                         final rawDuration = item['durationSeconds'];
-                        final duration = rawDuration is num
+                        // null = không đo được thời gian dừng: không hiện "0 giây"
+                        final int? duration = rawDuration is num
                             ? rawDuration.toInt()
-                            : int.tryParse(
-                                  rawDuration?.toString() ?? '',
-                                ) ??
-                                0;
+                            : int.tryParse(rawDuration?.toString() ?? '');
 
                         final pending = item['syncPending'] == true;
 
@@ -356,7 +354,8 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
                                           runSpacing: 4,
                                           children: [
                                             _pill(source),
-                                            _pill(_duration(duration)),
+                                            if (duration != null)
+                                              _pill(_duration(duration)),
                                             if (pending)
                                               _pill('Chờ đồng bộ'),
                                           ],

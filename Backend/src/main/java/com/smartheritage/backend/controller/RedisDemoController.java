@@ -27,7 +27,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/demo/redis")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class RedisDemoController {
 
     private static final Duration ARTIFACT_TTL =

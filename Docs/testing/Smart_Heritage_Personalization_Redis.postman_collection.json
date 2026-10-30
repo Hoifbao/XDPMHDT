@@ -1,12 +1,12 @@
 {
   "info": {
     "name": "Smart Heritage - Personalization & Redis Demo",
-    "description": "Local development collection for the shared Backend. X-User-Id is accepted only when PERSONALIZATION_ALLOW_DEV_USER_HEADER=true; never use that header as production authentication.",
+    "description": "Local development collection. Dang nhap POST {{baseUrl}}/api/auth/login (visitor_an / Test@1234, admin cho /api/admin/visits) roi dan accessToken vao bien accessToken. Khong dung header X-User-Id.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "userId", "value": "2" },
+    { "key": "accessToken", "value": "" },
     { "key": "artifactId", "value": "1" },
     { "key": "clientEventId", "value": "550e8400-e29b-41d4-a716-446655440000" },
     { "key": "redisKey", "value": "personalization-hello" }
@@ -17,19 +17,19 @@
       "item": [
         {
           "name": "List Favorites",
-          "request": { "method": "GET", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/me/favorites?page=0&size=20" }
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/me/favorites?page=0&size=20" }
         },
         {
           "name": "Add Favorite (idempotent POST)",
-          "request": { "method": "POST", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}" }
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}" }
         },
         {
           "name": "Check Favorite Exists",
-          "request": { "method": "GET", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}/exists" }
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}/exists" }
         },
         {
           "name": "Remove Favorite",
-          "request": { "method": "DELETE", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}" }
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/me/favorites/{{artifactId}}" }
         }
       ]
     },
@@ -38,13 +38,13 @@
       "item": [
         {
           "name": "List History",
-          "request": { "method": "GET", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/me/visits?page=0&size=20" }
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/me/visits?page=0&size=20" }
         },
         {
           "name": "Record One Visit",
           "request": {
             "method": "POST",
-            "header": [{ "key": "X-User-Id", "value": "{{userId}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"artifactId\": {{artifactId}},\n  \"durationSeconds\": 30,\n  \"source\": \"MANUAL\",\n  \"clientEventId\": \"{{clientEventId}}\",\n  \"detectedAt\": \"2026-10-24T00:00:00Z\"\n}" },
             "url": "{{baseUrl}}/api/me/visits"
           }
@@ -53,14 +53,14 @@
           "name": "Sync Offline Batch (repeat same clientEventId to verify duplicate handling)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "X-User-Id", "value": "{{userId}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"events\": [\n    {\n      \"artifactId\": {{artifactId}},\n      \"durationSeconds\": 30,\n      \"source\": \"MANUAL\",\n      \"clientEventId\": \"{{clientEventId}}\",\n      \"detectedAt\": \"2026-10-24T00:00:00Z\"\n    }\n  ]\n}" },
             "url": "{{baseUrl}}/api/me/visits/batch"
           }
         },
         {
           "name": "Admin Read Feed (set userId to an ADMIN seed account)",
-          "request": { "method": "GET", "header": [{ "key": "X-User-Id", "value": "{{userId}}" }], "url": "{{baseUrl}}/api/admin/visits?from=2026-10-01&to=2026-10-31&siteId=1&page=0&size=50" }
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/admin/visits?from=2026-10-01&to=2026-10-31&siteId=1&page=0&size=50" }
         }
       ]
     },

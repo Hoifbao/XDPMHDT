@@ -32,11 +32,9 @@ class PersonalizationActionResult {
 
 /// API adapter + per-account local cache/outbox for Favorites and Visit History.
 ///
-/// IMPORTANT: the current project login is an in-memory demo and does not issue
-/// JWT yet. X-User-Id is only for local integration demos and the Backend accepts
-/// it only when app.personalization.allow-dev-user-header=true. In a JWT build,
-/// send Authorization: Bearer <token>; Backend then resolves the principal and
-/// ignores the development header.
+/// Xác thực: KHÔNG tự gắn header X-User-Id. Access token (Bearer) được gắn tự động
+/// cho mọi request qua http.runWithClient + AuthHttpClient trong main.dart;
+/// Backend lấy userId từ token. Từ W4 Gateway xóa mọi header X-User-* do client gửi.
 class PersonalizationService {
   PersonalizationService._();
   static final Uuid _uuid = Uuid();
@@ -49,14 +47,10 @@ class PersonalizationService {
 
   static String _cacheKey(int userId, String name) => 'sh.personalization.$userId.$name';
 
-  static Map<String, String> _headers() {
-    final user = AuthService.currentUser.value;
-    return {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json; charset=UTF-8',
-      if (user != null) 'X-User-Id': user.userId.toString(),
-    };
-  }
+  static Map<String, String> _headers() => const {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json; charset=UTF-8',
+      };
 
   static Future<http.Response> _get(String path) => http
       .get(Uri.parse('$_baseUrl$path'), headers: _headers())
@@ -187,6 +181,21 @@ class PersonalizationService {
     return value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
   }
 
+  /// Hiện vật đã nằm trong Yêu thích chưa (GET /api/me/favorites/{id}/exists).
+  /// Không kết nối được máy chủ thì dựa vào cache trên thiết bị.
+  static Future<bool> isFavorite(int artifactId) async {
+    final userId = _userId;
+    if (userId == null) return false;
+    try {
+      final response = await _get('$_favoritesPath/$artifactId/exists');
+      if (_ok(response)) return _unwrap(response) == true;
+    } catch (_) {
+      // Mất mạng: dùng cache bên dưới
+    }
+    final cached = await _readCache(userId, 'favorites');
+    return cached.any((row) => _artifactId(row) == artifactId);
+  }
+
   static Future<PersonalizationActionResult> addFavorite({
     required int artifactId,
     required String artifactName,
@@ -303,7 +312,7 @@ class PersonalizationService {
     String siteName = 'Smart Heritage',
     String thumbnailUrl = '',
     String source = 'MANUAL',
-    int durationSeconds = 0,
+    int? durationSeconds, // null = không đo được thời gian dừng (không gửi 0)
   }) async {
     final userId = _userId;
     if (userId == null) return; // history belongs to a signed-in visitor
@@ -318,7 +327,7 @@ class PersonalizationService {
       'siteName': siteName,
       'thumbnailUrl': thumbnailUrl,
       'detectedAt': detectedAt,
-      'durationSeconds': durationSeconds,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
       'source': source,
       'syncPending': true,
     };
@@ -332,7 +341,7 @@ class PersonalizationService {
       'clientEventId': clientEventId,
       'artifactId': artifactId,
       'detectedAt': detectedAt,
-      'durationSeconds': durationSeconds,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
       'source': source,
     });
     await _writeOutbox(userId, 'visits', outbox);

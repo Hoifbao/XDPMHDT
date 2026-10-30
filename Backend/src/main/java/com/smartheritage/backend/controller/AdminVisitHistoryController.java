@@ -20,20 +20,18 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/admin/visits")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AdminVisitHistoryController {
     private final VisitHistoryService visitHistoryService;
     private final CurrentUserProvider currentUserProvider;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<VisitHistoryResponse>>> list(
-        @RequestHeader(name = "X-User-Id", required = false) Long devUserId,
         @RequestParam(required = false) LocalDate from,
         @RequestParam(required = false) LocalDate to,
         @RequestParam(required = false) Long siteId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "50") int size) {
-        User user = currentUserProvider.requireCurrentUser(devUserId);
+        User user = currentUserProvider.requireCurrentUser();
         if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ ADMIN được truy cập dữ liệu lượt xem tổng hợp.");
         }
