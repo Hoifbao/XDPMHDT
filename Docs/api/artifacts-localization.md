@@ -30,8 +30,8 @@ CMS dùng window.SHAuth.apiBase, cấu hình máy chủ bằng ?api=http://local
 - [Chi tiết tiếng Anh](artifact-detail.sample.json).
 - [Fallback Việt](artifact-detail-fallback.sample.json).
 
-Luồng mobile: UUID → GET /api/artifacts/beacon/{uuid}?lang=en → đọc data.content, data.media, data.languageCode.
-Cần Khoa xác nhận envelope, imageUrls, fallback và UUID hay UUID/major/minor. Chưa gửi tin nhắn hoặc nhận xác nhận trong phiên này.
+Luồng mobile (đã chốt 30/10, xem [beacon-scan-flow.md](beacon-scan-flow.md)): registry → (uuid, major, minor) → artifactId → GET /api/artifacts/{artifactId}?lang=vi|en → đọc data.content, data.media, data.languageCode, data.fallback.
+Không dùng GET /api/artifacts/beacon/{uuid} cho luồng quét: mọi beacon dùng chung 1 UUID và chỉ khác major/minor.
 
 ## Cache Redis — đề xuất cho Phú, chưa xác nhận
 

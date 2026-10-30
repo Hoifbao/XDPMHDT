@@ -1,6 +1,7 @@
 
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.service.RedisDemoService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.Map;
  * Demo Redis chỉ dành cho môi trường kiểm thử cục bộ.
  * Bật bằng app.redis-demo.enabled=true.
  */
+@Tag(name = "5. Redis demo", description = "Ghi/đọc key demo, chỉ bật khi REDIS_DEMO_ENABLED=true (Phú)")
 @RestController
 @RequestMapping("/api/cache/demo")
 @RequiredArgsConstructor

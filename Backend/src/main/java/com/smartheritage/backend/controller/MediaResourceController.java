@@ -1,5 +1,6 @@
 package com.smartheritage.backend.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.smartheritage.backend.dto.ApiResponse;
 import com.smartheritage.backend.dto.MediaResourceRequest;
 import com.smartheritage.backend.dto.MediaResourceResponse;
@@ -18,10 +19,10 @@ import java.util.List;
  *  POST   /api/artifacts/{artifactId}/media   – Thêm tài nguyên (URL dạng text)
  *  DELETE /api/media/{mediaId}                – Xoá một tài nguyên
  */
+@Tag(name = "3. Hiện vật - Media", description = "Ảnh/audio/video của hiện vật (Xuân Anh)")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class MediaResourceController {
 
     private final MediaResourceService mediaResourceService;
