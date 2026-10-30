@@ -1,0 +1,43 @@
+# feedback-service (Tường - Sprint 4). Chạy: mvn -pl services/feedback-service spring-boot:run
+# Tuần 4 chỉ chuẩn bị: Gateway vẫn chuyển /api/artifacts/*/feedbacks về Backend cũ (8090).
+# Test trực tiếp ở http://localhost:8086 (tự gắn header X-User-Id, X-User-Role như Gateway).
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: feedback-service
+  datasource:
+    # Schema feedback_db do Infra/db/06_feedback.sql tạo. User riêng: DB_USERNAME=feedback_user, DB_PASSWORD=feedback_pass_dev
+    url: "${DB_URL:jdbc:mysql://localhost:3307/feedback_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+# Gọi service khác (timeout 2 giây)
+app:
+  clients:
+    # Kiểm tra hiện vật tồn tại + ACTIVE. Tuần 4: Backend cũ 8090; khi content-service xong đổi sang http://localhost:8083
+    content-url: ${CONTENT_SERVICE_URL:http://localhost:8090}
+    # Lấy tên hiển thị (fullName) của người gửi đánh giá qua /api/auth/me
+    auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+    timeout: ${CLIENT_TIMEOUT:2s}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
