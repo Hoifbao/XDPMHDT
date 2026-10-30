@@ -1,6 +1,6 @@
 ﻿# Hiện vật và đa ngôn ngữ — W3
 
-API chạy trong backend chính, profile mặc định tại http://localhost:8080/api/artifacts.
+API chạy trong Backend cũ (cổng 8090); client gọi qua Gateway: http://localhost:8080/api/artifacts.
 W3 không thay đổi Infra. W4 chờ PR khung của Bảo merge, sau đó triển khai trong services/content-service theo 5 bước services/README.md khi tài liệu có trên main.
 
 ## Hợp đồng
@@ -41,8 +41,8 @@ Không cache thao tác ghi hay phản hồi lỗi. TTL cần thống nhất vớ
 
 ## Chạy và nghiệm thu
 
-Chạy `mvn -f Backend/pom.xml test`, sau đó `mvn -f Backend/pom.xml spring-boot:run` với MySQL theo application.properties.
-Swagger: http://localhost:8080/swagger-ui/index.html.
+Chạy `mvn -f Backend/pom.xml test`, sau đó `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1` (Backend cũ 8090 + auth-service 8081 + Gateway 8080).
+Swagger của Backend cũ: http://localhost:8090/swagger-ui/index.html. Gọi API qua http://localhost:8080.
 Tạo di tích trước, dùng ADMIN tạo một hiện vật Việt/Anh và một hiện vật chỉ Việt.
 Kiểm tra GET ID/beacon lang=en chọn đúng bản và fallback; CMS thêm/sửa/xóa sau đăng nhập; xóa phiên vào lại phải về login.
 Kiểm thử MySQL demo, Swagger và trình duyệt thật cần ghi nhận riêng với test tự động.
