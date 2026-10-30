@@ -18,7 +18,9 @@ import java.util.List;
  * Endpoints:
  *  GET    /api/ibeacons        – Danh sách tất cả iBeacon (?siteId=1 để lọc theo di tích)
  *  GET    /api/ibeacons/{id}   – Chi tiết iBeacon
+ *  GET    /api/ibeacons/registry – Danh sách beacon ACTIVE cho Mobile
  *  POST   /api/ibeacons        – Tạo iBeacon mới
+ *  POST   /api/ibeacons/{id}/assign – Gán (artifactId) hoặc bỏ gán (artifactId = null)
  *  PUT    /api/ibeacons/{id}   – Cập nhật iBeacon
  *  DELETE /api/ibeacons/{id}   – Xóa iBeacon
  */
@@ -42,6 +44,25 @@ public class IBeaconController {
             return ResponseEntity.ok(ApiResponse.ok("Thành công", beaconService.getBeaconById(id)));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/registry")
+    public ResponseEntity<ApiResponse<List<IBeaconResponse>>> getRegistry() {
+        return ResponseEntity.ok(ApiResponse.ok("Thành công", beaconService.getRegistry()));
+    }
+
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<ApiResponse<IBeaconResponse>> assignArtifact(
+            @PathVariable Long id,
+            @RequestBody IBeaconAssignRequest request) {
+        try {
+            IBeaconResponse response = beaconService.assignArtifact(id, request.getArtifactId());
+            return ResponseEntity.ok(ApiResponse.ok("Cập nhật gán hiện vật thành công", response));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
