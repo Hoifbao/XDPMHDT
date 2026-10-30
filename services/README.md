@@ -101,7 +101,8 @@ và `http://localhost:8082/actuator/prometheus` (phải ra số liệu).
 
 | Thành phần | Lệnh (ở thư mục gốc repo) | Cổng |
 |---|---|---|
-| MySQL + Redis | `docker compose -f Infra/docker-compose.yml up -d` | 3307, 6379 |
+| **Cả 4 bằng 1 lệnh** | `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1` (mở 3 cửa sổ, tự kiểm qua 8080) | 3307, 6379, 8090, 8081, 8080 |
+| MySQL + Redis | `docker compose -f Infra/docker-compose.yml up -d mysql-db redis-cache` | 3307, 6379 |
 | Backend cũ | `cd Backend && mvn spring-boot:run` | 8090 |
 | auth-service | `mvn -pl services/auth-service spring-boot:run` | 8081 |
 | api-gateway | `mvn -pl services/api-gateway spring-boot:run` | 8080 |
@@ -118,6 +119,7 @@ và `http://localhost:8082/actuator/prometheus` (phải ra số liệu).
 | `Could not find artifact com.smartheritage:common` | Chạy `mvn -q -DskipTests install` ở thư mục gốc |
 | Gateway báo `Spring MVC found on classpath` | Không thêm `spring-boot-starter-web` vào api-gateway hoặc common |
 | `Port 8080 was already in use` | Backend cũ còn chạy cổng cũ: kéo main mới (Backend đã đổi sang 8090) hoặc tắt tiến trình cũ |
+| `Port 8090 was already in use` | Backend cũ đang chạy ở cửa sổ khác / IntelliJ / Docker: `netstat -ano \| findstr :8090` lấy PID rồi `Stop-Process -Id <PID> -Force` |
 | Gọi API qua Gateway bị 401 dù đã login | Gateway, auth-service, Backend cũ phải cùng `JWT_SECRET` |
 | API cần đăng nhập trả 401 khi gọi thẳng cổng riêng | Bình thường: header `X-User-*` chỉ có khi đi qua Gateway. Test qua 8080 |
 | Trình duyệt báo lỗi CORS "multiple values" | Xóa `@CrossOrigin` / cấu hình CORS trong service của mình |
