@@ -35,15 +35,15 @@ public class HeritageSiteService {
      *
      * @param lat      vĩ độ -90..90
      * @param lng      kinh độ -180..180
-     * @param radiusKm bán kính km, > 0 và ≤ 100
+     * @param radiusKm bán kính km, > 0 và ≤ 50
      */
     public List<NearbyHeritageSiteResponse> getNearby(double lat, double lng, double radiusKm) {
         validateCoordinate(lat, lng, "Tọa độ tìm kiếm");
         if (!Double.isFinite(radiusKm) || radiusKm <= 0) {
             throw new IllegalArgumentException("Bán kính tìm kiếm phải lớn hơn 0 km.");
         }
-        if (radiusKm > 100) {
-            throw new IllegalArgumentException("Bán kính tìm kiếm tối đa là 100 km.");
+        if (radiusKm > 50) {
+            throw new IllegalArgumentException("Bán kính tìm kiếm tối đa là 50 km.");
         }
 
         return repository.findAll().stream()
