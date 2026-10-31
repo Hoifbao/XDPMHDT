@@ -12,21 +12,27 @@ class AuthUser {
   final String fullName;
   final String role;
 
+  /// Ngôn ngữ ưa thích (`vi` | `en`) — dùng cho GET /api/artifacts/{id}?lang=
+  final String preferredLanguage;
+
   const AuthUser({
     required this.userId,
     required this.username,
     required this.email,
     required this.fullName,
     required this.role,
+    this.preferredLanguage = 'vi',
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
+    final lang = (json['preferredLanguage']?.toString() ?? 'vi').toLowerCase();
     return AuthUser(
       userId: (json['userId'] as num).toInt(),
       username: json['username']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       fullName: json['fullName']?.toString() ?? '',
       role: json['role']?.toString() ?? 'VISITOR',
+      preferredLanguage: (lang == 'en') ? 'en' : 'vi',
     );
   }
 
@@ -36,6 +42,7 @@ class AuthUser {
     'email': email,
     'fullName': fullName,
     'role': role,
+    'preferredLanguage': preferredLanguage,
   };
 
   bool get isAdmin => role == 'ADMIN';
@@ -90,6 +97,10 @@ class AuthService {
   static bool get isLoggedIn => currentUser.value != null;
   static String? get accessToken => _accessToken;
   static bool get hasRefreshToken => _refreshToken != null;
+
+  /// Ngôn ngữ nội dung: preferredLanguage của user; chưa đăng nhập → `vi`.
+  static String get preferredLanguage =>
+      currentUser.value?.preferredLanguage ?? 'vi';
 
   /// Gọi 1 lần trong main(): đọc lại phiên đã lưu.
   static Future<void> init() async {

@@ -313,15 +313,16 @@ class PersonalizationService {
     String thumbnailUrl = '',
     String source = 'MANUAL',
     int? durationSeconds, // null = không đo được thời gian dừng (không gửi 0)
+    String? clientEventId, // UUID sinh trên máy (luồng beacon); null → tự sinh
   }) async {
     final userId = _userId;
     if (userId == null) return; // history belongs to a signed-in visitor
 
-    final clientEventId = _uuid.v4();
+    final eventId = clientEventId ?? _uuid.v4();
     final detectedAt = DateTime.now().toUtc().toIso8601String();
     final localRow = <String, dynamic>{
-      'id': 'local:$clientEventId',
-      'clientEventId': clientEventId,
+      'id': 'local:$eventId',
+      'clientEventId': eventId,
       'artifactId': artifactId,
       'artifactName': artifactName,
       'siteName': siteName,
@@ -332,13 +333,13 @@ class PersonalizationService {
       'syncPending': true,
     };
     final history = await _readCache(userId, 'history');
-    history.removeWhere((row) => row['clientEventId'] == clientEventId);
+    history.removeWhere((row) => row['clientEventId'] == eventId);
     history.insert(0, localRow);
     await _writeCache(userId, 'history', history);
 
     final outbox = await _readOutbox(userId, 'visits');
     outbox.add({
-      'clientEventId': clientEventId,
+      'clientEventId': eventId,
       'artifactId': artifactId,
       'detectedAt': detectedAt,
       if (durationSeconds != null) 'durationSeconds': durationSeconds,
