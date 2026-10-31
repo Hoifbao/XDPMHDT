@@ -7,12 +7,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository -> Feedback. Mọi danh sách đều mới nhất trước (createdAt giảm dần, trùng thì id giảm dần).
  */
 @Repository
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
+
+    /** Đánh giá cũ của người dùng cho hiện vật (tối đa 1 nhờ uq_feedbacks_user_artifact). */
+    Optional<Feedback> findByUserIdAndArtifactId(Long userId, Long artifactId);
 
     /** Đánh giá của một hiện vật theo trạng thái (Visitor xem: status = APPROVED). */
     List<Feedback> findByArtifactIdAndStatusOrderByCreatedAtDescIdDesc(Long artifactId, String status);
