@@ -101,7 +101,7 @@ và `http://localhost:8082/actuator/prometheus` (phải ra số liệu).
 
 | Thành phần | Lệnh (ở thư mục gốc repo) | Cổng |
 |---|---|---|
-| **Cả 4 bằng 1 lệnh** | `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1` (mở 3 cửa sổ, tự kiểm qua 8080) | 3307, 6379, 8090, 8081, 8080 |
+| **Cả hệ thống bằng 1 lệnh** | `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1` (mở 4 cửa sổ + MySQL/Redis, tự kiểm qua 8080) | 3307, 6379, 8090, 8081, 8080, 8082 |
 | MySQL + Redis | `docker compose -f Infra/docker-compose.yml up -d mysql-db redis-cache` | 3307, 6379 |
 | Backend cũ | `cd Backend && mvn spring-boot:run` | 8090 |
 | auth-service | `mvn -pl services/auth-service spring-boot:run` | 8081 |

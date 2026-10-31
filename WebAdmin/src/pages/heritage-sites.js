@@ -287,7 +287,8 @@ function handleSubmit(e) {
     }).then(async response => {
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error((body && body.message) || ('Lưu thất bại (HTTP ' + response.status + ')'));
-        const site = body;
+        // site-service trả {success, message, data}; Backend cũ trả thẳng object
+        const site = body && body.data ? body.data : body;
         if (editId) {
             const index = SITES.findIndex(item => item.id === parseInt(editId));
             if (index !== -1) SITES[index] = site;
