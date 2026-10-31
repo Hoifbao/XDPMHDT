@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'features/personalization/personalization_service.dart';
 import 'package:http/http.dart' as http;
 import 'core/network/auth_http_client.dart';
-import 'features/feedback/feedback_screen.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/beacon/beacon_scan_screen.dart';
+import 'features/beacon/beacon_service.dart';
+import 'screens/artifact_detail_screen.dart';
 import 'shared/app_sidebar.dart';
 
 void main() {
@@ -21,6 +22,8 @@ void main() {
     AuthService.rawClient = inner;
     // Khôi phục phiên đăng nhập đã lưu (JWT) trước khi vẽ giao diện
     await AuthService.init();
+    // Prefetch registry iBeacon 1 lần khi mở app (cache 30 phút + đĩa)
+    unawaited(BeaconService.getRegistry());
     runApp(const SmartHeritageApp());
   }, () => AuthHttpClient(inner));
 }
@@ -76,96 +79,23 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
-    void openArtifact(Map<String, dynamic> artifact) {
-      unawaited(PersonalizationService.recordVisit(
-        artifactId: (artifact['id'] as num).toInt(),
-        artifactName: artifact['name']?.toString() ?? 'Hiện vật',
-        siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
-        thumbnailUrl: artifact['image']?.toString() ?? '',
-        source: 'MANUAL',
-      ));
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  artifact['image'],
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                artifact['name'],
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                artifact['description'],
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final result = await PersonalizationService.addFavorite(
-                      artifactId: (artifact['id'] as num).toInt(),
-                      artifactName: artifact['name']?.toString() ?? 'Hiện vật',
-                      siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
-                      thumbnailUrl: artifact['image']?.toString() ?? '',
-                    );
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result.message)),
-                    );
-                  },
-                  icon: const Icon(Icons.favorite_border),
-                  label: const Text('Lưu yêu thích'),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FeedbackScreen(
-                          artifactName: artifact['name'],
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text('Đánh giá hiện vật'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Đóng'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void openArtifact(Map<String, dynamic> artifact) {
+    final id = (artifact['id'] as num).toInt();
+    unawaited(PersonalizationService.recordVisit(
+      artifactId: id,
+      artifactName: artifact['name']?.toString() ?? 'Hiện vật',
+      siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
+      thumbnailUrl: artifact['image']?.toString() ?? '',
+      source: 'MANUAL',
+    ));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ArtifactDetailScreen(
+          artifactId: id,
+          initialLang: isVietnamese ? 'vi' : 'en',
+        ),
+      ),
     );
   }
 
@@ -676,7 +606,11 @@ class _HomePageState extends State<HomePage> {
             child: ElevatedButton.icon(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const BeaconScanScreen()),
+                MaterialPageRoute(
+                  builder: (_) => BeaconScanScreen(
+                    lang: isVietnamese ? 'vi' : 'en',
+                  ),
+                ),
               ),
               icon: const Icon(Icons.bluetooth_searching),
               label: const Text('Quét iBeacon thật'),
