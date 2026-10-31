@@ -10,7 +10,7 @@ Store the OpenAPI/Swagger specification and API usage notes here. Keep the speci
 |----------|----------|----------------------|------------------------|
 | `lat`    | Có       | Vĩ độ WGS-84         | -90 đến 90             |
 | `lng`    | Có       | Kinh độ WGS-84       | -180 đến 180           |
-| `radius` | Không    | Bán kính tìm kiếm km | > 0 và ≤ 100; mặc định 10 |
+| `radius` | Không    | Bán kính tìm kiếm km | > 0 và ≤ 50; mặc định 5  |
 
 - Trả về mảng JSON các di tích có tọa độ nằm trong bán kính, **sắp xếp gần → xa**.
 - Mỗi phần tử gồm các trường của `HeritageSiteResponse` + `distanceKm` (làm tròn 2 chữ số).

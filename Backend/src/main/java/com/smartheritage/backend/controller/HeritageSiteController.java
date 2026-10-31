@@ -1,7 +1,7 @@
 package com.smartheritage.backend.controller;
 
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.smartheritage.backend.dto.HeritageSiteRequest;
 import com.smartheritage.backend.dto.HeritageSiteResponse;
 import com.smartheritage.backend.dto.NearbyHeritageSiteResponse;
@@ -17,6 +17,7 @@ import java.util.Map;
 /**
  * REST Controller cho Di tích (Heritage Sites).
  * Base URL: /api/heritage-sites
+ * Không @CrossOrigin: Gateway lo CORS. Bảo mật do Gateway kiểm tra JWT + RBAC.
  */
 @Tag(name = "2. Di tích", description = "CRUD di tích, tìm di tích gần (Ân)")
 @RestController
@@ -26,7 +27,7 @@ public class HeritageSiteController {
 
     private final HeritageSiteService service;
 
-    /** GET /api/heritage-sites – Lấy danh sách tất cả di tích. */
+    @Operation(summary = "Danh sách di tích")
     @GetMapping
     public ResponseEntity<List<HeritageSiteResponse>> getAll() {
         return ResponseEntity.ok(service.getAll());
@@ -38,14 +39,15 @@ public class HeritageSiteController {
      *
      * @param lat    vĩ độ WGS-84 (-90 đến 90), bắt buộc
      * @param lng    kinh độ WGS-84 (-180 đến 180), bắt buộc
-     * @param radius bán kính tìm kiếm km, tuỳ chọn (mặc định 10, tối đa 100)
+     * @param radius bán kính tìm kiếm km, tuỳ chọn (mặc định 5, tối đa 50)
      */
-    @Operation(summary = "Di tích gần vị trí (Haversine), sắp gần → xa; radius km, mặc định 10, tối đa 100")
+    @Operation(summary = "Di tích gần vị trí (Haversine)",
+            description = "Sắp gần → xa; radius km, mặc định 5, tối đa 50; tọa độ sai trả 400")
     @GetMapping("/nearby")
     public ResponseEntity<?> getNearby(
             @RequestParam double lat,
             @RequestParam double lng,
-            @RequestParam(defaultValue = "10") double radius) {
+            @RequestParam(defaultValue = "5") double radius) {
         try {
             List<NearbyHeritageSiteResponse> nearby = service.getNearby(lat, lng, radius);
             return ResponseEntity.ok(nearby);
@@ -54,7 +56,7 @@ public class HeritageSiteController {
         }
     }
 
-    /** GET /api/heritage-sites/{id} – Lấy chi tiết một di tích. */
+    @Operation(summary = "Chi tiết di tích", description = "Không tồn tại trả 404")
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         try {
@@ -65,7 +67,7 @@ public class HeritageSiteController {
         }
     }
 
-    /** POST /api/heritage-sites – Tạo mới di tích. */
+    @Operation(summary = "Thêm di tích", description = "Chỉ ADMIN. Tên không được trùng; lat/lng gửi cùng nhau")
     @PostMapping
     public ResponseEntity<?> create(@RequestBody HeritageSiteRequest request) {
         try {
@@ -77,7 +79,8 @@ public class HeritageSiteController {
         }
     }
 
-    /** PUT /api/heritage-sites/{id} – Cập nhật di tích. */
+    @Operation(summary = "Sửa di tích",
+            description = "Cập nhật một phần: bỏ trống trường nào thì giữ nguyên. clearCoordinates=true để xóa tọa độ")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
                                     @RequestBody HeritageSiteRequest request) {
@@ -89,7 +92,7 @@ public class HeritageSiteController {
         }
     }
 
-    /** DELETE /api/heritage-sites/{id} – Xóa di tích. */
+    @Operation(summary = "Xóa di tích", description = "Không tồn tại trả 404")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {
