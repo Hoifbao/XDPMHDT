@@ -1,5 +1,5 @@
-# feedback-service (Tường - Sprint 4). Chạy: mvn -pl services/feedback-service spring-boot:run
-# Tuần 4 chỉ chuẩn bị: Gateway vẫn chuyển /api/artifacts/*/feedbacks về Backend cũ (8090).
+# feedback-service (Tường - Sprint 5). Chạy: mvn -pl services/feedback-service spring-boot:run
+# Tuần 5: Gateway (8080) chuyển /api/artifacts/*/feedbacks, /api/artifacts/*/rating-summary, /api/admin/feedbacks/** về đây.
 # Test trực tiếp ở http://localhost:8086 (tự gắn header X-User-Id, X-User-Role như Gateway).
 server:
   port: ${SERVER_PORT:8086}
@@ -22,8 +22,8 @@ spring:
 # Gọi service khác (timeout 2 giây)
 app:
   clients:
-    # Kiểm tra hiện vật tồn tại + ACTIVE. Tuần 4: Backend cũ 8090; khi content-service xong đổi sang http://localhost:8083
-    content-url: ${CONTENT_SERVICE_URL:http://localhost:8090}
+    # Kiểm tra hiện vật tồn tại + ACTIVE qua content-service (GET /api/artifacts/{id} trả data.status)
+    content-url: ${CONTENT_SERVICE_URL:http://localhost:8083}
     # Lấy tên hiển thị (fullName) của người gửi đánh giá qua /api/auth/me
     auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
     timeout: ${CLIENT_TIMEOUT:2s}
