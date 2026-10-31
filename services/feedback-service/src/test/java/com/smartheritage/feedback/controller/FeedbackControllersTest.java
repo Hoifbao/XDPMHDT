@@ -42,9 +42,9 @@ class FeedbackControllersTest {
 
     @Test
     void postFeedback_coHeaderGateway_tra201VaDungUserIdTuHeader() throws Exception {
-        when(feedbackService.createFeedback(eq(1L), eq(2L), any()))
-                .thenReturn(FeedbackResponse.builder().id(7L).artifactId(1L).rating(5)
-                        .reviewerName("Nguyễn Văn An").status("PENDING").build());
+        when(feedbackService.submitFeedback(eq(1L), eq(2L), any()))
+                .thenReturn(new FeedbackService.SubmitResult(FeedbackResponse.builder().id(7L).artifactId(1L).rating(5)
+                        .reviewerName("Nguyễn Văn An").status("PENDING").build(), true));
 
         mockMvc.perform(post("/api/artifacts/1/feedbacks")
                         .header("X-User-Id", "2")
@@ -55,7 +55,23 @@ class FeedbackControllersTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
-        verify(feedbackService).createFeedback(eq(1L), eq(2L), any());
+        verify(feedbackService).submitFeedback(eq(1L), eq(2L), any());
+    }
+
+    @Test
+    void postFeedback_daCoDanhGia_tra200() throws Exception {
+        when(feedbackService.submitFeedback(eq(1L), eq(2L), any()))
+                .thenReturn(new FeedbackService.SubmitResult(FeedbackResponse.builder().id(1L).artifactId(1L).rating(2)
+                        .status("PENDING").build(), false));
+
+        mockMvc.perform(post("/api/artifacts/1/feedbacks")
+                        .header("X-User-Id", "2")
+                        .header("X-User-Role", "VISITOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rating\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
     }
 
     @Test

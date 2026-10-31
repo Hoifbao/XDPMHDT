@@ -38,4 +38,7 @@ public class FeedbackResponse {
 
     @Schema(example = "2026-10-30T09:30:00")
     private LocalDateTime createdAt;
+
+    @Schema(description = "Lần sửa cuối (du khách sửa đánh giá hoặc ADMIN đổi trạng thái)", example = "2026-10-31T08:15:00")
+    private LocalDateTime updatedAt;
 }
