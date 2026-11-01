@@ -6,6 +6,7 @@ import com.smartheritage.feedback.dto.FeedbackRequest;
 import com.smartheritage.feedback.dto.FeedbackResponse;
 import com.smartheritage.feedback.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -52,7 +53,7 @@ public class FeedbackController {
     })
     @PostMapping
     public ResponseEntity<ApiResponse<FeedbackResponse>> submitFeedback(
-            @PathVariable Long artifactId,
+            @Parameter(description = "ID hiện vật", example = "1") @PathVariable Long artifactId,
             @RequestBody FeedbackRequest request) {
         Long userId = CurrentUser.requireUserId();
         FeedbackService.SubmitResult result = feedbackService.submitFeedback(artifactId, userId, request);
@@ -64,7 +65,9 @@ public class FeedbackController {
                 ApiResponse.ok("Đã cập nhật đánh giá của bạn, đánh giá đang chờ duyệt lại", result.feedback()));
     }
 
-    @Operation(summary = "Danh sách đánh giá đã duyệt của hiện vật (mới nhất trước)")
+    @Operation(summary = "Danh sách đánh giá đã duyệt của hiện vật (mới nhất trước)",
+            description = "Công khai, không cần token. Chỉ trả đánh giá APPROVED; không lộ userId/email, "
+                    + "chỉ có tên hiển thị reviewerName.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
                     description = "Thành công (danh sách có thể rỗng)"),
@@ -74,7 +77,8 @@ public class FeedbackController {
                     description = "content-service không phản hồi")
     })
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getApprovedFeedbacks(@PathVariable Long artifactId) {
+    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getApprovedFeedbacks(
+            @Parameter(description = "ID hiện vật", example = "1") @PathVariable Long artifactId) {
         return ResponseEntity.ok(ApiResponse.ok("Thành công", feedbackService.getApprovedFeedbacks(artifactId)));
     }
 }

@@ -4,6 +4,7 @@ import com.smartheritage.common.api.ApiResponse;
 import com.smartheritage.feedback.dto.RatingSummaryResponse;
 import com.smartheritage.feedback.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,8 @@ public class RatingSummaryController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "ID hiện vật không hợp lệ")
     })
     @GetMapping("/api/artifacts/{artifactId}/rating-summary")
-    public ResponseEntity<ApiResponse<RatingSummaryResponse>> getRatingSummary(@PathVariable Long artifactId) {
+    public ResponseEntity<ApiResponse<RatingSummaryResponse>> getRatingSummary(
+            @Parameter(description = "ID hiện vật", example = "2") @PathVariable Long artifactId) {
         return ResponseEntity.ok(ApiResponse.ok("Thành công", feedbackService.getRatingSummary(artifactId)));
     }
 }

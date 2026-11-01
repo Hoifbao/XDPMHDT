@@ -28,9 +28,13 @@ public class GatewayRoutesConfig {
                 .route("site-service", r -> r.order(2)
                         .path("/api/heritage-sites/**")
                         .filters(GatewayRoutesConfig::common).uri(t.site()))
-                // Tuần 5: feedback-service 8086. Phải đặt TRƯỚC /api/artifacts/**
+                // Tuần 5: feedback-service 8086 (task_w5 mục III.1). Phải đặt TRƯỚC /api/artifacts/** (content)
+                // và /api/admin/** của personalization; quyền ADMIN cho /api/admin/feedbacks/** do AccessRules kiểm.
                 .route("feedback-service", r -> r.order(3)
-                        .path("/api/artifacts/*/feedbacks", "/api/artifacts/*/feedbacks/**", "/api/feedbacks/**")
+                        .path("/api/artifacts/*/feedbacks", "/api/artifacts/*/feedbacks/**",
+                                "/api/artifacts/*/rating-summary",
+                                "/api/admin/feedbacks", "/api/admin/feedbacks/**",
+                                "/api/feedbacks/**")
                         .filters(GatewayRoutesConfig::common).uri(t.feedback()))
                 .route("content-service", r -> r.order(4)
                         .path("/api/artifacts/**", "/api/media/**")

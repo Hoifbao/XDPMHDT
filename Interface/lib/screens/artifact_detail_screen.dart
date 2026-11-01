@@ -429,7 +429,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FeedbackScreen(artifactName: name),
+        builder: (_) => FeedbackScreen(artifactId: widget.artifactId, artifactName: name),
       ),
     );
   }

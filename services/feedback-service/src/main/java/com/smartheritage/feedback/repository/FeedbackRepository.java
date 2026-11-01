@@ -24,6 +24,9 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     /** ADMIN lọc theo trạng thái. */
     List<Feedback> findByStatusOrderByCreatedAtDescIdDesc(String status);
 
+    /** ADMIN lọc theo hiện vật (mọi trạng thái). */
+    List<Feedback> findByArtifactIdOrderByCreatedAtDescIdDesc(Long artifactId);
+
     /** ADMIN xem tất cả. */
     List<Feedback> findAllByOrderByCreatedAtDescIdDesc();
 

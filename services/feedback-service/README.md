@@ -3,8 +3,9 @@
 Đánh giá (số sao + bình luận) của du khách cho hiện vật, kiểm duyệt của ADMIN, điểm trung bình.
 Cổng **8086**, schema **feedback_db** (`Infra/db/06_feedback.sql`).
 
-Tuần 5 route qua Gateway (8080): `/api/artifacts/*/feedbacks`, `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**`
-(phần Gateway và docker-compose do Bảo cập nhật).
+Tuần 5 route qua Gateway (8080): `/api/artifacts/*/feedbacks`, `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**`.
+Cả 3 nhóm đường dẫn đã có trong route `feedback-service` của `GatewayRoutesConfig` (order 3, trước content-service);
+mặc định `FEEDBACK_SERVICE_URL` của Gateway là `http://localhost:8086`. Test: `GatewayRoutesConfigTest`.
 
 ## API
 
@@ -13,7 +14,7 @@ Tuần 5 route qua Gateway (8080): `/api/artifacts/*/feedbacks`, `/api/artifacts
 | POST | `/api/artifacts/{id}/feedbacks` | VISITOR hoặc ADMIN | Người gửi lấy từ `X-User-Id`; trạng thái PENDING. Lần đầu 201; đã có đánh giá thì ghi đè, trả 200 |
 | GET | `/api/artifacts/{id}/feedbacks` | Công khai | Chỉ đánh giá APPROVED |
 | GET | `/api/artifacts/{id}/rating-summary` | Công khai | Mới: điểm trung bình, chỉ tính APPROVED |
-| GET | `/api/admin/feedbacks?status=` | ADMIN | Mới: lọc PENDING/APPROVED/REJECTED, bỏ trống = tất cả |
+| GET | `/api/admin/feedbacks?status=&artifactId=` | ADMIN | Lọc PENDING/APPROVED/REJECTED và/hoặc theo hiện vật, bỏ trống = tất cả |
 | PUT, PATCH | `/api/admin/feedbacks/{id}/status` | ADMIN | `{"status":"APPROVED"}` hoặc `REJECTED` |
 
 ## Khác Backend cũ
@@ -46,6 +47,13 @@ mvn -pl services/feedback-service spring-boot:run   # http://localhost:8086/swag
 mvn -pl services/feedback-service test
 ```
 
+Chạy cùng cả hệ thống:
+
+- Local: `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1` mở thêm cửa sổ feedback-service 8086.
+  Script này chưa bật content-service nên đặt `CONTENT_SERVICE_URL=http://localhost:8090` (Backend cũ) cho feedback-service.
+- Docker: `docker compose -f Infra/docker-compose.yml --profile core up -d --build` (container `smart_heritage_feedback`,
+  user MySQL `feedback_user`, gọi `content-service:8083` và `auth-service:8081`).
+
 | Biến môi trường | Mặc định |
 |---|---|
 | `DB_URL` | `jdbc:mysql://localhost:3307/feedback_db?...` |
@@ -62,9 +70,7 @@ curl -X POST localhost:8086/api/artifacts/2/feedbacks -H "X-User-Id: 3" -H "X-Us
 
 ## Việc tuần 5 còn lại
 
-1. (Bảo) Gateway, route `feedback-service`: thêm `/api/artifacts/*/rating-summary` và `/api/admin/feedbacks/**`
-   (2 đường dẫn này hiện rơi vào content-service và Backend cũ). Đặt `FEEDBACK_SERVICE_URL=http://localhost:8086`.
-2. (Bảo) docker-compose (profile core): thêm container feedback-service, dùng `feedback_user`,
-   `CONTENT_SERVICE_URL=http://content-service:8083`.
+1. ~~Gateway: route `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**`, mặc định 8086~~: đã xong (Tường), nhờ Bảo review.
+2. ~~docker-compose + `start-local.ps1`~~: đã xong (Tường).
 3. (Tuấn) Luồng NiFi feedbacks dùng `updated_at` làm cột mốc (xem mục trên).
-4. Web Admin `feedback.js`: thay dữ liệu giả bằng `GET /api/admin/feedbacks` và `PUT .../status`.
+4. ~~Web Admin `feedback.js`: gọi `GET /api/admin/feedbacks` và `PATCH .../status`~~: đã xong (Tường).
