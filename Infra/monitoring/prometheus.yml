@@ -2,6 +2,7 @@
 # host.docker.internal = máy của bạn, nên đọc được cả service chạy bằng mvn spring-boot:run
 # lẫn service chạy trong Docker (vì Docker mở cổng ra máy).
 # Service chưa chạy sẽ hiện DOWN - bình thường.
+# Job mysql/redis chỉ UP khi bật profile monitoring (có mysql-exporter, redis-exporter).
 global:
   scrape_interval: 15s
 
@@ -25,3 +26,14 @@ scrape_configs:
         labels: { service: feedback-service }
       - targets: ['host.docker.internal:8087']
         labels: { service: analytics-service }
+
+  # Exporter MySQL/Redis (Bảo - Sprint 5): chạy trong cùng mạng Docker nên gọi bằng tên service.
+  - job_name: mysql
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+        labels: { service: mysql }
+
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels: { service: redis }
