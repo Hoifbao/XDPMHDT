@@ -21,5 +21,8 @@ Khác với ERD gốc (một database):
 
 - Bỏ khóa ngoại chéo schema. Ví dụ `artifacts.site_id` và `feedbacks.user_id` giờ chỉ là cột `BIGINT`.
 - Thêm `feedbacks.reviewer_name` trong `feedback_db`: tên người đánh giá được chụp lại lúc gửi.
+- Tuần 5, bảng `feedbacks`:
+  - Khóa duy nhất `(user_id, artifact_id)`: mỗi người chỉ có 1 đánh giá cho 1 hiện vật, gửi lại thì ghi đè và về PENDING.
+  - Cột `updated_at` đổi mỗi khi sửa đánh giá hoặc ADMIN đổi trạng thái. NiFi dùng cột này làm cột mốc để đồng bộ cả thay đổi trạng thái sang `fact_feedbacks`.
 - Bảng `visits` có thêm `client_event_id`, `source` và khóa duy nhất `(user_id, client_event_id)` để đồng bộ offline không bị ghi trùng.
   `duration_seconds` mặc định là `NULL`.
