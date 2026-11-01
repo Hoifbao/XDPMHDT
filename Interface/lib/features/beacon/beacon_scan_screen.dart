@@ -49,6 +49,9 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
 
   static const _uuid = Uuid();
 
+  /// Tag chung cho log của luồng quét — dễ lọc trong console (đầu ra Thứ 2 02/11).
+  static const _logTag = '[BEACON-SCAN]';
+
   String get _lang => widget.lang ?? AuthService.preferredLanguage;
 
   @override
@@ -90,7 +93,10 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
       _registry
         ..clear()
         ..addEntries(items.map((b) => MapEntry(b.key, b)));
-
+      // Bằng chứng tải registry khi mở app (nạp 1 lần, tự làm mới mỗi 30 phút)
+      debugPrint('$_logTag Registry nạp được ${items.length} beacon khi mở app '
+          '(tự làm mới mỗi ${BeaconConfig.registryCacheAge.inMinutes} phút). '
+          'Có hiện vật gán: ${items.where((b) => b.artifactId != null).length}.');
       await BeaconService.initialize();
       await BeaconService.startScan();
 
@@ -121,6 +127,8 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
             ..clear()
             ..addEntries(items.map((b) => MapEntry(b.key, b)));
         });
+        debugPrint('$_logTag Làm mới registry theo chu kỳ '
+            '${BeaconConfig.registryCacheAge.inMinutes} phút: ${items.length} beacon.');
       }
     } catch (_) {}
   }
@@ -164,6 +172,10 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
 
     // Chỉ mở 1 hiện vật gần nhất mỗi lần quét
     if (nearestEnterKey != null) {
+      final chosen = _registry[nearestEnterKey]!;
+      debugPrint('$_logTag Chọn beacon gần nhất qua trung bình RSSI 5 lần đọc: '
+          'Major ${chosen.major} · Minor ${chosen.minor} (${chosen.artifactName ?? nearestEnterKey}) '
+          'avg ${_rssiBuffers[nearestEnterKey]!.average} dBm — đạt ngưỡng vào ${BeaconConfig.rssiEnter} dBm.');
       _onEnterRegion(nearestEnterKey, now);
     }
   }
@@ -180,6 +192,8 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
     });
 
     _navigatingToDetail = true;
+    debugPrint('$_logTag VÀO VÙNG $key (cooldown ghi lúc ${now.toIso8601String()}) '
+        '→ mở chi tiết hiện vật #${registered.artifactId} cho Xuân Anh nhận, lang=$_lang');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -229,6 +243,9 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
 
     // Màn chi tiết KHÔNG tự đóng — chỉ ghi lượt tham quan
     final registered = _registry[key];
+    debugPrint('$_logTag RA VÙNG $key sau ${durationSec}s '
+        '(exit ≤ ${BeaconConfig.rssiExit} dBm hoặc mất sóng > ${BeaconConfig.exitTimeout.inSeconds}s) '
+        '→ ${durationSec > 0 ? "ghi lượt tham quan source=BEACON, durationSeconds=$durationSec" : "chưa có thời gian vào, bỏ qua ghi"}');
     if (registered?.artifactId != null && durationSec > 0) {
       PersonalizationService.recordVisit(
         artifactId: registered!.artifactId!,
