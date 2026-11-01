@@ -32,3 +32,7 @@ Infra/nifi/drivers/*.jar
 
 # Do not commit the standalone personalization delivery ZIP
 Smart_Heritage_Personalization_History_Favorites_Offline_Cache.zip
+
+# Local config, do not commit
+.claude/
+.githooks/
