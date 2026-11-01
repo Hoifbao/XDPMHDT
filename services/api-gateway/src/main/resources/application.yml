@@ -15,7 +15,7 @@ app:
   routes:
     legacy: ${LEGACY_BACKEND_URL:http://localhost:8090}
     auth: ${AUTH_SERVICE_URL:http://localhost:8081}
-    site: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    site: ${SITE_SERVICE_URL:http://localhost:8082}
     content: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     beacon: ${BEACON_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     personalization: ${PERSONALIZATION_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}

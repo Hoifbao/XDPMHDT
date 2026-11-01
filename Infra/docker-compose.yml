@@ -93,6 +93,21 @@ services:
       mysql-db:
         condition: service_healthy
 
+  site-service:
+    profiles: ["core"]
+    build:
+      context: ..
+      dockerfile: services/site-service/Dockerfile
+    container_name: smart_heritage_site
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/site_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
   api-gateway:
     profiles: ["core"]
     build:
@@ -104,12 +119,14 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       LEGACY_BACKEND_URL: http://backend:8090
       CONTENT_SERVICE_URL: http://content-service:8083
-      # Tách xong service nào thì thêm 1 dòng, vd: SITE_SERVICE_URL: http://site-service:8082
+      SITE_SERVICE_URL: http://site-service:8082
+      # Tách xong service nào thì thêm 1 dòng ở trên
     ports:
       - "8080:8080"
     depends_on:
       - auth-service
       - content-service
+      - site-service
       - backend
 
   # ---------- profile: mq ----------
