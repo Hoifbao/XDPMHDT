@@ -35,6 +35,7 @@
         <module>services/content-service</module>
         <module>services/site-service</module>
         <module>services/beacon-service</module>
+        <module>services/analytics-service</module>
         <module>Backend</module>
     </modules>
 
