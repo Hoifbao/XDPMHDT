@@ -39,3 +39,7 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      # Bảo W5: cần cho biểu đồ/cảnh báo độ trễ p95 trên Grafana (histogram_quantile)
+      percentiles-histogram:
+        http.server.requests: true
