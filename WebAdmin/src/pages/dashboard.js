@@ -1,14 +1,31 @@
 // =====================================================================
-// Dashboard thong ke – tuan 3: lay so lieu that tu GET /api/statistics/overview
-// (Backend: StatisticsController). Bo loc va xuat bao cao van chua lam.
+// Dashboard thong ke: lay so lieu that tu GET /api/statistics/overview qua Gateway 8080
+// (tuan 5: analytics-service 8087, doc analytics_db do NiFi dong bo).
+// Loc theo di tich va khoang ngay (tuan 5). Xuat bao cao lam o tuan 6.
 // =====================================================================
 const API_BASE = (function () {
     try { return (localStorage.getItem('sh_api_base') || 'http://localhost:8080').replace(/\/+$/, ''); }
     catch (e) { return 'http://localhost:8080'; }
 })();
 
-async function loadOverview() {
-    const response = await fetch(API_BASE + '/api/statistics/overview?top=5');
+// Canvas goc cua 2 bieu do: giu lai de ve lai sau khi o bieu do da bi thay bang thong bao
+const CHART_BOXES = Array.from(document.querySelectorAll('.chart-box'))
+    .map(box => ({ box, canvas: box.querySelector('canvas') }));
+
+// Bo trong o nao thi khong gui tham so do (Backend hieu la khong loc)
+function readFilters() {
+    const params = new URLSearchParams({ top: '5' });
+    const values = {
+        siteId: document.getElementById('site-filter').value,
+        from: document.getElementById('from-filter').value,
+        to: document.getElementById('to-filter').value
+    };
+    Object.entries(values).forEach(([key, value]) => { if (value) params.set(key, value); });
+    return params;
+}
+
+async function loadOverview(params) {
+    const response = await fetch(API_BASE + '/api/statistics/overview?' + params);
     const body = await response.json().catch(() => null);
     if (!response.ok || !body || !body.success) {
         throw new Error((body && body.message) || ('Máy chủ trả lỗi HTTP ' + response.status));
@@ -33,13 +50,25 @@ function el(tag, text, className) {
     return node;
 }
 
-function renderFilters() {
+// Danh sach di tich lay tu GET /api/heritage-sites (cong khai). Loi thi van loc duoc theo ngay.
+async function renderFilters() {
     const select = document.getElementById('site-filter');
     select.append(new Option('Tất cả di tích', ''));
+    try {
+        const response = await fetch(API_BASE + '/api/heritage-sites');
+        const body = await response.json();
+        if (!response.ok || !body.success) throw new Error(body.message);
+        body.data.forEach(site => select.append(new Option(site.name, site.id)));
+    } catch (e) {
+        select.title = 'Không tải được danh sách di tích';
+    }
+    ['site-filter', 'from-filter', 'to-filter']
+        .forEach(id => document.getElementById(id).addEventListener('change', refresh));
 }
 
 function renderKpis(data) {
     const box = document.getElementById('kpis');
+    box.replaceChildren();
     const kpis = [
         { label: 'Tổng khách', value: data.totalVisitors },
         { label: 'Lượt tương tác', value: data.totalViews },
@@ -57,6 +86,7 @@ function renderKpis(data) {
 
 function renderFeedbacks(feedbacks) {
     const body = document.getElementById('feedback-rows');
+    body.replaceChildren();
     if (feedbacks.length === 0) {
         const td = el('td', 'Chưa có phản hồi.', 'muted');
         td.colSpan = 5;
@@ -147,16 +177,31 @@ function renderCharts(data) {
 }
 
 function showInChartBoxes(message) {
-    document.querySelectorAll('.chart-box').forEach(b => b.replaceChildren(el('p', message, 'muted')));
+    clearCharts();
+    CHART_BOXES.forEach(({ box }) => box.replaceChildren(el('p', message, 'muted')));
 }
 
-async function init() {
+// Huy bieu do cu va dat lai canvas truoc moi lan ve (doi bo loc la ve lai)
+function clearCharts() {
+    CHART_BOXES.forEach(({ box, canvas }) => {
+        if (window.Chart) Chart.getChart(canvas)?.destroy();
+        box.replaceChildren(canvas);
+    });
+}
+
+// Doi bo loc nhanh lien tuc: chi ve ket qua cua lan goi moi nhat
+let latestRequest = 0;
+
+async function refresh() {
     const note = document.getElementById('status-note');
-    renderFilters();
+    const params = readFilters();
+    const requestId = ++latestRequest;
+    note.textContent = 'Đang tải số liệu…';
     let data;
     try {
-        data = await loadOverview();
+        data = await loadOverview(params);
     } catch (e) {
+        if (requestId !== latestRequest) return;
         const message = e instanceof TypeError
             ? 'Không gọi được ' + API_BASE + '. Hãy chạy Backend rồi tải lại trang.'
             : 'Không tải được số liệu: ' + e.message;
@@ -164,17 +209,30 @@ async function init() {
         showInChartBoxes(message);
         return;
     }
-    note.textContent = 'Số liệu lấy từ API thống kê. Bộ lọc và xuất báo cáo sẽ hoạt động ở tuần sau.';
+    if (requestId !== latestRequest) return;
+    const filtered = params.has('siteId') || params.has('from') || params.has('to');
+    note.textContent = filtered
+        ? 'Số liệu theo bộ lọc đang chọn. Xuất báo cáo sẽ hoạt động ở tuần sau.'
+        : 'Số liệu toàn bộ (chưa lọc). Xuất báo cáo sẽ hoạt động ở tuần sau.';
+    document.getElementById('daily-pill').textContent = (params.has('from') || params.has('to'))
+        ? 'Tối đa 31 ngày có dữ liệu trong khoảng'
+        : 'Tối đa 7 ngày có dữ liệu';
     renderKpis(data);
     renderFeedbacks(data.recentFeedbacks);
     if (data.totalViews === 0) {
-        showInChartBoxes('Chưa có lượt tương tác nào.');
+        showInChartBoxes(filtered ? 'Không có lượt tương tác nào theo bộ lọc này.' : 'Chưa có lượt tương tác nào.');
     } else if (window.Chart) {
+        clearCharts();
         renderCharts(data);
     } else {
         // CDN khong tai duoc (vd mo khi khong co mang): trang van hien KPI va bang.
         showInChartBoxes('Không tải được Chart.js (cần Internet).');
     }
+}
+
+async function init() {
+    await renderFilters();
+    refresh();
 }
 
 init();
