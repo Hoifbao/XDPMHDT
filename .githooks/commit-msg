@@ -1,4 +1,0 @@
-#!/bin/sh
-# Tu dong xoa dong "Co-Authored-By: ...Claude..." va "Claude-Session: ..." khoi commit message.
-# Bat 1 lan tren may: git config core.hooksPath .githooks
-sed -i.bak -E '/^[Cc]o-[Aa]uthored-[Bb]y:.*[Cc]laude/d; /^[Cc]laude-[Ss]ession:/d' "$1" && rm -f "$1.bak"
