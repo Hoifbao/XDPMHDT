@@ -34,7 +34,7 @@
         <module>services/feedback-service</module>
         <module>services/content-service</module>
         <module>services/site-service</module>
-        <!-- Khoa thêm beacon-service ở đây: <module>services/beacon-service</module> -->
+        <module>services/beacon-service</module>
         <module>Backend</module>
     </modules>
 

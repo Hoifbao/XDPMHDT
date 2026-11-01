@@ -1,0 +1,46 @@
+# beacon-service (Khoa - Sprint 4): iBeacon CRUD, registry quét BLE, gán hiện vật.
+# Client gọi qua Gateway http://localhost:8080; chạy riêng ở cổng 8084 để test Swagger/Actuator.
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: beacon-service
+  datasource:
+    # Bảng tạo bởi Infra/db/04_beacon.sql (Tường); ddl-auto update để chạy thử khi chưa có script
+    url: "${DB_URL:jdbc:mysql://localhost:3307/beacon_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+# Kiểm tra dữ liệu ở service khác thay cho quan hệ FK (bảng gốc nằm ở site_db, content_db):
+#  - siteId    -> site-service  (GET /api/heritage-sites/{id})
+#  - artifactId -> content-service (GET /api/artifacts/{id})
+# Service nào chưa chạy thì mặc định gọi Backend cũ 8090 (cùng API).
+app:
+  clients:
+    site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    content-url: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    timeout: ${CLIENT_TIMEOUT:2s}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true

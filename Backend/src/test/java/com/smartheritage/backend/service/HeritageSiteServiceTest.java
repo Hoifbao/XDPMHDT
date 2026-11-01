@@ -112,7 +112,7 @@ class HeritageSiteServiceTest {
     }
 
     // -----------------------------------------------------------------------
-    // Validate tham số: lat, lng ngoài WGS-84; radius ≤ 0, radius > 100
+    // Validate tham số: lat, lng ngoài WGS-84; radius ≤ 0, radius > 50
     // -----------------------------------------------------------------------
 
     @Test
@@ -142,18 +142,18 @@ class HeritageSiteServiceTest {
     }
 
     @Test
-    void getNearby_rejectsRadiusExceeding100km() {
-        assertThrows(IllegalArgumentException.class, () -> service.getNearby(0, 0, 101),
-                "Bán kính > 100 km phải báo lỗi.");
+    void getNearby_rejectsRadiusExceeding50km() {
+        assertThrows(IllegalArgumentException.class, () -> service.getNearby(0, 0, 51),
+                "Bán kính > 50 km phải báo lỗi.");
         assertThrows(IllegalArgumentException.class, () -> service.getNearby(0, 0, 200),
                 "Bán kính 200 km phải báo lỗi.");
     }
 
     @Test
-    void getNearby_accepts100kmRadius() {
+    void getNearby_accepts50kmRadius() {
         when(repository.findAll()).thenReturn(List.of());
-        assertDoesNotThrow(() -> service.getNearby(0, 0, 100),
-                "Bán kính đúng 100 km phải được chấp nhận.");
+        assertDoesNotThrow(() -> service.getNearby(0, 0, 50),
+                "Bán kính đúng 50 km phải được chấp nhận.");
     }
 
     // -----------------------------------------------------------------------

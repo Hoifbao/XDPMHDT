@@ -10,9 +10,11 @@ import java.time.LocalDateTime;
  *
  * Sau khi tách service: không còn @ManyToOne User / Artifact (2 bảng đó nằm ở auth_db, content_db).
  * Người gửi và hiện vật chỉ lưu bằng id; tên người gửi được chụp lại vào reviewerName lúc gửi.
+ * Mỗi người chỉ có 1 đánh giá cho 1 hiện vật (gửi lại thì ghi đè, xem FeedbackService.submitFeedback).
  */
 @Entity
-@Table(name = "feedbacks")
+@Table(name = "feedbacks",
+        uniqueConstraints = @UniqueConstraint(name = "uq_feedbacks_user_artifact", columnNames = {"user_id", "artifact_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -49,4 +51,23 @@ public class Feedback {
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * Lần sửa cuối (du khách sửa đánh giá hoặc ADMIN đổi trạng thái). NiFi dùng cột này để bắt thay đổi.
+     * Gán ở đây (cùng đồng hồ với createdAt), không để MySQL tự gán vì container MySQL chạy giờ UTC.
+     */
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    void onCreate() {
+        if (updatedAt == null) {
+            updatedAt = createdAt;
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
