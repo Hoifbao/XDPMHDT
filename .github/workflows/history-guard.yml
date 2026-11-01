@@ -1,0 +1,39 @@
+# Chan 2 loi da xay ra ngay 31/10-01/11/2026:
+#  (1) lich su cu (truoc khi lam sach) bi merge nguoc vao main -> commit bi nhan doi
+#  (2) commit co dong "Co-Authored-By: Claude" / "Claude-Session:"
+# Check "guard" la Required trong Ruleset protect-main.
+name: history-guard
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Chan lich su cu (truoc 01/11/2026)
+        run: |
+          OLD="0990c06 4996e63 09e7b25 b8e124e f08231c e7bc840 83ba260 aaeb18b 23fb85f"
+          for sha in $OLD; do
+            full=$(git rev-parse --verify --quiet "${sha}^{commit}" || true)
+            if [ -n "$full" ] && git merge-base --is-ancestor "$full" HEAD; then
+              echo "::error::Nhanh dang chua lich su CU (commit $sha). Lam lai nhanh tu main moi: git fetch origin && git checkout -B <nhanh> origin/main && git cherry-pick <commit-cua-minh>"
+              exit 1
+            fi
+          done
+          echo "OK: khong co lich su cu."
+
+      - name: Chan dong Co-Authored-By Claude
+        run: |
+          if git log --format=%B HEAD | grep -iqE '^(co-authored-by:.*claude|claude-session:)'; then
+            echo "::error::Co commit chua 'Co-Authored-By: Claude' hoac 'Claude-Session:'. Sua message bang git rebase -i origin/main (reword)."
+            git log --format='%h %an %s' --grep='claude' -i HEAD | head -20
+            exit 1
+          fi
+          echo "OK: khong co dong Claude."
