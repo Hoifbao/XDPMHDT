@@ -163,18 +163,30 @@ public class FeedbackService {
     /**
      * ADMIN xem danh sách đánh giá, mới nhất trước.
      * status rỗng/null → tất cả; PENDING | APPROVED | REJECTED (không phân biệt hoa thường) → lọc; giá trị khác → 400.
+     * artifactId null → mọi hiện vật; có thì phải > 0 (sai → 400). Không gọi content-service.
      */
     @Transactional(readOnly = true)
-    public List<FeedbackResponse> getFeedbacksForAdmin(String status) {
-        List<Feedback> feedbacks;
-        if (status == null || status.isBlank()) {
-            feedbacks = feedbackRepository.findAllByOrderByCreatedAtDescIdDesc();
-        } else {
-            String normalized = status.trim().toUpperCase(Locale.ROOT);
+    public List<FeedbackResponse> getFeedbacksForAdmin(String status, Long artifactId) {
+        String normalized = null;
+        if (status != null && !status.isBlank()) {
+            normalized = status.trim().toUpperCase(Locale.ROOT);
             if (!ALL_STATUSES.contains(normalized)) {
                 throw ApiException.badRequest("Trạng thái chỉ nhận PENDING, APPROVED hoặc REJECTED");
             }
-            feedbacks = feedbackRepository.findByStatusOrderByCreatedAtDescIdDesc(normalized);
+        }
+        if (artifactId != null) {
+            validateArtifactId(artifactId);
+        }
+
+        List<Feedback> feedbacks;
+        if (artifactId == null) {
+            feedbacks = normalized == null
+                    ? feedbackRepository.findAllByOrderByCreatedAtDescIdDesc()
+                    : feedbackRepository.findByStatusOrderByCreatedAtDescIdDesc(normalized);
+        } else {
+            feedbacks = normalized == null
+                    ? feedbackRepository.findByArtifactIdOrderByCreatedAtDescIdDesc(artifactId)
+                    : feedbackRepository.findByArtifactIdAndStatusOrderByCreatedAtDescIdDesc(artifactId, normalized);
         }
         return feedbacks.stream().map(this::toResponse).toList();
     }

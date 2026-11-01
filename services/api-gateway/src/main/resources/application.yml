@@ -19,7 +19,7 @@ app:
     content: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     beacon: ${BEACON_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     personalization: ${PERSONALIZATION_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
-    feedback: ${FEEDBACK_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    feedback: ${FEEDBACK_SERVICE_URL:http://localhost:8086}
     analytics: ${ANALYTICS_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
 
 # Giám sát: http://localhost:8080/actuator/prometheus

@@ -2,13 +2,13 @@
 #
 # Cách dùng (chạy ở thư mục gốc repo):
 #   docker compose -f Infra/docker-compose.yml up -d                       -> chỉ MySQL + Redis (như tuần 1-3)
-#   docker compose -f Infra/docker-compose.yml --profile core up -d --build -> + Backend cũ, auth-service, Gateway
+#   docker compose -f Infra/docker-compose.yml --profile core up -d --build -> + Backend cũ, Gateway, auth/site/content/feedback-service
 #   docker compose -f Infra/docker-compose.yml --profile mq up -d          -> + RabbitMQ
 #   docker compose -f Infra/docker-compose.yml --profile monitoring up -d  -> + Prometheus, Grafana
 #   docker compose -f Infra/docker-compose.yml --profile nifi up -d        -> + Apache NiFi (Tuấn)
 # Bật nhiều profile: --profile core --profile monitoring
 #
-# Lưu ý: profile core chiếm cổng 8080/8081/8090. Nếu đang chạy Gateway/auth/Backend bằng
+# Lưu ý: profile core chiếm cổng 8080/8081/8082/8083/8086/8090. Nếu đang chạy Gateway/service/Backend bằng
 # mvn spring-boot:run thì KHÔNG bật profile core (trùng cổng).
 # Mật khẩu, khóa JWT: copy Infra/.env.example thành Infra/.env rồi sửa.
 # Database (Tường - Sprint 4): MySQL chạy mọi script trong Infra/db theo thứ tự tên file
@@ -108,6 +108,30 @@ services:
       mysql-db:
         condition: service_healthy
 
+  # Tường - Task 5: đánh giá hiện vật, dùng user riêng feedback_user (Infra/db/00_create_schemas.sql)
+  feedback-service:
+    profiles: ["core"]
+    build:
+      context: ..
+      dockerfile: services/feedback-service/Dockerfile
+    container_name: smart_heritage_feedback
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/feedback_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: feedback_user
+      DB_PASSWORD: ${FEEDBACK_DB_PASSWORD:-feedback_pass_dev}
+      # Kiểm tra hiện vật tồn tại + ACTIVE; lấy tên người gửi qua /api/auth/me
+      CONTENT_SERVICE_URL: http://content-service:8083
+      AUTH_SERVICE_URL: http://auth-service:8081
+    ports:
+      - "8086:8086"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      content-service:
+        condition: service_started
+      auth-service:
+        condition: service_started
+
   api-gateway:
     profiles: ["core"]
     build:
@@ -120,6 +144,7 @@ services:
       LEGACY_BACKEND_URL: http://backend:8090
       CONTENT_SERVICE_URL: http://content-service:8083
       SITE_SERVICE_URL: http://site-service:8082
+      FEEDBACK_SERVICE_URL: http://feedback-service:8086
       # Tách xong service nào thì thêm 1 dòng ở trên
     ports:
       - "8080:8080"
@@ -127,6 +152,7 @@ services:
       - auth-service
       - content-service
       - site-service
+      - feedback-service
       - backend
 
   # ---------- profile: mq ----------

@@ -211,7 +211,7 @@ class FeedbackServiceTest {
         when(feedbackRepository.findAllByOrderByCreatedAtDescIdDesc())
                 .thenReturn(List.of(feedback(1L, 5, "APPROVED", "A"), feedback(2L, 3, "PENDING", "B")));
 
-        assertThat(feedbackService.getFeedbacksForAdmin(" ")).hasSize(2);
+        assertThat(feedbackService.getFeedbacksForAdmin(" ", null)).hasSize(2);
     }
 
     @Test
@@ -219,12 +219,36 @@ class FeedbackServiceTest {
         when(feedbackRepository.findByStatusOrderByCreatedAtDescIdDesc("PENDING"))
                 .thenReturn(List.of(feedback(3L, 3, "PENDING", "Trần Thị Mai")));
 
-        assertThat(feedbackService.getFeedbacksForAdmin("pending")).hasSize(1);
+        assertThat(feedbackService.getFeedbacksForAdmin("pending", null)).hasSize(1);
+    }
+
+    @Test
+    void getFeedbacksForAdmin_locTheoHienVat_moiTrangThai() {
+        when(feedbackRepository.findByArtifactIdOrderByCreatedAtDescIdDesc(1L))
+                .thenReturn(List.of(feedback(6L, 1, "REJECTED", "John Smith"), feedback(1L, 5, "APPROVED", "A")));
+
+        assertThat(feedbackService.getFeedbacksForAdmin(null, 1L)).hasSize(2);
+        verifyNoInteractions(artifactClient);
+    }
+
+    @Test
+    void getFeedbacksForAdmin_locTheoHienVatVaStatus() {
+        when(feedbackRepository.findByArtifactIdAndStatusOrderByCreatedAtDescIdDesc(1L, "PENDING"))
+                .thenReturn(List.of(feedback(3L, 3, "PENDING", "Trần Thị Mai")));
+
+        assertThat(feedbackService.getFeedbacksForAdmin("Pending", 1L))
+                .extracting(FeedbackResponse::getId).containsExactly(3L);
     }
 
     @Test
     void getFeedbacksForAdmin_statusLa_tra400() {
-        assertStatus(() -> feedbackService.getFeedbacksForAdmin("DELETED"), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> feedbackService.getFeedbacksForAdmin("DELETED", null), HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void getFeedbacksForAdmin_artifactIdKhongHopLe_tra400() {
+        assertStatus(() -> feedbackService.getFeedbacksForAdmin(null, 0L), HttpStatus.BAD_REQUEST);
+        verifyNoInteractions(feedbackRepository);
     }
 
     @Test
