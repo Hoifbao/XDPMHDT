@@ -1,5 +1,7 @@
 plugins {
     id("com.android.application")
+    // Sprint 5 – FCM: cấu hình Firebase từ google-services.json (file không commit)
+    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
