@@ -3,7 +3,7 @@
 --  Database : analytics_db   |   Engine : MySQL 8.x
 --
 --  Kho dữ liệu thống kê do Apache NiFi đổ vào từ các schema nghiệp vụ.
---  Thiết kế: Tuấn (nhánh feature/tuan-w4-nifi, Infra/nifi/sql/07_analytics.sql).
+--  Thiết kế: Tuấn (Sprint 4, nhánh feature/tuan-w4-nifi). Tuần 5 thêm dim_site, dim_user_lang.
 --  Ghép vào Infra/db: Tường - Sprint 4. Sửa bảng thì gửi Tường cập nhật file này.
 --
 --  Quy ước:
@@ -56,6 +56,24 @@ CREATE TABLE IF NOT EXISTS dim_artifact (
     site_id     BIGINT       NULL,
     site_name   VARCHAR(150) NULL,                     -- heritage_sites.name
     PRIMARY KEY (artifact_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Tuần 5 (Tuấn): thông tin di tích để lọc Dashboard theo di tích (nguồn: site_db.heritage_sites)
+CREATE TABLE IF NOT EXISTS dim_site (
+    site_id   BIGINT        NOT NULL,                 -- = heritage_sites.id
+    name      VARCHAR(150)  NOT NULL,
+    location  VARCHAR(255)  NULL,
+    latitude  DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    PRIMARY KEY (site_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Tuần 5 (Tuấn): ngôn ngữ của du khách để thống kê theo ngôn ngữ
+-- (nguồn: users, chỉ id + preferred_language; không chép email, mật khẩu)
+CREATE TABLE IF NOT EXISTS dim_user_lang (
+    user_id       BIGINT      NOT NULL,               -- = users.id
+    language_code VARCHAR(10) NOT NULL DEFAULT 'vi',  -- users.preferred_language
+    PRIMARY KEY (user_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Tổng hợp theo ngày cho biểu đồ lượt xem (tính từ fact_visits)
