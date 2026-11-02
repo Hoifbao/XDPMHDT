@@ -59,6 +59,7 @@ dependencies:
 
   # Phóng to ảnh (Xuân Anh - Sprint 4)
   photo_view: ^0.15.0
+  flutter_local_notifications: ^22.3.3
 
   # Bản đồ tương tác OpenStreetMap (Ân - W5, không cần API key)
   flutter_map: ^7.0.2

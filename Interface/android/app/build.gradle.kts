@@ -12,6 +12,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications yêu cầu (Khoa W5): core library desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -46,4 +48,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // flutter_local_notifications yêu cầu (Khoa W5): thư viện desugar nặng hơn flutter mặc định
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

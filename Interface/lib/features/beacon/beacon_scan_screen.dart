@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -7,6 +8,7 @@ import '../../screens/artifact_detail_screen.dart';
 import '../auth/auth_service.dart';
 import '../personalization/personalization_service.dart';
 import 'beacon_service.dart';
+import 'local_notification_service.dart';
 
 /// Màn hình quét iBeacon – luồng beacon chính của đề tài.
 ///
@@ -15,8 +17,11 @@ import 'beacon_service.dart';
 /// 2. Mỗi lần quét: so khớp (uuid, major, minor); bỏ qua beacon ngoài registry.
 /// 3. Chọn gần nhất (avg RSSI 5 lần); vào vùng ≥ rssiEnter; hysteresis rssiExit.
 /// 4. Chống trùng: không báo lại trong 60 giây kể từ lần báo trước.
-/// 5. Vào vùng → ArtifactDetailScreen (KHÔNG tự đóng khi rời vùng).
+/// 5. Vào vùng:
+///    - app ở foreground → ArtifactDetailScreen (KHÔNG tự đóng khi rời vùng);
+///    - app bị thu nhỏ (chạy nền) → local notification, bấm vào mở đúng hiện vật.
 /// 6. Ra vùng (RSSI ≤ rssiExit hoặc không thấy > 10s) → POST visits (BEACON).
+/// 7. Bản debug có nút "Giả lập phát hiện beacon" để demo không cần beacon thật.
 class BeaconScanScreen extends StatefulWidget {
   /// Ngôn ngữ ưa thích; null → AuthService.preferredLanguage.
   final String? lang;
@@ -27,7 +32,8 @@ class BeaconScanScreen extends StatefulWidget {
   State<BeaconScanScreen> createState() => _BeaconScanScreenState();
 }
 
-class _BeaconScanScreenState extends State<BeaconScanScreen> {
+class _BeaconScanScreenState extends State<BeaconScanScreen>
+    with WidgetsBindingObserver {
   final Map<String, RegistryBeacon> _registry = {};
   final Map<String, RssiBuffer> _rssiBuffers = {};
   final Map<String, bool> _activeBeacons = {};
@@ -57,6 +63,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _start();
 
     _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -74,11 +81,29 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     _tickTimer?.cancel();
     _registryRefreshTimer?.cancel();
     BeaconService.stopScan();
     super.dispose();
+  }
+
+  /// Bấm thông báo (app nền) → trở lại app → mở đúng màn chi tiết của Xuân Anh.
+  void _onNotificationTap(int artifactId, String lang) {
+    if (!mounted || _navigatingToDetail) return;
+    _navigatingToDetail = true;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ArtifactDetailScreen(
+          artifactId: artifactId,
+          initialLang: lang,
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) _navigatingToDetail = false;
+    });
   }
 
   Future<void> _start() async {
@@ -97,6 +122,9 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
       debugPrint('$_logTag Registry nạp được ${items.length} beacon khi mở app '
           '(tự làm mới mỗi ${BeaconConfig.registryCacheAge.inMinutes} phút). '
           'Có hiện vật gán: ${items.where((b) => b.artifactId != null).length}.');
+      // Local notification cho kịch bản app đang chạy nền (Sprint 5)
+      unawaited(LocalNotificationService.I.initialize());
+      LocalNotificationService.I.onNotificationTap = _onNotificationTap;
       await BeaconService.initialize();
       await BeaconService.startScan();
 
@@ -191,6 +219,23 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
       _lastAlertTimes[key] = now;
     });
 
+    final appResumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    if (!appResumed) {
+      // App đang chạy nền: hiện thông báo, KHÔNG đẩy màn hình
+      // (sau khi bấm thông báo, app về foreground → _onNotificationTap mở màn đúng hiện vật).
+      debugPrint('$_logTag VÀO VÙNG $key ở CHẾ ĐỘ NỀN → gửi local notification '
+          'cho hiện vật #${registered.artifactId} (bấm vào sẽ mở).');
+      unawaited(LocalNotificationService.I.showArtifact(
+        artifactId: registered.artifactId!,
+        lang: _lang,
+        title: 'Gần đây có hiện vật',
+        body: '${registered.artifactName ?? 'Hiện vật #${registered.artifactId}'} '
+            '(${registered.siteName ?? ''}). Bấm để xem chi tiết.',
+      ));
+      return;
+    }
+
     _navigatingToDetail = true;
     debugPrint('$_logTag VÀO VÙNG $key (cooldown ghi lúc ${now.toIso8601String()}) '
         '→ mở chi tiết hiện vật #${registered.artifactId} cho Xuân Anh nhận, lang=$_lang');
@@ -265,6 +310,14 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
       appBar: AppBar(
         title: const Text('Quét iBeacon'),
         actions: [
+          // Sprint 5 (Thứ 4): nút giả lập chỉ có ở bản debug — demo chạy được
+          // toàn luồng như beacon thật khi không có beacon ngoài thực tế.
+          if (kDebugMode)
+            IconButton(
+              tooltip: 'Giả lập phát hiện beacon',
+              icon: const Icon(Icons.bug_report),
+              onPressed: _loading ? null : _showSimulateDialog,
+            ),
           IconButton(
             tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh),
@@ -274,6 +327,144 @@ class _BeaconScanScreenState extends State<BeaconScanScreen> {
       ),
       body: _buildBody(),
     );
+  }
+
+  /// Chọn 1 beacon trong registry để chạy toàn luồng như thật:
+  /// "Vào vùng" → mở chi tiết/notification; "Ra vùng" → ghi lượt tham quan (Phú).
+  void _showSimulateDialog() {
+    final simulateAreaBeacons = _registry.values
+        .where((b) => b.artifactId != null)
+        .toList()
+      ..sort((a, b) => (a.major * 1000 + a.minor).compareTo(b.major * 1000 + b.minor));
+
+    if (simulateAreaBeacons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Registry chưa có beacon nào được gán hiện vật.'),
+      ));
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(
+                  'Giả lập phát hiện beacon',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Chạy đúng toàn luồng như beacon thật (trung bình RSSI 5 lần đọc, ngưỡng −75/−85, cooldown 60s).',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+              const Divider(),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: simulateAreaBeacons.length,
+                  itemBuilder: (listContext, index) {
+                    final beacon = simulateAreaBeacons[index];
+                    final isActive = _activeBeacons[beacon.key] ?? false;
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(
+                        Icons.beenhere,
+                        color: isActive ? Colors.green : Colors.blueGrey,
+                      ),
+                      title: Text(
+                        beacon.artifactName ?? 'Hiện vật #${beacon.artifactId}',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Major ${beacon.major} · Minor ${beacon.minor}'
+                        '${isActive ? ' · ĐANG TRONG VÙNG ${DateTime.now().difference(_enterTimes[beacon.key]!).inSeconds}s' : ''}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () => _simulateEnter(sheetContext, beacon.key),
+                            child: const Text('Vào vùng'),
+                          ),
+                          TextButton(
+                            onPressed: isActive
+                                ? () => _simulateExit(sheetContext, beacon.key)
+                                : null,
+                            child: const Text('Ra vùng'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Giả lập vào vùng: RSSI luôn ≥ ngưỡng vào, rồi đi đúng nhánh _onEnterRegion
+  /// (vẫn giữ cooldown 60s để demo "chống báo trùng" như thật).
+  void _simulateEnter(BuildContext sheetContext, String key) {
+    final now = DateTime.now();
+    final lastAlert = _lastAlertTimes[key];
+    final waitSec = lastAlert == null
+        ? 0
+        : BeaconConfig.antispamCooldown.inSeconds - now.difference(lastAlert).inSeconds;
+
+    if (waitSec > 0) {
+      debugPrint('$_logTag GIẢ LẬP vào vùng $key bị cooldown chặn '
+          '(thử lại sau ${waitSec}s) — đúng tiêu chí chống báo trùng.');
+      Navigator.pop(sheetContext);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Beacon này vừa báo rồi — thử lại sau $waitSec giây (cooldown 60s).'),
+      ));
+      return;
+    }
+
+    debugPrint('$_logTag GIẢ LẬP phát hiện beacon $key → chạy toàn luồng như thật.');
+    final buffer = _rssiBuffers.putIfAbsent(key, RssiBuffer.new);
+    buffer.clear();
+    for (var i = 0; i < 5; i++) {
+      buffer.add(BeaconConfig.rssiEnter + 3); // trung bình 5 lần đọc > ngưỡng vào
+    }
+    _lastSeenTimes[key] = now;
+    Navigator.pop(sheetContext);
+    _onEnterRegion(key, now);
+  }
+
+  /// Giả lập ra vùng: dùng đúng nhánh _onExitRegion → ghi lượt tham quan
+  /// (durationSeconds đo từ lúc vào giả lập — đầu ra cho Phú).
+  void _simulateExit(BuildContext sheetContext, String key) {
+    if (!_activeBeacons[key]!) {
+      Navigator.pop(sheetContext);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Beacon này chưa ở trong vùng — bấm "Vào vùng" trước.'),
+      ));
+      return;
+    }
+    debugPrint('$_logTag GIẢ LẬP ra khỏi vùng $key sau '
+        '${DateTime.now().difference(_enterTimes[key]!).inSeconds}s.');
+    Navigator.pop(sheetContext);
+    _onExitRegion(key, DateTime.now());
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã ra vùng (giả lập) — đã ghi lượt tham quan source=BEACON.'),
+    ));
   }
 
   Widget _buildBody() {
