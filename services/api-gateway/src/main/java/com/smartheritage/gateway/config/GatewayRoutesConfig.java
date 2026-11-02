@@ -40,7 +40,9 @@ public class GatewayRoutesConfig {
                         .path("/api/artifacts/**", "/api/media/**")
                         .filters(GatewayRoutesConfig::common).uri(t.content()))
                 .route("beacon-service", r -> r.order(5)
-                        .path("/api/ibeacons/**")
+                        // Khoa W5: /api/me/devices/** = module notification của beacon-service
+                        // (đăng ký FCM token). Route này PHẢI trước route personalization (order 6).
+                        .path("/api/ibeacons/**", "/api/me/devices", "/api/me/devices/**")
                         .filters(GatewayRoutesConfig::common).uri(t.beacon()))
                 // Tuần 5: personalization-service 8085 (/api/users/** là API cũ của Phú)
                 .route("personalization-service", r -> r.order(6)

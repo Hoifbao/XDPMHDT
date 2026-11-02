@@ -215,6 +215,45 @@ class IBeaconServiceTest {
                 .hasMessageContaining("0–65535");
     }
 
+    // ─────────────── position (W5, cho Ân) ───────────────
+
+    @Test
+    void updatePositionSavesCoordinates() {
+        IBeacon beacon = beacon(1L, 1L, 2L, "ACTIVE");
+        when(beaconRepository.findById(1L)).thenReturn(Optional.of(beacon));
+
+        IBeaconResponse response = service.updatePosition(1L, 12.5, 30.0);
+
+        assertThat(response.getPosX()).isEqualTo(12.5);
+        assertThat(response.getPosY()).isEqualTo(30.0);
+        verify(beaconRepository).save(beacon);
+    }
+
+    @Test
+    void updatePositionAllowsNullToClearCoordinates() {
+        IBeacon beacon = IBeacon.builder()
+                .id(2L).siteId(1L).uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0")
+                .major(1).minor(2).posX(25.0).posY(42.5).status("ACTIVE")
+                .build();
+        when(beaconRepository.findById(2L)).thenReturn(Optional.of(beacon));
+
+        IBeaconResponse response = service.updatePosition(2L, null, null);
+
+        assertThat(response.getPosX()).isNull();
+        assertThat(response.getPosY()).isNull();
+        verify(beaconRepository).save(beacon);
+    }
+
+    @Test
+    void updatePositionToMissingBeaconThrowsNotFound() {
+        when(beaconRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updatePosition(99L, 10.0, 20.0))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Không tìm thấy iBeacon với ID: 99");
+        verify(beaconRepository, never()).save(any());
+    }
+
     // ─────────────── cross-service check ───────────────
 
     @Test

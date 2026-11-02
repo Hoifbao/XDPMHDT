@@ -101,13 +101,24 @@ public class IBeaconService {
         return toResponse(beacon);
     }
 
-    // ──────────────────────────── ASSIGN ──────────────────────────
+    // ─────────────────────────── ASSIGN ──────────────────────────
 
     /** Gán hiện vật cho beacon. artifactId = null để bỏ gán. */
     public IBeaconResponse assignArtifact(Long id, Long artifactId) {
         IBeacon beacon = findOrThrow(id);
         ArtifactClient.Artifact artifact = checkArtifactOfSite(artifactId, beacon.getSiteId());
         beacon.setArtifactId(artifact != null ? artifact.id() : null);
+        beaconRepository.save(beacon);
+        return toResponse(beacon);
+    }
+
+    // ──────────────────────── POSITION (W5, cho Ân) ───────────────────────
+
+    /** Cập nhật vị trí đặt beacon trên sơ đồ/bản đồ (posX/posY, đơn vị quy ước bản đồ). */
+    public IBeaconResponse updatePosition(Long id, Double posX, Double posY) {
+        IBeacon beacon = findOrThrow(id);
+        beacon.setPosX(posX);
+        beacon.setPosY(posY);
         beaconRepository.save(beacon);
         return toResponse(beacon);
     }
