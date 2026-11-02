@@ -9,6 +9,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/beacon/beacon_scan_screen.dart';
 import 'features/beacon/beacon_service.dart';
+import 'features/heritage_sites/map_screen.dart'; // Ân W5
 import 'screens/artifact_detail_screen.dart';
 import 'shared/app_sidebar.dart';
 
@@ -390,9 +391,23 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 12),
           const Text(
             'Ứng dụng sẽ tự động phát hiện iBeacon khi bạn đến gần hiện vật.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          // Ân W5: mở bản đồ di tích tương tác
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const MapScreen())),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Mở bản đồ di tích'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF718B78),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
         ],
