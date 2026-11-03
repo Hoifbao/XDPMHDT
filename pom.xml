@@ -31,6 +31,7 @@
         <module>services/api-gateway</module>
         <module>services/service-template</module>
 
+        <module>services/personalization-service</module>
         <module>services/feedback-service</module>
         <module>services/content-service</module>
         <module>services/site-service</module>
