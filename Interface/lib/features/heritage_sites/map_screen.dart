@@ -14,18 +14,8 @@ const Color _softCard = Color(0xFFECEDE5);
 const Color _ink = Color(0xFF26352B);
 const Color _muted = Color(0xFF69716B);
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  MapScreen – Bản đồ Di tích tương tác (US03, Ân W5)
-// ─────────────────────────────────────────────────────────────────────────────
-///
-/// Luồng:
-/// 1. Xin quyền GPS → lấy vị trí hiện tại.
-/// 2. Gọi GET /api/heritage-sites/nearby theo vị trí (bán kính 50 km).
-/// 3. Vẽ marker từng di tích; bấm marker → bảng thông tin + nút hành động.
-/// 4. "Chỉ đường" → mở Google Maps / app bản đồ điện thoại.
-/// 5. "Xem hiện vật" → ArtifactListScreen.
-/// 6. Từ chối quyền → hiện tất cả di tích + banner cảnh báo.
-/// 7. Mất mạng → thông báo rõ ràng, không crash.
+/// Màn hình Bản đồ Di tích tương tác (US03, Ân W5).
+/// flutter_map + OpenStreetMap, không cần API key.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -61,7 +51,6 @@ class _MapScreenState extends State<MapScreen> {
       _loadingLocation = true;
       _locationError = null;
     });
-
     try {
       final position = await _getLocation();
       if (!mounted) return;
@@ -120,21 +109,13 @@ class _MapScreenState extends State<MapScreen> {
   // ── Load sites ────────────────────────────────────────────────────────────
 
   Future<void> _loadNearbySites(Position pos) async {
-    setState(() {
-      _loadingSites = true;
-      _sitesError = null;
-    });
+    setState(() { _loadingSites = true; _sitesError = null; });
     try {
       final list = await HeritageSiteService.getNearby(
-        lat: pos.latitude,
-        lng: pos.longitude,
-        radius: 50,
+        lat: pos.latitude, lng: pos.longitude, radius: 50,
       );
       if (!mounted) return;
-      setState(() {
-        _sites = list;
-        _loadingSites = false;
-      });
+      setState(() { _sites = list; _loadingSites = false; });
       _mapController.move(LatLng(pos.latitude, pos.longitude), 13);
     } catch (_) {
       if (!mounted) return;
@@ -146,17 +127,11 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadAllSites() async {
-    setState(() {
-      _loadingSites = true;
-      _sitesError = null;
-    });
+    setState(() { _loadingSites = true; _sitesError = null; });
     try {
       final list = await HeritageSiteService.getAll();
       if (!mounted) return;
-      setState(() {
-        _sites = list;
-        _loadingSites = false;
-      });
+      setState(() { _sites = list; _loadingSites = false; });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -189,8 +164,6 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
   }
-
-  // ── Bấm marker ────────────────────────────────────────────────────────────
 
   void _onMarkerTap(HeritageSiteItem site) {
     setState(() => _selectedSite = site);
@@ -235,25 +208,20 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // ── App Bar ───────────────────────────────────────────────────────────────
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       iconTheme: const IconThemeData(color: _ink),
-      title: const Text(
-        'Bản đồ Di tích',
-        style: TextStyle(fontWeight: FontWeight.bold, color: _ink),
-      ),
+      title: const Text('Bản đồ Di tích',
+          style: TextStyle(fontWeight: FontWeight.bold, color: _ink)),
       actions: [
         if (_loadingSites)
           const Padding(
             padding: EdgeInsets.only(right: 16),
             child: SizedBox(
-              width: 18,
-              height: 18,
+              width: 18, height: 18,
               child: CircularProgressIndicator(strokeWidth: 2, color: _sage),
             ),
           )
@@ -270,8 +238,6 @@ class _MapScreenState extends State<MapScreen> {
       ],
     );
   }
-
-  // ── Banner cảnh báo GPS ───────────────────────────────────────────────────
 
   Widget _buildLocationBanner() {
     return Container(
@@ -290,25 +256,19 @@ class _MapScreenState extends State<MapScreen> {
               size: 18, color: Color(0xFF856404)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _locationError!,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF856404)),
-            ),
+            child: Text(_locationError!,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF856404))),
           ),
           GestureDetector(
             onTap: _initLocation,
-            child: const Text(
-              'Thử lại',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.bold, color: _sage),
-            ),
+            child: const Text('Thử lại',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold, color: _sage)),
           ),
         ],
       ),
     );
   }
-
-  // ── Bản đồ flutter_map + OpenStreetMap ───────────────────────────────────
 
   Widget _buildMap() {
     final center = _currentPosition != null
@@ -320,11 +280,8 @@ class _MapScreenState extends State<MapScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.07),
+              blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -336,56 +293,37 @@ class _MapScreenState extends State<MapScreen> {
           onTap: (_, __) => setState(() => _selectedSite = null),
         ),
         children: [
-          // Tile OpenStreetMap – không cần API key
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.smartheritage.app',
             maxZoom: 19,
           ),
-
-          // Vòng tròn vị trí người dùng
           if (_currentPosition != null)
-            CircleLayer(
-              circles: [
-                CircleMarker(
-                  point: LatLng(
-                    _currentPosition!.latitude,
-                    _currentPosition!.longitude,
-                  ),
-                  radius: 10,
-                  color: _sage.withOpacity(0.25),
-                  borderColor: _sage,
-                  borderStrokeWidth: 2,
-                  useRadiusInMeter: false,
-                ),
-              ],
-            ),
-
-          // Marker di tích
+            CircleLayer(circles: [
+              CircleMarker(
+                point: LatLng(
+                    _currentPosition!.latitude, _currentPosition!.longitude),
+                radius: 10,
+                color: _sage.withOpacity(0.25),
+                borderColor: _sage,
+                borderStrokeWidth: 2,
+                useRadiusInMeter: false,
+              ),
+            ]),
           MarkerLayer(
-            markers: _sites
-                .where((s) => s.hasCoords)
-                .map(
-                  (site) => Marker(
-                    point: LatLng(site.latitude!, site.longitude!),
-                    width: 44,
-                    height: 52,
-                    child: GestureDetector(
-                      onTap: () => _onMarkerTap(site),
-                      child: _MarkerPin(
-                        isSelected: _selectedSite?.id == site.id,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
+            markers: _sites.where((s) => s.hasCoords).map((site) => Marker(
+              point: LatLng(site.latitude!, site.longitude!),
+              width: 44, height: 52,
+              child: GestureDetector(
+                onTap: () => _onMarkerTap(site),
+                child: _MarkerPin(isSelected: _selectedSite?.id == site.id),
+              ),
+            )).toList(),
           ),
         ],
       ),
     );
   }
-
-  // ── Bảng chi tiết di tích đã chọn ────────────────────────────────────────
 
   Widget _buildSiteDetail(HeritageSiteItem site) {
     return Container(
@@ -395,112 +333,90 @@ class _MapScreenState extends State<MapScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
+          BoxShadow(color: Colors.black.withOpacity(0.05),
+              blurRadius: 8, offset: const Offset(0, 2))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: _sage, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.account_balance_outlined,
-                    color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      site.name,
-                      style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: _ink),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (site.location != null)
-                      Text(site.location!,
-                          style: const TextStyle(fontSize: 12, color: _muted),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: _muted, size: 20),
-                onPressed: () => setState(() => _selectedSite = null),
-              ),
-            ],
-          ),
-          if (site.distanceKm != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
+          Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                  color: _sage, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.account_balance_outlined,
+                  color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.near_me, size: 13, color: _sage),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Cách bạn ${site.distanceKm!.toStringAsFixed(1)} km',
-                    style: const TextStyle(fontSize: 12, color: _sage),
-                  ),
+                  Text(site.name,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold, color: _ink),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (site.location != null)
+                    Text(site.location!,
+                        style: const TextStyle(fontSize: 12, color: _muted),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.close, color: _muted, size: 20),
+              onPressed: () => setState(() => _selectedSite = null),
+            ),
+          ]),
+          if (site.distanceKm != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(children: [
+                const Icon(Icons.near_me, size: 13, color: _sage),
+                const SizedBox(width: 4),
+                Text('Cách bạn ${site.distanceKm!.toStringAsFixed(1)} km',
+                    style: const TextStyle(fontSize: 12, color: _sage)),
+              ]),
+            ),
           const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed:
-                      site.hasCoords ? () => _openDirections(site) : null,
-                  icon: const Icon(Icons.directions, size: 16),
-                  label: const Text('Chỉ đường'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _sage,
-                    side: const BorderSide(color: _sage),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: site.hasCoords ? () => _openDirections(site) : null,
+                icon: const Icon(Icons.directions, size: 16),
+                label: const Text('Chỉ đường'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _sage,
+                  side: const BorderSide(color: _sage),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(context,
                     MaterialPageRoute(
-                        builder: (_) => const ArtifactListScreen()),
-                  ),
-                  icon: const Icon(Icons.museum_outlined, size: 16),
-                  label: const Text('Xem hiện vật'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _sage,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+                        builder: (_) => const ArtifactListScreen())),
+                icon: const Icon(Icons.museum_outlined, size: 16),
+                label: const Text('Xem hiện vật'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _sage,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
-            ],
-          ),
+            ),
+          ]),
         ],
       ),
     );
   }
-
-  // ── Danh sách di tích ─────────────────────────────────────────────────────
 
   Widget _buildSiteList() {
     if (_loadingSites) {
@@ -510,45 +426,38 @@ class _MapScreenState extends State<MapScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off_outlined, size: 40, color: _muted),
-              const SizedBox(height: 12),
-              Text(_sitesError!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: _muted, fontSize: 13)),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _initLocation,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: _sage, foregroundColor: Colors.white),
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 40, color: _muted),
+            const SizedBox(height: 12),
+            Text(_sitesError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _muted, fontSize: 13)),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _initLocation,
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: _sage, foregroundColor: Colors.white),
+              child: const Text('Thử lại'),
+            ),
+          ]),
         ),
       );
     }
     if (_sites.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.map_outlined, size: 40, color: _muted),
-            const SizedBox(height: 8),
-            const Text('Chưa có di tích trong khu vực này.',
-                style: TextStyle(color: _muted)),
-            TextButton(
-              onPressed: _loadAllSites,
-              child: const Text('Xem tất cả di tích',
-                  style: TextStyle(color: _sage)),
-            ),
-          ],
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.map_outlined, size: 40, color: _muted),
+          const SizedBox(height: 8),
+          const Text('Chưa có di tích trong khu vực này.',
+              style: TextStyle(color: _muted)),
+          TextButton(
+            onPressed: _loadAllSites,
+            child: const Text('Xem tất cả di tích',
+                style: TextStyle(color: _sage)),
+          ),
+        ]),
       );
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -616,18 +525,15 @@ class _MarkerPin extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2))
+              BoxShadow(color: Colors.black.withOpacity(0.2),
+                  blurRadius: 6, offset: const Offset(0, 2))
             ],
           ),
           child: Icon(Icons.account_balance_outlined,
               size: isSelected ? 13 : 10, color: Colors.white),
         ),
         Container(
-          width: 2,
-          height: 8,
+          width: 2, height: 8,
           color: isSelected ? _sage : const Color(0xFFA45151),
         ),
       ],
@@ -641,9 +547,7 @@ class _SiteListTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SiteListTile({
-    required this.site,
-    required this.isSelected,
-    required this.onTap,
+    required this.site, required this.isSelected, required this.onTap,
   });
 
   @override
@@ -659,58 +563,45 @@ class _SiteListTile extends StatelessWidget {
           border: Border.all(
               color: isSelected ? _sage : Colors.transparent, width: 1.5),
           boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2))
+            BoxShadow(color: Colors.black.withOpacity(0.04),
+                blurRadius: 6, offset: const Offset(0, 2))
           ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                  color: isSelected ? _sage : _softCard,
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(Icons.account_balance_outlined,
-                  color: isSelected ? Colors.white : _sage, size: 20),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+                color: isSelected ? _sage : _softCard,
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.account_balance_outlined,
+                color: isSelected ? Colors.white : _sage, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(site.name,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold, color: _ink),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (site.location != null)
+                  Text(site.location!,
+                      style: const TextStyle(fontSize: 12, color: _muted),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (site.distanceKm != null)
+                  Text('${site.distanceKm!.toStringAsFixed(1)} km',
+                      style: const TextStyle(fontSize: 11, color: _sage)),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(site.name,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: _ink),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  if (site.location != null)
-                    Text(site.location!,
-                        style: const TextStyle(fontSize: 12, color: _muted),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  if (site.distanceKm != null)
-                    Text('${site.distanceKm!.toStringAsFixed(1)} km',
-                        style: const TextStyle(fontSize: 11, color: _sage)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right,
-                color: isSelected ? _sage : _muted, size: 20),
-          ],
-        ),
+          ),
+          Icon(Icons.chevron_right,
+              color: isSelected ? _sage : _muted, size: 20),
+        ]),
       ),
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Exception nội bộ
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _PermissionDenied implements Exception {
   const _PermissionDenied();

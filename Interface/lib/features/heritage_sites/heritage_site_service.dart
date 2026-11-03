@@ -50,15 +50,13 @@ class HeritageSiteItem {
 //  SERVICE
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Gọi site-service qua Gateway (port 8080).
-/// Hai endpoint đều CÔNG KHAI – không cần JWT.
+/// Gọi site-service qua Gateway (port 8080). Cả 2 endpoint đều công khai.
 class HeritageSiteService {
   HeritageSiteService._();
 
   static const Duration _timeout = Duration(seconds: 10);
 
   /// GET /api/heritage-sites/nearby?lat=&lng=&radius=
-  /// [radius] mặc định 50 km để lấy tất cả di tích trong vùng lớn.
   static Future<List<HeritageSiteItem>> getNearby({
     required double lat,
     required double lng,
@@ -88,7 +86,6 @@ class HeritageSiteService {
     final uri = Uri.parse('${AuthService.baseUrl}/api/heritage-sites');
     final response = await http.get(uri).timeout(_timeout);
     final body = jsonDecode(utf8.decode(response.bodyBytes));
-    // site-service trả List trực tiếp hoặc {data: [...]}
     final List<dynamic> data =
         body is List ? body : (body['data'] as List<dynamic>);
     return data

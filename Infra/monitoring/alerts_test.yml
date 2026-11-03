@@ -1,0 +1,51 @@
+# Unit test cho alerts.yml (Bao - Sprint 5). Chay: promtool test rules Infra/monitoring/alerts_test.yml
+# Docker: docker run --rm -v ${PWD}/Infra/monitoring:/m -w /m --entrypoint promtool prom/prometheus:v2.54.1 test rules alerts_test.yml
+rule_files: [alerts.yml]
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'up{job="smart-heritage",service="content-service",instance="h:8083"}'
+        values: '1x20 0x8'
+      - series: 'up{job="smart-heritage",service="beacon-service",instance="h:8084"}'
+        values: '0x28'
+      # gateway: 10 req/15s, cua so cuoi 6/10 la 5xx
+      - series: 'http_server_requests_seconds_count{job="smart-heritage",service="api-gateway",uri="/x",status="200"}'
+        values: '0+10x28'
+      - series: 'http_server_requests_seconds_count{job="smart-heritage",service="api-gateway",uri="/y",status="500"}'
+        values: '0x16 0+6x12'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="0.5"}'
+        values: '0+1x28'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="2"}'
+        values: '0+10x28'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="+Inf"}'
+        values: '0+10x28'
+    alert_rule_test:
+      - eval_time: 7m      # content chet tu 315s
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: smart-heritage, service: content-service, instance: "h:8083"}
+            exp_annotations:
+              summary: "content-service không phản hồi"
+              description: "Prometheus không đọc được /actuator/prometheus của content-service (h:8083) liên tục hơn 30 giây."
+      - eval_time: 3m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: HighErrorRate5xx
+        exp_alerts:
+          - exp_labels: {severity: warning, service: api-gateway}
+            exp_annotations:
+              summary: "api-gateway lỗi 5xx 37.5%"
+              description: "Hơn 5% request của api-gateway trả lỗi 5xx trong 1 phút gần nhất."
+
+      - eval_time: 3m
+        alertname: HighErrorRate5xx
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: HighLatencyP95
+        exp_alerts:
+          - exp_labels: {severity: warning, service: content-service}
+            exp_annotations:
+              summary: "content-service chậm: p95 = 1.917s"
+              description: "95% request của content-service mất hơn 500 ms trong 1 phút gần nhất."

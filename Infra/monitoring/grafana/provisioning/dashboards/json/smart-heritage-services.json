@@ -231,7 +231,7 @@
             "type": "prometheus",
             "uid": "${DS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\", status=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\"}[$__rate_interval])), 1e-9)",
+          "expr": "(sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\", status=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\"}[$__rate_interval])), 1e-9)) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": false,
@@ -367,7 +367,7 @@
             "type": "prometheus",
             "uid": "${DS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\", status=~\"4..\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri!~\"/actuator.*\", status=~\"4..\"}[$__rate_interval])) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": false,
@@ -1054,9 +1054,9 @@
           },
           "expr": "sum by (service) (hikaricp_connections_pending{service=~\"$service\"})",
           "legendFormat": "{{service}} chờ",
-          "refId": "A",
-          "range": false,
-          "instant": "B"
+          "refId": "B",
+          "range": true,
+          "instant": false
         }
       ],
       "options": {

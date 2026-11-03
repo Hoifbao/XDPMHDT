@@ -1,33 +1,34 @@
-# Dựng Apache NiFi và luồng thống kê `visits` → `analytics_db`
+# Dựng Apache NiFi và luồng đồng bộ sang `analytics_db`
 
-> Người viết: Nguyễn Thanh Tuấn (mảng Dashboard Thống kê & Xuất báo cáo), Sprint 4.
-> Đã chạy thử trên máy Windows 11 + Docker Desktop ngày 29/10/2026.
+> Người viết: Nguyễn Thanh Tuấn (mảng Dashboard Thống kê & Xuất báo cáo).
+> Sprint 4: luồng `visits` → `fact_visits`. Sprint 5: 5 luồng, mỗi DB của service một nguồn riêng.
+> Đã chạy thử trên máy Windows 11 + Docker Desktop ngày 01/11/2026.
 > Tài liệu nền: [api-gateway-nifi.md](api-gateway-nifi.md) (tìm hiểu NiFi ở Sprint 2).
 
 ## 1. Luồng làm gì
 
-Đọc **dòng mới** của bảng `visits` trong DB nghiệp vụ và chép sang bảng `fact_visits` của `analytics_db`. Dashboard và analytics-service (tuần 5) sẽ đọc từ `analytics_db` thay vì đếm lại bảng nghiệp vụ.
+NiFi chép dữ liệu từ DB của từng service sang `analytics_db`. analytics-service (cổng 8087) chỉ đọc `analytics_db`,
+không JOIN sang DB của service khác.
+
+| Nguồn | Đích (`analytics_db`) | Chu kỳ | Chống trùng |
+|---|---|---|---|
+| `personalization_db.visits` | `fact_visits` | 1 phút | Đọc `visit_id` lớn hơn lần trước; khóa chính `visit_id` + UPSERT |
+| `feedback_db.feedbacks` | `fact_feedbacks` | 1 phút | Đọc `updated_at` lớn hơn lần trước (bắt cả lúc sửa đánh giá, đổi trạng thái); UPSERT theo `feedback_id` |
+| `content_db.artifacts` | `dim_artifact` | 5 phút | Đọc lại toàn bộ, UPSERT theo `artifact_id` (ghi đè) |
+| `site_db.heritage_sites` | `dim_site` | 5 phút | Đọc lại toàn bộ, UPSERT theo `site_id` |
+| `users` (chỉ `id`, `preferred_language`) | `dim_user_lang` | 5 phút | Đọc lại toàn bộ, UPSERT theo `user_id`; không chép email, mật khẩu |
 
 ```
-smart_heritage_db                                         analytics_db
-┌──────────────────────┐   ┌──────────────────────────┐   ┌──────────────────┐
-│ visits               │   │ [Doc visits moi]         │   │                  │
-│  + artifacts.site_id ├──>│ QueryDatabaseTableRecord ├──>│ [Ghi fact_visits]├──> fact_visits
-│  + users.preferred_  │   │ 60 giây/lần, visit_id >  │   │ PutDatabaseRecord│
-│    language          │   │ id lớn nhất đã đồng bộ   │   │ UPSERT           │
-└──────────────────────┘   └──────────────────────────┘   └────────┬─────────┘
-                                                                   │ failure / retry
-                                                                   ▼
-                                                     Funnel "Loi ghi - xem tai day"
+personalization_db.visits ──[Doc visits]────────> [Ghi fact_visits]    ─┐
+feedback_db.feedbacks     ──[Doc feedbacks]─────> [Ghi fact_feedbacks] ─┤
+content_db.artifacts      ──[Doc artifacts]─────> [Ghi dim_artifact]   ─┼─ failure/retry ─> Funnel (xem lỗi)
+site_db.heritage_sites    ──[Doc heritage_sites]> [Ghi dim_site]       ─┤
+users                     ──[Doc users]─────────> [Ghi dim_user_lang]  ─┘
+  QueryDatabaseTableRecord                          PutDatabaseRecord (UPSERT)
 ```
 
-Process group trên màn hình chính NiFi (tam giác xanh: 2 processor đang chạy):
-
-![Process group Tuan - visits to analytics_db](nifi-images/nifi-01-process-group.png)
-
-Bên trong process group:
-
-![Flow Doc visits moi -> Ghi fact_visits](nifi-images/nifi-02-flow.png)
+`site_id` và ngôn ngữ của lượt tham quan không chép vào `fact_visits` nữa (cột để NULL):
+analytics-service lấy qua `dim_artifact.site_id` và `dim_user_lang` khi tính số liệu.
 
 ## 2. Các file liên quan
 
@@ -36,8 +37,8 @@ Bên trong process group:
 | `Infra/docker-compose.yml` | Service `nifi` trong profile `nifi` (Bảo dựng): `apache/nifi:1.28.1`, cổng 8443 |
 | `Infra/.env.example` | `NIFI_USERNAME`, `NIFI_PASSWORD`, `MYSQL_ROOT_PASSWORD` |
 | `Infra/nifi/drivers/` | Chỗ đặt MySQL JDBC driver (file `.jar` không commit) |
-| `Infra/nifi/sql/07_analytics.sql` | Tạo `analytics_db` và 4 bảng (bản gửi Tường ghép vào `Infra/db/`) |
-| `Infra/nifi/flows/visits-to-analytics.json` | Flow NiFi đã xuất, dùng để import |
+| `Infra/db/07_analytics.sql` | Tạo `analytics_db` và các bảng `fact_*`, `dim_*` (Tường quản lý) |
+| `Infra/nifi/flows/analytics-sync.json` | Flow NiFi đã xuất, dùng để import |
 
 ## 3. Yêu cầu máy
 
@@ -60,7 +61,7 @@ Copy-Item Infra/.env.example Infra/.env   # tùy chọn; không có .env thì d�
 Invoke-WebRequest -Uri https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar -OutFile Infra/nifi/drivers/mysql-connector-j-8.4.0.jar
 ```
 
-Flow đang trỏ đúng tên file `mysql-connector-j-8.4.0.jar`. Dùng bản khác thì sửa tham số `driver_location` ở Bước 6.
+Flow đang trỏ đúng tên file `mysql-connector-j-8.4.0.jar`. Dùng bản khác thì sửa tham số `driver_location` ở Bước 5.
 
 ### Bước 3: Bật MySQL, Redis và NiFi
 
@@ -68,53 +69,52 @@ Flow đang trỏ đúng tên file `mysql-connector-j-8.4.0.jar`. Dùng bản kh�
 docker compose -f Infra/docker-compose.yml --profile nifi up -d
 ```
 
+Docker tự chạy các script trong `Infra/db/` khi volume MySQL trống, nên `analytics_db` có sẵn.
 NiFi cần khoảng 30–60 giây để khởi động.
 
-### Bước 4: Tạo `analytics_db`
-
-Khi Tường chưa merge script chia schema (`Infra/db/`), chạy tay:
-
-```powershell
-docker cp Infra/nifi/sql/07_analytics.sql smart_heritage_mysql:/tmp/07_analytics.sql
-docker exec smart_heritage_mysql sh -c "mysql -uroot -prootpassword123 < /tmp/07_analytics.sql"
-```
-
-Script chạy lại nhiều lần không lỗi (`CREATE ... IF NOT EXISTS`). Không dùng `Get-Content | docker exec` vì PowerShell 5.1 làm hỏng tiếng Việt khi chuyển qua pipe.
-
-### Bước 5: Đăng nhập NiFi và import flow
+### Bước 4: Đăng nhập NiFi và import flow
 
 1. Mở <https://localhost:8443/nifi>. Trình duyệt báo chứng chỉ không tin cậy (NiFi tự ký): chọn **Advanced → Proceed**.
 2. Đăng nhập `admin` / `change-me-nifi-123` (hoặc giá trị `NIFI_USERNAME`, `NIFI_PASSWORD` trong `Infra/.env`).
 3. Kéo biểu tượng **Process Group** ở thanh công cụ trên cùng thả vào màn hình.
-4. Trong hộp thoại, bấm biểu tượng **Browse** (mũi tên tải lên) bên phải ô tên, chọn file `Infra/nifi/flows/visits-to-analytics.json`, bấm **Add**.
+4. Bấm biểu tượng **Browse** bên phải ô tên, chọn `Infra/nifi/flows/analytics-sync.json`, bấm **Add**.
 
-### Bước 6: Nhập mật khẩu DB
+Máy đã import flow tuần 4 (**Tuan - visits to analytics_db**): chuột phải vào group cũ → **Stop**, rồi xóa group đó,
+để 2 luồng không cùng ghi vào `fact_visits`.
+
+### Bước 5: Nhập mật khẩu DB
 
 File flow **không chứa mật khẩu** (NiFi bỏ giá trị nhạy cảm khi xuất).
 
-1. Chuột phải vào process group **Tuan - visits to analytics_db** → **Parameters**.
+1. Chuột phải vào process group **Tuan - dong bo analytics_db** → **Parameters**.
 2. Sửa `db_password` = mật khẩu MySQL (`rootpassword123` hoặc `MYSQL_ROOT_PASSWORD` trong `Infra/.env`) → **Apply**.
 
 | Tham số | Giá trị mặc định | Ghi chú |
 |---|---|---|
-| `source_db_url` | `jdbc:mysql://mysql-db:3306/smart_heritage_db?useSSL=false&allowPublicKeyRetrieval=true` | `mysql-db` là tên service trong compose, không dùng `localhost` |
-| `analytics_db_url` | `jdbc:mysql://mysql-db:3306/analytics_db?useSSL=false&allowPublicKeyRetrieval=true` | |
-| `db_user` | `root` | Tạm thời; đổi sang user riêng khi Tường tạo `00_create_schemas.sql` |
+| `personalization_db_url` | `jdbc:mysql://mysql-db:3306/personalization_db?...` | Nguồn `visits` (Phú) |
+| `feedback_db_url` | `jdbc:mysql://mysql-db:3306/feedback_db?...` | Nguồn `feedbacks` (Tường) |
+| `content_db_url` | `jdbc:mysql://mysql-db:3306/content_db?...` | Nguồn `artifacts` (Xuân Anh) |
+| `site_db_url` | `jdbc:mysql://mysql-db:3306/site_db?...` | Nguồn `heritage_sites` (Ân) |
+| `users_db_url` | `jdbc:mysql://mysql-db:3306/smart_heritage_db?...` | Tuần 5 auth-service vẫn dùng `smart_heritage_db`. Khi chuyển sang `auth_db` thì chỉ đổi tên DB ở đây |
+| `analytics_db_url` | `jdbc:mysql://mysql-db:3306/analytics_db?...` | Đích |
+| `db_user` | `root` | Đọc được mọi DB nguồn; user `analytics_user` chỉ có quyền trên `analytics_db` |
 | `db_password` | (trống, phải nhập) | Nhạy cảm |
 | `driver_location` | `/opt/nifi/nifi-current/drivers/mysql-connector-j-8.4.0.jar` | Đường dẫn bên trong container |
 
-### Bước 7: Bật và chạy
+`mysql-db` là tên service trong compose, không dùng `localhost`.
+
+### Bước 6: Bật và chạy
 
 1. Chuột phải vào process group → **Enable all controller services**.
 2. Chuột phải lần nữa → **Start**.
 
-### Bước 8: Kiểm tra kết quả
+### Bước 7: Kiểm tra kết quả
 
 ```powershell
-docker exec smart_heritage_mysql mysql -uroot -prootpassword123 -e "SELECT * FROM analytics_db.fact_visits"
+docker exec smart_heritage_mysql mysql -uroot -prootpassword123 -e "SELECT 'fact_visits', COUNT(*) FROM analytics_db.fact_visits UNION ALL SELECT 'fact_feedbacks', COUNT(*) FROM analytics_db.fact_feedbacks UNION ALL SELECT 'dim_artifact', COUNT(*) FROM analytics_db.dim_artifact UNION ALL SELECT 'dim_site', COUNT(*) FROM analytics_db.dim_site UNION ALL SELECT 'dim_user_lang', COUNT(*) FROM analytics_db.dim_user_lang"
 ```
 
-Với dữ liệu mẫu của `init_db.sql` phải thấy 4 dòng (`visit_id` 1–4).
+Với dữ liệu mẫu trong `Infra/db/` phải thấy: 4, 6, 3, 2, 4.
 
 ### Tắt NiFi khi xong
 
@@ -128,35 +128,33 @@ Flow được lưu trong volume `nifi_conf`, bật lại không phải import l�
 
 | Thành phần | Thuộc tính | Giá trị | Lý do |
 |---|---|---|---|
-| Doc visits moi (`QueryDatabaseTableRecord`) | Custom Query | `SELECT v.id AS visit_id, v.user_id, v.artifact_id, a.site_id, u.preferred_language AS language_code, v.detected_at, v.duration_seconds FROM visits v LEFT JOIN artifacts a ... LEFT JOIN users u ...` | `visits` không có `site_id`, `language_code` nên lấy kèm từ `artifacts`, `users` |
-| | Table Name | `visits` | NiFi dùng làm khóa lưu trạng thái |
-| | Maximum-value Columns | `visit_id` | Chỉ đọc dòng có `visit_id` lớn hơn lần trước |
-| | Use Avro Logical Types | `true` | Giữ `DATETIME` đúng kiểu thời gian, không lệch giờ |
-| | Run Schedule | `60 sec` | |
-| Ghi fact_visits (`PutDatabaseRecord`) | Statement Type | `UPSERT` | Trùng `visit_id` thì cập nhật, không thêm dòng |
-| | Table Name | `fact_visits` | |
-| | Unmatched Column Behavior | `Ignore Unmatched Columns` | Cột `synced_at` do MySQL tự điền |
-| Controller services | `MySQL nguon - smart_heritage_db`, `MySQL dich - analytics_db` (`DBCPConnectionPool`), `Avro writer`, `Avro reader` | | 2 kết nối riêng cho nguồn và đích |
+| `Doc visits` (`QueryDatabaseTableRecord`) | Custom Query | `SELECT id AS visit_id, user_id, artifact_id, detected_at, duration_seconds FROM visits` | Chỉ đọc bảng của 1 service, không JOIN |
+| | Maximum-value Columns | `visit_id` | Chỉ đọc dòng mới |
+| `Doc feedbacks` | Custom Query | `SELECT id AS feedback_id, artifact_id, rating, status, created_at, updated_at FROM feedbacks` | |
+| | Maximum-value Columns | `updated_at` | Bắt cả đánh giá bị sửa hoặc ADMIN đổi trạng thái (Tường thêm cột này ở tuần 5) |
+| `Doc artifacts`, `Doc heritage_sites`, `Doc users` | Maximum-value Columns | (trống) | Bảng danh mục nhỏ: mỗi 5 phút đọc lại hết rồi ghi đè |
+| `Doc users` | Custom Query | `SELECT id AS user_id, COALESCE(preferred_language, 'vi') AS language_code FROM users` | Chỉ lấy id và ngôn ngữ |
+| Mọi bộ đọc | Use Avro Logical Types | `true` | Giữ `DATETIME` đúng kiểu thời gian, không lệch giờ |
+| `Ghi ...` (`PutDatabaseRecord`) | Statement Type | `UPSERT` | Trùng khóa chính thì cập nhật, không thêm dòng |
+| | Unmatched Column Behavior | `Ignore Unmatched Columns` | Cột đích không có ở nguồn (vd `synced_at`) thì bỏ qua |
+| Controller services | 5 `MySQL nguon - ...` + `MySQL dich - analytics_db` (`DBCPConnectionPool`), `Avro writer`, `Avro reader` | | Mỗi DB nguồn một kết nối: DB nào đổi chỗ thì chỉ sửa 1 tham số |
 
 ### Chống nhân đôi dữ liệu (2 lớp)
 
-1. **Trạng thái NiFi:** processor nhớ `visit_id` lớn nhất đã đọc (xem: chuột phải processor → **View state**). Lần sau chỉ đọc `visit_id` lớn hơn.
-   ![Trạng thái processor: visits@!@visit_id = 5](nifi-images/nifi-03-state.png)
-2. **Khóa chính `fact_visits.visit_id` + `UPSERT`:** nếu trạng thái bị xóa và NiFi đọc lại từ đầu, dòng đã có chỉ bị ghi đè, không sinh dòng mới.
+1. **Trạng thái NiFi:** `Doc visits` nhớ `visit_id` lớn nhất, `Doc feedbacks` nhớ `updated_at` lớn nhất
+   (chuột phải processor → **View state**). Lần sau chỉ đọc dòng lớn hơn.
+2. **Khóa chính bảng đích + `UPSERT`:** nếu trạng thái bị xóa và NiFi đọc lại từ đầu, dòng đã có chỉ bị ghi đè.
 
-## 6. Kết quả chạy thử (29/10/2026)
+## 6. Kết quả chạy thử (01/11/2026)
 
 | Kiểm tra | Kết quả |
 |---|---|
-| Lần chạy 1 sau `down -v` → `up -d` | `fact_visits` có 4/4 dòng, `site_id`, `language_code`, `detected_at` khớp nguồn |
-| Lần chạy 2 (sau 60 giây) | Vẫn 4 dòng; trạng thái NiFi `visit_id = 4` |
-| Thêm 1 dòng `visits` mới | Lần chạy kế tiếp: 5 dòng, chỉ dòng `visit_id = 5` được thêm |
-| Xóa trạng thái NiFi rồi chạy lại | Vẫn 5 dòng, 5 `visit_id` khác nhau |
-| Xóa flow, làm trống `fact_visits`, import lại từ file JSON, nhập mật khẩu, chạy | 5/5 dòng, hàng đợi lỗi trống |
-
-Dữ liệu trong `analytics_db.fact_visits` sau khi chạy (4 dòng mẫu + 1 dòng thêm khi test):
-
-![Kết quả fact_visits](nifi-images/nifi-04-ket-qua.png)
+| Lần chạy đầu sau `down -v` → `up -d` | `fact_visits` 4, `fact_feedbacks` 6, `dim_artifact` 3, `dim_site` 2, `dim_user_lang` 4; hàng đợi lỗi trống |
+| So với nguồn (JOIN theo id, so từng cột) | 0 dòng lệch ở `visits`, `feedbacks`; tên tiếng Việt `dim_artifact`, `dim_site` khớp từng byte |
+| Thêm 1 dòng `visits` (`duration_seconds` NULL) | Sau khoảng 20 giây: `fact_visits` 5 dòng, dòng mới giữ NULL |
+| ADMIN duyệt feedback 3 (`PENDING` → `APPROVED`, `updated_at` đổi) | Sau khoảng 20 giây: `fact_feedbacks.status` = `APPROVED` |
+| Xóa trạng thái của cả 5 bộ đọc rồi chạy lại | Vẫn 5 / 6 / 3 / 4 dòng, không trùng khóa |
+| Import lại file `analytics-sync.json` vào NiFi | Đủ 10 processor |
 
 ## 7. Lỗi thường gặp
 
@@ -164,14 +162,14 @@ Dữ liệu trong `analytics_db.fact_visits` sau khi chạy (4 dòng mẫu + 1 d
 |---|---|---|
 | Controller service báo không tìm thấy driver | Chưa tải `.jar` hoặc sai tên file | Làm lại Bước 2; kiểm tra `docker exec smart_heritage_nifi ls /opt/nifi/nifi-current/drivers` (Git Bash cần thêm `MSYS_NO_PATHCONV=1` trước lệnh) |
 | `Communications link failure` | URL dùng `localhost` hoặc MySQL chưa chạy | URL phải là `mysql-db:3306`; kiểm tra `docker ps` |
-| `Access denied for user 'root'` | Chưa nhập hoặc nhập sai `db_password` | Làm lại Bước 6 |
-| `Table 'analytics_db.fact_visits' doesn't exist` | Chưa chạy `07_analytics.sql` | Làm lại Bước 4 |
-| Funnel "Loi ghi - xem tai day" có hàng chờ | Ghi vào `analytics_db` lỗi | Chuột phải hàng đợi → **List queue** xem lỗi; sửa xong chuột phải → **Empty queue** |
-| Muốn đồng bộ lại từ đầu | | Dừng processor **Doc visits moi** → chuột phải → **View state** → **Clear state** → Start |
+| `Access denied for user 'root'` | Chưa nhập hoặc nhập sai `db_password` | Làm lại Bước 5 |
+| `Table 'analytics_db.dim_site' doesn't exist` | Volume MySQL tạo trước khi có bảng mới trong `Infra/db/07_analytics.sql` | `docker compose -f Infra/docker-compose.yml down -v` rồi `up -d` (xóa dữ liệu thử) |
+| `Unknown column 'updated_at'` ở `Doc feedbacks` | `feedback_db` tạo trước tuần 5 | Như trên |
+| Funnel có hàng chờ | Ghi vào `analytics_db` lỗi | Chuột phải hàng đợi → **List queue** xem lỗi; sửa xong chuột phải → **Empty queue** |
+| Muốn đồng bộ lại từ đầu | | Dừng processor → chuột phải → **View state** → **Clear state** → Start |
 | Không đăng nhập được NiFi | Mật khẩu ngắn hơn 12 ký tự | `NIFI_PASSWORD` trong `.env` phải từ 12 ký tự |
 
-## 8. Việc chuyển sang tuần 5
+## 8. Việc còn lại
 
-- Đổi `db_user` sang user MySQL riêng của analytics khi Tường có `00_create_schemas.sql`. Khi `visits` chuyển sang `personalization_db`, `artifacts` sang `content_db`, `users` sang `auth_db`, sửa `source_db_url` và bỏ phần `JOIN` trong Custom Query (lấy `site_id`, `language_code` bằng luồng `dim_artifact` riêng).
-- Thêm luồng cho `fact_feedbacks`, `dim_artifact`, `agg_daily_views`.
-- analytics-service (cổng 8087) đọc từ `analytics_db`.
+- Khi personalization-service (Phú) ghi lượt tham quan vào `personalization_db`, luồng `visits` tự lấy được, không phải sửa.
+- Khi auth-service chuyển sang `auth_db`: đổi `users_db_url` sang `.../auth_db?...`.

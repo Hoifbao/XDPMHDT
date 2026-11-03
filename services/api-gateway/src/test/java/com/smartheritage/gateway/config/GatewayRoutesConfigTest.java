@@ -50,6 +50,18 @@ class GatewayRoutesConfigTest {
         assertEquals("personalization-service", routeFor(HttpMethod.GET, "/api/admin/visits").getId());
     }
 
+    /** Khoa W5: module notification của beacon-service - /api/me/devices có trước /api/me/** chung. */
+    @Test
+    void fcmDevicesToiBeaconService8084() {
+        for (String path : List.of("/api/me/devices", "/api/me/devices/test", "/api/me/devices/3")) {
+            // URI không assert tuyệt đối: BEACON_SERVICE_URL không đặt trong test -> trả về legacy 8090
+            assertEquals("beacon-service", routeFor(HttpMethod.POST, path).getId(), path);
+        }
+        // Các đường /api/me còn lại vẫn về personalization (Phú)
+        assertEquals("personalization-service", routeFor(HttpMethod.POST, "/api/me/visits").getId());
+        assertEquals("personalization-service", routeFor(HttpMethod.GET, "/api/me/favorites").getId());
+    }
+
     private Route routeFor(HttpMethod method, String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.method(method, path).build());
         List<Route> routes = routeLocator.getRoutes().collectList().block();

@@ -27,6 +27,11 @@ app:
     site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     content-url: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     timeout: ${CLIENT_TIMEOUT:2s}
+  # Khoa W5: module notification. Đường dẫn tới service account JSON của Firebase Console
+  # (file này KHÔNG commit - để ở thư mục ngoài repo, ví dụ C:\secrets\beacon-service-account.json).
+  # Thiếu cấu hình -> service vẫn chạy, chỉ bỏ qua gửi FCM và ghi log nhắc.
+  fcm:
+    service-account-file: ${FIREBASE_SERVICE_ACCOUNT:}
 
 springdoc:
   swagger-ui:
