@@ -1,12 +1,14 @@
 package com.smartheritage.beacon.controller;
 
 import com.smartheritage.beacon.dto.IBeaconAssignRequest;
+import com.smartheritage.beacon.dto.IBeaconPositionRequest;
 import com.smartheritage.beacon.dto.IBeaconRequest;
 import com.smartheritage.beacon.dto.IBeaconResponse;
 import com.smartheritage.beacon.service.IBeaconService;
 import com.smartheritage.common.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import java.util.List;
  *  POST   /api/ibeacons            – Tạo iBeacon mới
  *  POST   /api/ibeacons/{id}/assign – Gán (artifactId) hoặc bỏ gán (artifactId = null)
  *  PUT    /api/ibeacons/{id}       – Cập nhật iBeacon
+ *  PUT    /api/ibeacons/{id}/position – Cập nhật vị trí đặt beacon trên bản đồ (cho Ân, W5)
  *  DELETE /api/ibeacons/{id}       – Xóa iBeacon
  */
 @Tag(name = "4. iBeacon", description = "CRUD beacon, registry cho Mobile, gán hiện vật (Khoa)")
@@ -85,5 +88,17 @@ public class IBeaconController {
     public ResponseEntity<ApiResponse<Void>> deleteBeacon(@PathVariable Long id) {
         beaconService.deleteBeacon(id);
         return ResponseEntity.ok(ApiResponse.ok("Xóa iBeacon thành công", null));
+    }
+
+    @Operation(summary = "Cập nhật vị trí đặt beacon trên bản đồ (Sprint 5 - cho Ân)",
+            description = "Body: { \"posX\": 12.5, \"posY\": 30.0 } - đơn vị quy ước của bản đồ "
+                    + "(x_coord/y_coord trong bảng ibeacons), KHÔNG phải kinh/vĩ độ. "
+                    + "Chỉ ADMIN (Gateway tự kiểm theo luật write)")
+    @PutMapping("/{id}/position")
+    public ResponseEntity<ApiResponse<IBeaconResponse>> updatePosition(
+            @PathVariable Long id,
+            @Valid @RequestBody IBeaconPositionRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật vị trí thành công",
+                beaconService.updatePosition(id, request.getPosX(), request.getPosY())));
     }
 }
