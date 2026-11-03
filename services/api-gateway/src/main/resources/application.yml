@@ -18,7 +18,7 @@ app:
     site: ${SITE_SERVICE_URL:http://localhost:8082}
     content: ${CONTENT_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     beacon: ${BEACON_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
-    personalization: ${PERSONALIZATION_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
+    personalization: ${PERSONALIZATION_SERVICE_URL:http://localhost:8085}
     feedback: ${FEEDBACK_SERVICE_URL:http://localhost:8086}
     analytics: ${ANALYTICS_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
 
