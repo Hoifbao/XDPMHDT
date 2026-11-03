@@ -108,6 +108,7 @@ Write-Host ("  8080 -> feedback-service        GET  /api/artifacts/1/rating-summ
 Write-Host ("  8080 -> personalization-service GET  /api/me/favorites                 : {0}" -f $s6)
 if ($s1 -eq 200 -and $s2 -eq 200 -and $s3 -eq 200 -and $s4 -eq 200 -and $s5 -eq 200 -and $s6 -eq 200) {
     Write-Host "San sang. Web Admin / Mobile / Postman goi http://localhost:8080" -ForegroundColor Green
+    Write-Host "Swagger chung (chon service o goc tren ben phai): http://localhost:8080/swagger-ui.html" -ForegroundColor Green
     Write-Host "Swagger (Backend cu): http://localhost:8090/swagger-ui/index.html" -ForegroundColor Green
     Write-Host "Swagger (site-service): http://localhost:8082/swagger-ui.html" -ForegroundColor Green
     Write-Host "Swagger (personalization-service): http://localhost:8085/swagger-ui.html" -ForegroundColor Green

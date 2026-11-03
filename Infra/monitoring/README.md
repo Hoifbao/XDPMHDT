@@ -12,6 +12,8 @@ docker compose -f Infra/docker-compose.yml --profile core --profile monitoring u
 powershell -ExecutionPolicy Bypass -File Infra/monitoring/smoke-test.ps1
 ```
 
+Smoke test mục 5 kiểm Swagger chung tại Gateway: mỗi mục tải được tài liệu và `servers` trỏ về Gateway. Service chưa chạy chỉ cảnh báo; thêm tên vào `-RequireServices` (vd `-RequireServices api-gateway,auth-service`) để bắt buộc.
+
 Profile `monitoring` bật 4 container: Prometheus, Grafana, mysql-exporter, redis-exporter.
 
 | Thành phần | Địa chỉ | Ghi chú |

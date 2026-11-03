@@ -12,8 +12,10 @@ import reactor.core.publisher.Mono;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Kiểm tra bảng định tuyến tuần 5 (task_w5 mục III.1): đường dẫn nào tới service nào.
@@ -62,13 +64,57 @@ class GatewayRoutesConfigTest {
         assertEquals("personalization-service", routeFor(HttpMethod.GET, "/api/me/favorites").getId());
     }
 
+    /** Bảo W5: Swagger chung - mỗi /v3/api-docs/{tên} tới đúng service. */
+    @Test
+    void apiDocsToiDungService() {
+        assertEquals("http://localhost:8081", docRoute("auth").getUri().toString());
+        assertEquals("http://localhost:8082", docRoute("site").getUri().toString());
+        assertEquals("http://localhost:8085", docRoute("personalization").getUri().toString());
+        assertEquals("http://localhost:8086", docRoute("feedback").getUri().toString());
+        assertEquals("http://localhost:8090", docRoute("legacy").getUri().toString());
+        // content/beacon/analytics: địa chỉ giống route API của chúng (test không đặt *_SERVICE_URL -> 8090)
+        for (String name : List.of("content", "beacon", "analytics")) {
+            assertEquals(routeFor(HttpMethod.GET, apiPathOf(name)).getUri(), docRoute(name).getUri(), name);
+        }
+    }
+
+    /** File tĩnh Swagger UI do Gateway phục vụ, không được chuyển sang Backend cũ. */
+    @Test
+    void swaggerUiKhongRoiVaoBackendCu() {
+        for (String path : List.of("/swagger-ui/index.html", "/swagger-ui/swagger-initializer.js",
+                "/webjars/swagger-ui/index.html")) {
+            assertTrue(firstRoute(HttpMethod.GET, path).isEmpty(), path);
+        }
+        // Các đường khác vẫn về Backend cũ như trước
+        assertEquals("legacy-backend", routeFor(HttpMethod.GET, "/api/demo/redis").getId());
+        assertEquals("legacy-backend", routeFor(HttpMethod.GET, "/v3/api-docs/khong-co").getId());
+    }
+
+    private Route docRoute(String name) {
+        Route route = routeFor(HttpMethod.GET, "/v3/api-docs/" + name);
+        assertEquals("api-docs-" + name, route.getId());
+        return route;
+    }
+
+    private static String apiPathOf(String name) {
+        return switch (name) {
+            case "content" -> "/api/artifacts/1";
+            case "beacon" -> "/api/ibeacons/registry";
+            case "analytics" -> "/api/statistics/overview";
+            default -> throw new IllegalArgumentException(name);
+        };
+    }
+
     private Route routeFor(HttpMethod method, String path) {
+        return firstRoute(method, path).orElseThrow(() -> new AssertionError("Không có route cho " + path));
+    }
+
+    private Optional<Route> firstRoute(HttpMethod method, String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.method(method, path).build());
         List<Route> routes = routeLocator.getRoutes().collectList().block();
         return routes.stream()
                 .sorted(Comparator.comparingInt(Route::getOrder))
                 .filter(route -> Boolean.TRUE.equals(Mono.from(route.getPredicate().apply(exchange)).block()))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("Không có route cho " + path));
+                .findFirst();
     }
 }
