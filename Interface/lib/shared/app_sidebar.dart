@@ -5,6 +5,7 @@ import '../features/auth/login_screen.dart';
 import '../features/auth/profile_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/favorites/favorites_screen.dart';
+import '../features/heritage_sites/map_screen.dart'; // Ân W5
 import '../features/visit_history/visit_history_screen.dart';
 
 /// Menu bên (Drawer) dùng chung cho các màn hình của app.
@@ -45,6 +46,12 @@ class AppSidebar extends StatelessWidget {
                 leading: const Icon(Icons.home_outlined),
                 title: const Text('Trang chủ'),
                 onTap: () => Navigator.pop(context),
+              ),
+              // Ân W5: Bản đồ di tích
+              ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: const Text('Bản đồ di tích'),
+                onTap: () => _open(context, const MapScreen()),
               ),
               if (user == null) ...[
                 ListTile(
