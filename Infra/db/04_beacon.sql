@@ -39,3 +39,23 @@ INSERT INTO ibeacons (id, site_id, artifact_id, uuid, major, minor, x_coord, y_c
     (2, 1, 2,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 2, 25.0, 42.5, 64, 'ACTIVE'),
     (3, 2, 3,    'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 2, 1,  8.0, 15.0, 92, 'ACTIVE'),
     (4, 1, NULL, 'E2C56DB5-DFFB-48D2-B060-D0F5A71096E0', 1, 3, 40.0, 10.0, 15, 'INACTIVE');
+
+-- =====================================================================
+--  Bảng devices (Khoa - Sprint 5): FCM token theo user, dùng cho module
+--  notification. user_id KHÔNG FK (bảng gốc ở auth_db.users); service
+--  lấy userId từ header X-User-Id mà Gateway gắn (CurrentUser).
+--  Một user có thể dùng nhiều máy/token; 1 token chỉ thuộc 1 user,
+--  đăng ký lại trên máy khác -> token chuyển sang user đó (upsert
+--  bởi fcm_token trong beacon-service).
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS devices (
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    user_id     BIGINT       NOT NULL,               -- id trong auth_db.users (không FK)
+    fcm_token   VARCHAR(512) NOT NULL,
+    platform    VARCHAR(20)  NOT NULL DEFAULT 'unknown',  -- android | ios | web | unknown
+    created_at  DATETIME(6)  NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at  DATETIME(6)  NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_devices_token (fcm_token),
+    KEY idx_devices_user (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
