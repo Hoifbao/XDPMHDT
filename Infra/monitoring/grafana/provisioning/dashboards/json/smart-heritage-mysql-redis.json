@@ -514,9 +514,9 @@
           },
           "expr": "mysql_global_status_threads_running",
           "legendFormat": "đang chạy",
-          "refId": "A",
-          "range": false,
-          "instant": "B"
+          "refId": "B",
+          "range": true,
+          "instant": false
         }
       ],
       "options": {
@@ -585,9 +585,9 @@
           },
           "expr": "rate(mysql_global_status_bytes_sent[$__rate_interval])",
           "legendFormat": "gửi",
-          "refId": "A",
-          "range": false,
-          "instant": "B"
+          "refId": "B",
+          "range": true,
+          "instant": false
         }
       ],
       "options": {
@@ -1172,9 +1172,9 @@
           },
           "expr": "rate(redis_keyspace_misses_total[$__rate_interval])",
           "legendFormat": "miss",
-          "refId": "A",
-          "range": false,
-          "instant": "B"
+          "refId": "B",
+          "range": true,
+          "instant": false
         }
       ],
       "options": {
