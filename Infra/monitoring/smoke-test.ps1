@@ -90,6 +90,20 @@ else {
     }
 }
 
+# ---------- 3b. Quy tac canh bao ----------
+Write-Host "== 3b. Quy tac canh bao (alerts.yml)"
+$rules = Get-Json "$PrometheusUrl/api/v1/rules?type=alert" $null
+if ($null -eq $rules -or $rules.status -ne "success") { Warn "Khong doc duoc /api/v1/rules" }
+else {
+    $names = @($rules.data.groups | ForEach-Object { $_.rules } | ForEach-Object { $_.name })
+    if ($names.Count -eq 0) { Fail "Prometheus chua nap quy tac canh bao nao (kiem tra rule_files trong prometheus.yml va mount alerts.yml)" }
+    else {
+        Ok ("Da nap {0} quy tac: {1}" -f $names.Count, ($names -join ", "))
+        $firing = @($rules.data.groups | ForEach-Object { $_.rules } | Where-Object { $_.state -eq "firing" } | ForEach-Object { $_.name })
+        if ($firing.Count -gt 0) { Warn ("Canh bao dang FIRING: " + ($firing -join ", ") + " -> xem $PrometheusUrl/alerts") }
+    }
+}
+
 # ---------- 4. Grafana ----------
 Write-Host "== 4. Grafana ($GrafanaUrl)"
 $h = Get-Json "$GrafanaUrl/api/health" $null

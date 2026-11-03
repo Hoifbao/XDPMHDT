@@ -5,6 +5,11 @@
 # Job mysql/redis chỉ UP khi bật profile monitoring (có mysql-exporter, redis-exporter).
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Quy tắc cảnh báo (Bảo - Sprint 5): http://localhost:9090/alerts
+rule_files:
+  - /etc/prometheus/alerts.yml
 
 scrape_configs:
   - job_name: smart-heritage

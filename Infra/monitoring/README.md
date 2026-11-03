@@ -41,6 +41,40 @@ Profile `monitoring` bật 4 container: Prometheus, Grafana, mysql-exporter, red
 3. `prometheus.yml`, job `smart-heritage`: thêm target `host.docker.internal:<cổng>` kèm `labels: { service: <tên> }`.
 4. Khởi động lại Prometheus: `docker compose -f Infra/docker-compose.yml --profile monitoring restart prometheus`.
 
+## Cảnh báo (alert rule)
+
+File `alerts.yml`, Prometheus nạp qua `rule_files` trong `prometheus.yml`. Xem tại http://localhost:9090/alerts
+(trạng thái **Inactive → Pending → Firing**). Sửa `alerts.yml` xong: `docker compose -f Infra/docker-compose.yml --profile monitoring restart prometheus`.
+
+| Cảnh báo | Điều kiện | Chờ (`for`) | Mức |
+|---|---|---|---|
+| ServiceDown | Service **đang chạy** (UP trong 10 phút gần nhất) rồi không đọc được metric. Service chưa bật từ đầu không báo | 30 giây | critical |
+| MySQLDown / RedisDown | `mysql_up == 0` / `redis_up == 0` | 30 giây | critical |
+| HighErrorRate5xx | Lỗi 5xx > 5% trong 1 phút, khi có > 0.2 request/giây | 30 giây | warning |
+| HighLatencyP95 | p95 > 500 ms trong 1 phút | 1 phút | warning |
+
+Kiểm tra quy tắc (không cần chạy Prometheus):
+
+```powershell
+docker run --rm -v ${PWD}/Infra/monitoring:/m -w /m --entrypoint promtool prom/prometheus:v2.54.1 test rules alerts_test.yml
+```
+
+Hiện chỉ hiển thị trên Prometheus (chưa gửi email/Telegram – cần Alertmanager, để W6).
+
+## Giả lập traffic cho demo
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Infra/monitoring/traffic-sim.ps1                 # normal ~3 request/giây, Ctrl+C để dừng
+powershell -ExecutionPolicy Bypass -File Infra/monitoring/traffic-sim.ps1 -Mode spike     # tăng tải 60 giây (8 luồng)
+powershell -ExecutionPolicy Bypass -File Infra/monitoring/traffic-sim.ps1 -Mode error     # trộn lỗi 5xx
+powershell -ExecutionPolicy Bypass -File Infra/monitoring/traffic-sim.ps1 -Mode scenario  # 5 phút: normal → spike → normal → error → normal
+```
+
+- Gọi qua gateway 8080: `/api/artifacts`, `/api/artifacts/{1..3}`, `/api/auth/me` không token (401), `/api/auth/login` admin.
+- Chế độ `error` gọi `/api/khong-ton-tai`: gateway chuyển về Backend cũ 8090. Backend cũ **tắt** → 500 (bật `HighErrorRate5xx`);
+  Backend cũ **bật** → 404 (chỉ tăng 4xx). Script tự cảnh báo nếu thấy cổng 8090 đang mở.
+- Chỉ gọi API đọc và đăng nhập, không sửa dữ liệu.
+
 ## Lỗi thường gặp
 
 | Hiện tượng | Cách xử lý |
@@ -48,4 +82,5 @@ Profile `monitoring` bật 4 container: Prometheus, Grafana, mysql-exporter, red
 | Target service DOWN | Service chưa chạy, hoặc chạy sai cổng. Bình thường nếu chưa bật service đó |
 | `mysql_up 0` | Sai `MYSQL_ROOT_PASSWORD` hoặc MySQL chưa sẵn sàng: `docker logs smart_heritage_mysql_exporter` |
 | Dashboard trống p95 | Service chưa bật histogram hoặc chưa có request nào: gọi thử 1 API rồi đợi 30 giây |
+| Tab Alerts trống | Prometheus chưa nạp `alerts.yml`: `docker logs smart_heritage_prometheus`, tìm dòng `rule`. Nhớ `restart prometheus` sau khi sửa |
 | Grafana không có dashboard | `docker logs smart_heritage_grafana`, tìm dòng `provisioning` |
