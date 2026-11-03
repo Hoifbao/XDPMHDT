@@ -34,13 +34,13 @@
             <span class="pill">Dữ liệu từ API</span>
         </div>
 
-        <!-- Bo loc va nut xuat: chua lam, tat het de khong gay hieu nham -->
+        <!-- Bo loc (tuan 5): de trong = khong loc. Nut xuat bao cao lam o tuan 6 nen van tat -->
         <div class="card toolbar">
             <label>Di tích
-                <select id="site-filter" disabled></select>
+                <select id="site-filter"></select>
             </label>
-            <label>Từ ngày <input type="date" value="2026-10-05" disabled></label>
-            <label>Đến ngày <input type="date" value="2026-10-11" disabled></label>
+            <label>Từ ngày <input type="date" id="from-filter"></label>
+            <label>Đến ngày <input type="date" id="to-filter"></label>
             <div class="toolbar-actions">
                 <button class="btn alt" type="button" disabled title="Sẽ làm ở tuần sau">Xuất PDF</button>
                 <button class="btn gold" type="button" disabled title="Sẽ làm ở tuần sau">Xuất Excel</button>
@@ -61,7 +61,7 @@
             <div class="card">
                 <div class="panel-title">
                     <h2>Lượt tương tác theo ngày</h2>
-                    <span class="pill">Tối đa 7 ngày có dữ liệu</span>
+                    <span class="pill" id="daily-pill">Tối đa 7 ngày có dữ liệu</span>
                 </div>
                 <div class="chart-box"><canvas id="chart-daily" aria-label="Biểu đồ đường lượt tương tác theo ngày" role="img"></canvas></div>
             </div>

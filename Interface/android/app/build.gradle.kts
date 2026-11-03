@@ -1,5 +1,7 @@
 plugins {
     id("com.android.application")
+    // Sprint 5 – FCM: chỉ nạp plugin, CHƯA áp dụng (xem cuối file).
+    id("com.google.gms.google-services") apply false
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -12,6 +14,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications yêu cầu (Khoa W5): core library desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -46,4 +50,15 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // flutter_local_notifications yêu cầu (Khoa W5): thư viện desugar nặng hơn flutter mặc định
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+// Chỉ bật google-services khi có app/google-services.json (file Firebase, KHÔNG commit).
+// Máy không có file vẫn build được; app tự bỏ qua đăng ký FCM (DeviceRegistrationService).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

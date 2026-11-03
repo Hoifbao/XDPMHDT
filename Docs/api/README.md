@@ -10,9 +10,10 @@ Store the OpenAPI/Swagger specification and API usage notes here. Keep the speci
 |----------|----------|----------------------|------------------------|
 | `lat`    | Có       | Vĩ độ WGS-84         | -90 đến 90             |
 | `lng`    | Có       | Kinh độ WGS-84       | -180 đến 180           |
-| `radius` | Không    | Bán kính tìm kiếm km | > 0 và ≤ 100; mặc định 10 |
+| `radius` | Không    | Bán kính tìm kiếm km | > 0 và ≤ 50; mặc định 5  |
 
-- Trả về mảng JSON các di tích có tọa độ nằm trong bán kính, **sắp xếp gần → xa**.
+- Trả về khung `{ success, message, data: [...] }`, `data` là các di tích có tọa độ nằm trong bán kính, **sắp xếp gần → xa**.
+- Từ tuần 4 endpoint này chạy ở `site-service` (8082), client vẫn gọi qua Gateway `http://localhost:8080`.
 - Mỗi phần tử gồm các trường của `HeritageSiteResponse` + `distanceKm` (làm tròn 2 chữ số).
 - Di tích chưa có tọa độ sẽ bị bỏ qua.
 - Tham số sai → HTTP 400. Endpoint công khai (không cần token).
@@ -22,6 +23,8 @@ Ví dụ:
 ```http
 GET /api/heritage-sites/nearby?lat=21.0277644&lng=105.8354028&radius=5
 ```
+
+Chi tiết service, bảng đối chiếu khoảng cách 3 điểm và ví dụ request/response: [site-service.md](site-service.md).
 
 ## CMS coordinate selection
 

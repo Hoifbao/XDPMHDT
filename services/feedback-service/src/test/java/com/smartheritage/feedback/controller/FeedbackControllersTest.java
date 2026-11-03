@@ -9,11 +9,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -42,9 +45,9 @@ class FeedbackControllersTest {
 
     @Test
     void postFeedback_coHeaderGateway_tra201VaDungUserIdTuHeader() throws Exception {
-        when(feedbackService.createFeedback(eq(1L), eq(2L), any()))
-                .thenReturn(FeedbackResponse.builder().id(7L).artifactId(1L).rating(5)
-                        .reviewerName("Nguyễn Văn An").status("PENDING").build());
+        when(feedbackService.submitFeedback(eq(1L), eq(2L), any()))
+                .thenReturn(new FeedbackService.SubmitResult(FeedbackResponse.builder().id(7L).artifactId(1L).rating(5)
+                        .reviewerName("Nguyễn Văn An").status("PENDING").build(), true));
 
         mockMvc.perform(post("/api/artifacts/1/feedbacks")
                         .header("X-User-Id", "2")
@@ -55,7 +58,34 @@ class FeedbackControllersTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
-        verify(feedbackService).createFeedback(eq(1L), eq(2L), any());
+        verify(feedbackService).submitFeedback(eq(1L), eq(2L), any());
+    }
+
+    @Test
+    void postFeedback_daCoDanhGia_tra200() throws Exception {
+        when(feedbackService.submitFeedback(eq(1L), eq(2L), any()))
+                .thenReturn(new FeedbackService.SubmitResult(FeedbackResponse.builder().id(1L).artifactId(1L).rating(2)
+                        .status("PENDING").build(), false));
+
+        mockMvc.perform(post("/api/artifacts/1/feedbacks")
+                        .header("X-User-Id", "2")
+                        .header("X-User-Role", "VISITOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rating\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
+    }
+
+    @Test
+    void adminList_truyenStatusVaArtifactIdXuongService() throws Exception {
+        when(feedbackService.getFeedbacksForAdmin("PENDING", 1L))
+                .thenReturn(List.of(FeedbackResponse.builder().id(3L).artifactId(1L).status("PENDING").build()));
+
+        mockMvc.perform(get("/api/admin/feedbacks").param("status", "PENDING").param("artifactId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value(3));
+        verify(feedbackService).getFeedbacksForAdmin("PENDING", 1L);
     }
 
     @Test

@@ -1,19 +1,32 @@
-# Test Plan – Smart Heritage (bản 0.1)
+# Test Plan – Smart Heritage (bản 0.2)
 
 | Mục | Nội dung |
 |---|---|
-| Phiên bản | 0.1 (Sprint 4) |
+| Phiên bản | 0.2 (Sprint 5) |
 | Người lập | Tường (đầu mối QA) |
-| Ngày | 30/10/2026 |
-| Căn cứ | User story US01–US24 trong `readme.md`; `task_w4_chi_tiet` mục III (Gateway, service, schema) |
+| Ngày | 01/11/2026 (bản 0.1: 30/10/2026) |
+| Căn cứ | User story US01–US24 trong `readme.md`; `task_w4_chi_tiet` mục III; `task_w5_chi_tiet` mục III (route Gateway, luồng quét beacon, NiFi) và tiêu chí nghiệm thu của từng thành viên |
 | Trạng thái | Nháp: cập nhật mỗi sprint khi tách thêm service |
+
+**Thay đổi so với bản 0.1**
+
+- Thêm 35 test case tuần 5 (TC-51 → TC-85): luồng quét beacon, ngoại tuyến, bản đồ, chi tiết hiện vật đa phương tiện,
+  đánh giá trên app và Web, phân quyền route mới, Swagger/giám sát tại Gateway, NiFi, smoke test.
+- Thêm TC-86 (US17, xuất báo cáo PDF/Excel) đặt trước cho tuần 6 để ma trận truy vết phủ đủ 24 user story.
+- TC-17, TC-34 → TC-36, TC-47 chuyển sang chạy qua Gateway 8080 và cập nhật theo feedback-service tuần 5
+  (lọc theo hiện vật, "Ẩn" = REJECTED, gửi lại thì ghi đè).
+- Ma trận truy vết (mục 9) phủ đủ US01–US24 (US17 chạy ở tuần 6).
+- Thêm mục 10: test case phụ thuộc việc chưa xong của tuần 5.
 
 ## 1. Mục tiêu
 
 - Kiểm tra các chức năng đã làm ở tuần 1–4 vẫn chạy đúng khi chuyển sang kiến trúc microservice
   (client gọi qua Gateway `http://localhost:8080`).
-- Giữ nguyên kết quả phân quyền 401/403 của tuần 3.
-- Làm danh sách test case nền để viết Test Report ở tuần sau.
+- Giữ nguyên kết quả phân quyền 401/403 của tuần 3, bổ sung luật cho route mới tuần 5.
+- Tuần 5: kiểm tra 7 service chạy sau Gateway, luồng du khách (đăng nhập → quét beacon → xem hiện vật → yêu thích
+  → đánh giá), luồng Admin (duyệt đánh giá, bản đồ beacon, dashboard) và đồng bộ NiFi sang `analytics_db`.
+- Đo 2 yêu cầu hiệu năng của Đề tài: nhận diện hiện vật ≤ 2 giây, tạo Dashboard ≤ 5 giây.
+- Làm danh sách test case nền để viết Test Report.
 
 ## 2. Phạm vi
 
@@ -21,30 +34,32 @@
 
 | Nhóm | Chức năng |
 |---|---|
-| Visitor (app Flutter, API) | Đăng ký/đăng nhập, hồ sơ và ngôn ngữ, di tích gần đây, quét iBeacon, xem chi tiết hiện vật đa ngôn ngữ, xem lại offline, yêu thích, lịch sử tham quan, gửi đánh giá |
-| Administrator (Web Admin, API) | Đăng nhập, CRUD di tích/hiện vật, media, bản dịch, quản lý và gán iBeacon, duyệt đánh giá, xem thống kê |
-| System | JWT + RBAC tại Gateway, chống giả mạo header, định tuyến Gateway, fallback ngôn ngữ, đồng bộ offline không trùng, cô lập database theo service, giám sát Prometheus, xử lý khi service phụ thuộc bị tắt, luồng NiFi |
+| Visitor (app Flutter, API) | Đăng ký/đăng nhập, hồ sơ và ngôn ngữ, bản đồ di tích + chỉ đường, quét iBeacon tự hiện hiện vật, chi tiết hiện vật đa ngôn ngữ (ảnh, audio, video), xem lại offline, yêu thích, lịch sử tham quan, hàng đợi ngoại tuyến, gửi/sửa đánh giá |
+| Administrator (Web Admin, API) | Đăng nhập, CRUD di tích/hiện vật, media, bản dịch, danh sách ngôn ngữ, quản lý và gán iBeacon, bản đồ vị trí beacon, duyệt/ẩn đánh giá, dashboard thống kê |
+| System | JWT + RBAC tại Gateway, chống giả mạo header, định tuyến Gateway, Swagger gom tại Gateway, fallback ngôn ngữ, chống báo trùng beacon, đồng bộ offline không trùng, cô lập database theo service, giám sát Prometheus/Grafana, xử lý khi service phụ thuộc bị tắt, luồng NiFi, Redis cache, thông báo FCM |
 
-**Ngoài phạm vi bản 0.1**
+**Ngoài phạm vi bản 0.2**
 
 - iOS (thư viện iBeacon chỉ demo trên Android).
-- Upload file media thật (tuần 4 mới nhập URL).
-- Xuất báo cáo PDF/Excel (US17).
-- Kiểm thử hiệu năng/tải và kiểm thử bảo mật chuyên sâu (để bản 0.2).
+- Quét beacon khi app chạy nền lâu (Android giới hạn); demo chính với app đang mở.
+- Xuất báo cáo PDF/Excel (US17) – tuần 6.
+- Kiểm thử tải (load test) và cảnh báo Grafana – tuần 6; kiểm thử bảo mật chuyên sâu.
 
 ## 3. Môi trường
 
 | Thành phần | Địa chỉ / lệnh |
 |---|---|
 | MySQL 8 + Redis 7 | `docker compose -f Infra/docker-compose.yml up -d` (MySQL cổng 3307, Redis 6379). Dữ liệu sạch: `down -v` rồi `up -d` |
-| api-gateway | `http://localhost:8080` (client chỉ gọi vào đây) |
+| Cả hệ thống | `--profile core up -d --build` (Backend cũ, Gateway, auth/site/content/feedback-service) hoặc `Infra\dev\start-local.ps1` |
+| api-gateway | `http://localhost:8080` (client chỉ gọi vào đây); Swagger chung `http://localhost:8080/swagger-ui.html` |
 | auth / site / content / beacon | 8081 / 8082 / 8083 / 8084 (Swagger ở cổng riêng: `/swagger-ui.html`) |
-| personalization / feedback / analytics | 8085 / 8086 / 8087 (tuần 5 mới route qua Gateway) |
-| Backend cũ (monolith) | `http://localhost:8090`, schema `smart_heritage_db` |
-| Monitoring (tuỳ chọn) | `--profile monitoring`: Prometheus 9090, Grafana 3000 |
+| personalization / feedback / analytics | 8085 / 8086 / 8087 (tách ở tuần 5, route qua Gateway) |
+| Backend cũ (monolith) | `http://localhost:8090`, schema `smart_heritage_db`. Service chưa tách thì Gateway chuyển về đây |
+| Monitoring (tuỳ chọn) | `--profile monitoring`: Prometheus 9090, Grafana 3000, mysqld-exporter, redis-exporter |
 | NiFi (tuỳ chọn) | `--profile nifi`: `https://localhost:8443/nifi` |
 | Web Admin | Mở `WebAdmin/src/pages/login.html` bằng Live Server |
-| Mobile | Android thật (máy ảo không quét được BLE) + điện thoại thứ 2 chạy Beacon Simulator |
+| Mobile | Android thật (máy ảo không quét được BLE) + điện thoại thứ 2 chạy Beacon Simulator; không có beacon thì dùng nút "Giả lập phát hiện beacon". Điện thoại thật: `--dart-define=API_BASE_URL=http://<IP máy>:8080`, cùng Wi-Fi |
+| Unit test | `mvn test` (từng service), `flutter test` (thư mục `Interface`) |
 
 **Tài khoản và dữ liệu mẫu** (`Infra/db`, mật khẩu `Test@1234`):
 
@@ -58,6 +73,8 @@
 
 - Hiện vật: 1 Khuê Văn Các, 2 Bia Tiến sĩ, 3 Đoan Môn. Hiện vật 3 chỉ có bản tiếng Việt.
 - Beacon UUID `E2C56DB5-DFFB-48D2-B060-D0F5A71096E0`: 1/1, 1/2, 2/1 đang ACTIVE; 1/3 là INACTIVE.
+- Đánh giá (`feedback_db`): APPROVED id 1 (hiện vật 1, 5★), 2 (hiện vật 2, 4★), 4 (hiện vật 3, 5★); PENDING id 3, 5;
+  REJECTED id 6. Điểm TB đúng (chỉ APPROVED): hiện vật 1 = 5.0, hiện vật 2 = 4.0, hiện vật 3 = 5.0.
 
 ## 4. Vai trò
 
@@ -137,7 +154,7 @@ Mức độ: **Nghiêm trọng** = sập service, mất dữ liệu, lộ quyề
 | TC-14 | US06 | Xem lại nội dung khi rời vùng beacon | Đã mở chi tiết hiện vật 1 | Tắt Beacon Simulator / bật chế độ máy bay | — | Màn hình chi tiết vẫn hiển thị nội dung đã tải, không bị đóng | TB |
 | TC-15 | US07 | Thêm và bỏ yêu thích | Đăng nhập `visitor_an` | 1. `POST /api/me/favorites/2` 2. `GET /api/me/favorites` 3. `DELETE /api/me/favorites/2` | artifactId 2 | Bước 2 có hiện vật 2 kèm tên; bước 3 xong thì danh sách không còn hiện vật 2; thêm trùng không tạo 2 dòng | C |
 | TC-16 | US07 | Xem lịch sử tham quan | Đăng nhập `visitor_an` | `GET /api/me/visits` | — | 200, có lượt tham quan hiện vật 1 và 2 của user 2, mới nhất trước; không thấy dữ liệu của user khác | C |
-| TC-17 | US08 | Gửi đánh giá hợp lệ | Đăng nhập `visitor_mai` | `POST /api/artifacts/2/feedbacks` | `{"rating":4,"comment":"Rất hay"}` | 201, `status = PENDING`, `reviewerName = Trần Thị Mai`; chưa hiện trong danh sách công khai | C |
+| TC-17 | US08 | Gửi đánh giá hợp lệ | Đăng nhập `visitor_mai` | `POST /api/artifacts/2/feedbacks` | `{"rating":4,"comment":"Rất hay"}` | 201, `status = PENDING`, `reviewerName = Trần Thị Mai`; chưa hiện trong danh sách công khai. `visitor_mai` đã có đánh giá id 5 cho hiện vật 2 nên lần này trả **200** và ghi đè id 5 (xem TC-67); muốn thấy 201 thì dùng hiện vật 3 | C |
 | TC-18 | US08 | Đánh giá với số sao sai | Đăng nhập visitor | POST như TC-17 | `rating` = 4.5, 0, 6, thiếu | 400, thông báo rõ lỗi rating; không lưu | C |
 | TC-19 | US08 | Bình luận quá dài | Đăng nhập visitor | POST như TC-17 | `comment` 501 ký tự | 400 "Bình luận tối đa 500 ký tự" | TB |
 | TC-20 | US08 | Đánh giá hiện vật không tồn tại | Đăng nhập visitor | `POST /api/artifacts/99/feedbacks` | `{"rating":5}` | 404 | TB |
@@ -159,9 +176,9 @@ Mức độ: **Nghiêm trọng** = sập service, mất dữ liệu, lộ quyề
 | TC-31 | US12 | Gán beacon cho hiện vật cùng di tích | Beacon 4 (site 1) chưa gán | Gán beacon 4 → hiện vật 2 trên `ibeacons.html` (`POST /api/ibeacons/4/assign`) | `{"artifactId":2}` | Thành công; cột "hiện vật đang gán" cập nhật ngay; bỏ gán bằng `artifactId = null` | C |
 | TC-32 | US12 | Gán beacon cho hiện vật khác di tích | Beacon 4 thuộc site 1 | `POST /api/ibeacons/4/assign` | `{"artifactId":3}` (site 2) | 400 | C |
 | TC-33 | US13 | Danh sách beacon có trạng thái và pin | Đăng nhập admin | Mở `ibeacons.html`, lọc theo di tích 1 | — | Hiện cột trạng thái, % pin; beacon 4 hiển thị INACTIVE, pin 15% | T |
-| TC-34 | US15 | Danh sách đánh giá chờ duyệt | Đăng nhập admin; feedback-service 8086 | `GET /api/admin/feedbacks?status=PENDING` (tuần 4 gọi thẳng 8086, tự gắn `X-User-Role: ADMIN`) | — | 200, có đánh giá id 3, 5; `status=XYZ` → 400 | C |
-| TC-35 | US15 | Duyệt / từ chối đánh giá | Có đánh giá PENDING (TC-17) | `PUT /api/admin/feedbacks/{id}/status` (Backend cũ: `PATCH`) | `{"status":"APPROVED"}` | 200; đánh giá hiện trong TC-21; gửi `PENDING` → 400; id không tồn tại → 404 | C |
-| TC-36 | US08, US16 | Điểm trung bình hiện vật | Đánh giá mẫu | `GET /api/artifacts/2/rating-summary` (8086) | — | `averageRating = 4.0`, `totalRatings = 1`, chỉ tính APPROVED; sau khi duyệt TC-35 thì số liệu cập nhật | TB |
+| TC-34 | US15 | Danh sách đánh giá, lọc trạng thái và hiện vật | Đăng nhập admin; feedback-service 8086 | `GET /api/admin/feedbacks?status=PENDING` rồi `?artifactId=1` rồi `?status=PENDING&artifactId=1` qua 8080 (token admin) | — | 200; lần lượt: id 3, 5 / id 1, 3, 6 / id 3. `status=XYZ` hoặc `artifactId=0` → 400; token visitor → 403 | C |
+| TC-35 | US15 | Duyệt / ẩn đánh giá | Có đánh giá PENDING (TC-17) | `PATCH` (hoặc `PUT`) `/api/admin/feedbacks/{id}/status` qua 8080 | `{"status":"APPROVED"}`, sau đó `{"status":"REJECTED"}` (= Ẩn) | 200; APPROVED thì hiện trong TC-21, REJECTED thì biến khỏi TC-21; `updatedAt` đổi; gửi `PENDING` → 400; id không tồn tại → 404 | C |
+| TC-36 | US08, US16 | Điểm trung bình hiện vật | Đánh giá mẫu | `GET /api/artifacts/2/rating-summary` qua 8080 | — | `averageRating = 4.0`, `totalRatings = 1`, chỉ tính APPROVED (đối chiếu tay mục 3); sau khi duyệt/ẩn ở TC-35 thì số liệu cập nhật | C |
 | TC-37 | US16 | Dashboard thống kê | Đăng nhập admin | Mở `dashboard.html` (`GET /api/statistics/overview`) | — | Hiện tổng lượt tham quan, hiện vật nổi bật, đánh giá gần đây khớp dữ liệu mẫu | TB |
 
 ### 8.3 System
@@ -177,34 +194,115 @@ Mức độ: **Nghiêm trọng** = sập service, mất dữ liệu, lộ quyề
 | TC-44 | US24 | Mỗi service một schema | Volume mới (`down -v` → `up -d`) | `SHOW DATABASES`; đếm dòng mẫu; đăng nhập MySQL bằng `site_user` đọc `content_db.artifacts` | `site_user` / `site_pass_dev` | Đủ 7 schema + `smart_heritage_db`; số dòng khớp mẫu; câu lệnh đọc schema khác → ERROR 1142 | C |
 | TC-45 | US21 | Id dữ liệu thống nhất giữa các schema | Như TC-44 | So sánh `artifact_id` ở beacon_db, personalization_db, feedback_db với `content_db.artifacts` | — | Không có id nào không tồn tại ở schema gốc | TB |
 | TC-46 | — | Gọi service phụ thuộc khi nó bị tắt | Tắt site-service (hoặc content/Backend cũ với feedback-service) | Tạo hiện vật mới; gửi đánh giá trên 8086 | — | 503 kèm thông báo rõ, trong khoảng 2 giây; service gọi không bị treo hay sập | C |
-| TC-47 | — | Định tuyến Gateway | Gateway + các service đã tách | Gọi `/api/heritage-sites`, `/api/artifacts/1`, `/api/ibeacons/registry`, `/api/artifacts/1/feedbacks` qua 8080 | — | Mỗi đường dẫn tới đúng service (xem log), đặc biệt `/feedbacks` không bị chuyển nhầm sang content-service | TB |
+| TC-47 | — | Định tuyến Gateway | Gateway + các service đã tách | Gọi `/api/heritage-sites`, `/api/artifacts/1`, `/api/ibeacons/registry`, `/api/artifacts/1/feedbacks`, `/api/artifacts/1/rating-summary`, `/api/admin/feedbacks` qua 8080 | — | Mỗi đường dẫn tới đúng service (xem log), đặc biệt `/feedbacks` và `/rating-summary` không bị chuyển nhầm sang content-service, `/api/admin/feedbacks` không về Backend cũ (bảng đầy đủ: TC-75) | C |
 | TC-48 | — | Giám sát | Service đang chạy | `GET /actuator/prometheus` trên 8080, 8081 và mỗi service đã tách | — | 200, có số liệu `http_server_requests_*` | TB |
 | TC-49 | US22 | NiFi chuyển visits sang analytics_db | `--profile nifi`, flow của Tuấn | Chạy flow 2 lần | 4 dòng visits mẫu | `analytics_db.fact_visits` có đủ 4 dòng, lần 2 không nhân đôi | TB |
 | TC-50 | US19, US20 | Không thông báo lặp, thông báo khi sang beacon khác | App quét beacon (tuần 5) | Đứng yên ở beacon 1/1 30 giây, rồi chuyển sang 1/2 | — | Chỉ 1 thông báo cho 1/1; có thông báo mới khi vào vùng 1/2 | TB |
 
-**Tổng: 50 test case** (Visitor 21, Administrator 16, System 13). TC-34 đến TC-36 chạy trên feedback-service (8086), tuần 5 sẽ chạy qua Gateway; TC-50 sẽ chạy khi có luồng thông báo ở tuần 5.
+### 8.4 Tuần 5 – Visitor (Mobile)
+
+Tên người trong ngoặc là người phụ trách tính năng, chạy test case trước khi mở PR.
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-51 | US03 | Bản đồ hiện di tích gần nhất (Ân) | Đã cấp quyền vị trí; máy ảo đặt vị trí giả lập | Mở màn hình Bản đồ; bấm 1 marker; bấm "Xem hiện vật" | Toạ độ Văn Miếu 21.0278, 105.8355 | Hiện vị trí người dùng và marker từ `GET /api/heritage-sites/nearby`; bảng thông tin có tên, khoảng cách; danh sách hiện vật lọc đúng `siteId` | C |
+| TC-52 | US03 | Chỉ đường (Ân) | Như TC-51 | Bấm marker → "Chỉ đường" | — | Mở Google Maps / ứng dụng bản đồ với đúng toạ độ đích | C |
+| TC-53 | US03 | Từ chối quyền vị trí, mất mạng (Ân) | Thu hồi quyền vị trí; lần 2 bật chế độ máy bay | Mở Bản đồ; gõ tên di tích vào ô tìm kiếm | "Văn Miếu" | Vẫn hiện bản đồ và danh sách di tích, có thông báo hướng dẫn; mất mạng thì báo lỗi, không crash; tìm kiếm ra đúng di tích | TB |
+| TC-54 | US05, US23 | Đổi ngôn ngữ trên màn chi tiết (Xuân Anh) | Hiện vật 1 có `vi`/`en`; hiện vật 3 chỉ có `vi` | Mở chi tiết hiện vật 1, bấm VI/EN; mở hiện vật 3 với EN | — | Tên, mô tả, audio đổi theo trong ≤ 2 giây; hiện vật 3 có nhãn "Chưa có bản dịch, đang hiển thị tiếng Việt" (`fallbackUsed = true`) | C |
+| TC-55 | US05 | Ảnh, audio, video (Xuân Anh) | Hiện vật có bộ media mẫu thật (ảnh, mp3, mp4 ngắn) | Lướt và phóng to ảnh; phát/tạm dừng/tua audio; phát video, toàn màn hình, rời màn hình | 1 URL ảnh hỏng | Ảnh hỏng hiện ảnh thay thế; audio hiện thời lượng, tua được; video toàn màn hình được và dừng khi rời màn hình; URL lỗi/mất mạng → thông báo, không crash | C |
+| TC-56 | US06 | Rời vùng beacon vẫn xem tiếp (Xuân Anh, Khoa) | Mở chi tiết từ luồng quét, audio đang phát | Tắt Beacon Simulator, chờ > 10 giây | — | Màn hình không tự đóng, audio vẫn phát | C |
+| TC-57 | US06, US21 | Mở lại hiện vật đã xem khi mất mạng (Xuân Anh) | Đã xem hiện vật 1, 2 khi có mạng | Bật chế độ máy bay; mở lại hiện vật 1; mở 1 hiện vật chưa xem | — | Hiện vật đã xem mở được từ bộ nhớ máy (lưu tối đa 20 hiện vật gần nhất); hiện vật chưa xem báo mất mạng, không crash | TB |
+| TC-58 | US04, US18 | Tự hiện hiện vật ≤ 2 giây (Khoa) | Registry đã tải khi mở app; Beacon Simulator phát 1/1 | Đi từ xa lại gần beacon; đo từ lúc vào vùng (TB RSSI 5 lần ≥ −75 dBm) đến lúc mở chi tiết; lặp 10 lần | Beacon 1/1 → hiện vật 1 | Mở đúng hiện vật 1; cả 10 lần ≤ 2 giây, ghi vào `Docs/research/ble-performance.md`; beacon không có trong registry bị bỏ qua | C |
+| TC-59 | US19 | Không báo trùng (Khoa) | Như TC-58 | Đứng yên trong vùng 1/1 2 phút; sau đó ra vào liên tục trong 60 giây | — | Chỉ báo/mở chi tiết 1 lần; trong 60 giây không báo lại | C |
+| TC-60 | US20 | Đi từ beacon A sang B (Khoa) | 2 beacon 1/1 và 1/2 cách nhau ≥ 3 m | Đứng ở 1/1 rồi đi sang 1/2 | — | Báo hiện vật của 1/2; không nhảy qua lại giữa A và B (ngưỡng ra −85 dBm) | C |
+| TC-61 | US04 | Nút "Giả lập phát hiện beacon" (Khoa) | Bản debug hoặc bật trong cài đặt; không có beacon thật | Chọn beacon 1/2 trong registry | — | Chạy đủ luồng như beacon thật: mở chi tiết, chống báo trùng, "ra vùng" thì có lượt tham quan | C |
+| TC-62 | US22 | Ghi lượt tham quan khi ra vùng (Khoa, Phú) | Đăng nhập `visitor_an`; ở trong vùng 1/1 khoảng 30 giây | Rời vùng, chờ > 10 giây; `GET /api/me/visits` | — | Có lượt mới `source = BEACON`, `durationSeconds` ≈ thời gian ở trong vùng, `clientEventId` là UUID | C |
+| TC-63 | US21, US22 | Hàng đợi ngoại tuyến (Phú) | Đăng nhập `visitor_an` | Tắt mạng, đi qua 3 beacon (hoặc giả lập 3 lần); bật mạng lại; `GET /api/me/visits` | — | App gửi `POST /api/me/visits/batch`; đủ 3 lượt mới, không trùng; gửi lại hàng đợi lần nữa thì DB không thêm dòng | C |
+| TC-64 | US07 | Yêu thích, Lịch sử trên app qua Gateway (Phú) | Đăng nhập `visitor_an`; app trỏ 8080 | Bấm Yêu thích trên màn chi tiết; mở màn Yêu thích, Lịch sử | — | Nút đổi trạng thái ngay; 2 màn hình hiện dữ liệu thật qua 8080; đăng xuất thì không xem được | C |
+| TC-65 | US08 | Gửi đánh giá từ app (Tường) | Đăng nhập `visitor1` (chưa đánh giá hiện vật 1) | Chi tiết hiện vật 1 → "Đánh giá" → chọn 4 sao, nhập bình luận → Gửi | 4★, "Thuyết minh rõ ràng" | `POST` trả 201; app hiện "Đã gửi đánh giá", trạng thái Chờ duyệt; bình luận chưa có trong danh sách công khai; bình luận > 500 ký tự không nhập được | C |
+| TC-66 | US08 | Chưa đăng nhập thì yêu cầu đăng nhập (Tường) | Đã đăng xuất | Mở màn Đánh giá của hiện vật 1; bấm "Đăng nhập để đánh giá", đăng nhập, quay lại | — | Vẫn xem được điểm TB và bình luận đã duyệt; thay form là nút đăng nhập, không có request POST; đăng nhập xong quay lại thì hiện form | C |
+| TC-67 | US08 | Chặn spam: gửi lại = sửa đánh giá cũ (Tường) | Sau TC-65, Admin đã duyệt đánh giá đó | Gửi lại cho hiện vật 1 với 2 sao | 2★ | Trả 200, app hiện "Đã cập nhật đánh giá"; DB vẫn 1 dòng cho (user, hiện vật), `id` và `created_at` giữ nguyên, `status` về PENDING, `updated_at` đổi; đánh giá biến khỏi danh sách công khai tới khi duyệt lại | C |
+| TC-68 | US08, US15 | Điểm TB và bình luận trên app khớp dữ liệu (Tường) | Dữ liệu mẫu (mục 3) | Mở màn Đánh giá của hiện vật 1, 2, 3; Admin ẩn id 1 (TC-70) rồi kéo xuống để tải lại | — | Điểm TB và số lượt theo mức sao đúng mục 3; chỉ hiện bình luận APPROVED; sau khi ẩn id 1, hiện vật 1 không còn bình luận đó và điểm TB đổi | C |
+| TC-69 | US20 | Thông báo FCM (Khoa) | Firebase service account đặt ngoài repo (biến môi trường); app đã đăng nhập | App gửi `POST /api/me/devices` (FCM token); gọi API gửi FCM cho user đó | — | Token lưu theo userId; điện thoại nhận được thông báo; không có token đăng nhập → 401 | TB |
+
+### 8.5 Tuần 5 – Administrator (Web)
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-70 | US15 | Duyệt / ẩn đánh giá trên Web (Tường) | Đăng nhập `admin` trên Web Admin | Mở `feedback.html`; lọc "Chờ duyệt"; lọc hiện vật "Khuê Văn Các"; bấm Xem id 3 → Duyệt; bấm Ẩn id 1; tải lại trang | — | Huy hiệu "Dữ liệu từ API"; lọc đúng như TC-34; modal hiện đủ thông tin; sau khi tải lại id 3 "Đã duyệt", id 1 "Đã ẩn"; app (TC-68) không còn id 1. Tắt feedback-service thì trang báo lỗi, không hiện dữ liệu giả | C |
+| TC-71 | US13 | Bản đồ vị trí beacon (Ân, Khoa) | Đăng nhập `admin`; di tích 1 có beacon | Mở bản đồ beacon, chọn di tích 1; kéo marker 1 beacon sang chỗ khác; tải lại trang; bấm marker | — | Thấy mọi beacon của di tích, màu theo trạng thái (ACTIVE, INACTIVE, pin yếu); kéo thả gọi `PUT /api/ibeacons/{id}/position`; tải lại vẫn đúng vị trí mới; bấm marker xem thông tin và hiện vật được gán | C |
+| TC-72 | US16 | Dashboard số liệu thật (Tuấn) | Đăng nhập `admin`; NiFi đã đồng bộ | Mở `dashboard.html` qua 8080; lọc theo khoảng ngày, theo di tích; đo thời gian tải | Dữ liệu mẫu | Số liệu khớp tính tay từ dữ liệu nguồn (bảng đối chiếu trong PR của Tuấn); tải xong ≤ 5 giây | C |
+| TC-73 | US14 | Quản lý danh sách ngôn ngữ (Xuân Anh, P1) | Đăng nhập `admin` | Thêm/tắt ngôn ngữ trong bảng `languages`; mở dropdown ngôn ngữ trong CMS | `fr`, Français | Dropdown chỉ hiện ngôn ngữ đang active | T |
+| TC-74 | US11 | Upload file media (Xuân Anh, P2) | Đăng nhập `admin` | Upload ảnh/audio thật cho hiện vật 1; thử file quá dung lượng, sai định dạng | 1 ảnh jpg, 1 file .exe | File hợp lệ lưu được và phát/hiện được trên app; file sai bị từ chối kèm thông báo rõ | T |
+
+### 8.6 Tuần 5 – System
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-75 | US21, US24 | Bảng route Gateway tuần 5 (Bảo) | Đủ 7 service | Gọi qua 8080 từng nhóm đường dẫn; xem log service nhận | `/api/artifacts/*/feedbacks`, `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**` → 8086; `/api/me/favorites/**`, `/api/me/visits/**`, `/api/admin/visits/**` → 8085; `/api/me/devices/**` → 8084; `/api/statistics/**` → 8087 | Mỗi đường dẫn tới đúng service; route feedback đứng trước `/api/artifacts/**` | C |
+| TC-76 | US24 | Phân quyền route mới | Token `visitor_an`, `visitor_mai`, `admin` | Không token: `GET /api/me/visits`, `POST /api/artifacts/1/feedbacks`. Token visitor: `GET /api/admin/feedbacks`, `GET /api/admin/visits`, `GET /api/statistics/overview`. `visitor_an` xem lịch sử | — | Không token → 401; visitor gọi API ADMIN → 403; mỗi người chỉ thấy lịch sử của mình | C |
+| TC-77 | — | Swagger gom tại Gateway (Bảo, Tường rà) | Đủ 7 service | Mở `http://localhost:8080/swagger-ui.html`, chọn từng service, Authorize bằng token admin, thử 1 API | — | Chọn được đủ 7 service; thử API bằng token được; mọi API có mô tả và ví dụ (danh sách thiếu gửi từng người) | TB |
+| TC-78 | — | Giám sát Prometheus / Grafana (Bảo) | `--profile monitoring` | Mở Prometheus → Status → Targets; mở dashboard Grafana, chọn 1 service | — | Mọi target UP (gateway, 7 service, MySQL, Redis); chọn service thì biểu đồ chỉ hiện số liệu của service đó (request/giây, p95, tỉ lệ 5xx, JVM, uptime) | TB |
+| TC-79 | US21, US22 | NiFi feedbacks → fact_feedbacks (Tuấn) | `--profile nifi`; flow feedbacks dùng `updated_at` làm cột mốc | Duyệt 1 đánh giá PENDING trên Web (TC-70); chờ ≤ 2 phút; chạy lại flow | — | `analytics_db.fact_feedbacks` có dòng đó với status mới; chạy lại không nhân đôi (khoá `feedback_id`) | C |
+| TC-80 | US22, US24 | NiFi danh mục (Tuấn) | Như TC-79 | Chạy flow artifacts, heritage_sites, users | — | `dim_artifact`, `dim_site`, `dim_user_lang` đủ dòng, ghi đè theo id; `dim_user_lang` chỉ có id và preferred_language, không có email/mật khẩu | C |
+| TC-81 | US16, US22 | Lượt tham quan mới lên Dashboard (Tuấn, Bảo – kịch bản demo) | NiFi + analytics-service chạy | Thêm 1 lượt tham quan (TC-62 hoặc giả lập); mở lại Dashboard | — | Tổng lượt tham quan tăng 1 sau tối đa 1–2 phút | C |
+| TC-82 | — | Redis cache chi tiết hiện vật (Phú) | Redis chạy | Gọi chi tiết hiện vật 2 lần liên tiếp; chờ hết TTL (10 phút) rồi gọi lại | — | Lần 2 nhanh hơn rõ (số liệu trong `Docs/research/redis-demo.md`); hết TTL thì đọc lại DB | T |
+| TC-83 | US24 | Chặn spam ở mức database (Tường) | Volume mới | Chèn tay 2 dòng cùng (user_id, artifact_id) vào `feedback_db.feedbacks`; gửi đồng thời 2 lần đầu qua API | user 2, hiện vật 1 | Lần chèn thứ 2 lỗi trùng khoá `uq_feedbacks_user_artifact`; qua API: 1 lần 201, lần kia 200 hoặc 409, không có lỗi 500 | TB |
+| TC-84 | — | feedback-service trong docker compose (Tường) | `--profile core up -d --build` | `docker compose ps`; `GET :8086/actuator/health`; `GET :8086/actuator/prometheus` | — | Container `smart_heritage_feedback` chạy bằng user `feedback_user`; health UP; có số liệu `http_server_requests_*` | TB |
+| TC-85 | — | Smoke test toàn hệ thống (Bảo) | main mới nhất, đủ service | Chạy `scripts/smoke-test.ps1` (hoặc `.sh`) | — | Đăng nhập và 1 API chính của mỗi service qua Gateway đều đạt; chạy lại sau mỗi lần merge và tối Chủ nhật | C |
+
+### 8.7 Đặt trước cho tuần 6
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-86 | US17 | Xuất báo cáo thống kê PDF/Excel (Tuấn, tuần 6) | Đăng nhập `admin`; Dashboard có số liệu thật (TC-72) | Trên Dashboard chọn khoảng ngày, bấm Xuất PDF rồi Xuất Excel; mở 2 file | Khoảng ngày có dữ liệu mẫu | Tải về 2 file mở được; số liệu khớp Dashboard cùng bộ lọc; tiếng Việt hiển thị đúng; visitor gọi API xuất → 403 | TB |
+
+**Tổng: 86 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
+Đặt trước cho tuần 6: 1 (TC-86).
+Unit test tự động đi kèm: feedback-service `mvn test` (39 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
+app `flutter test` (gồm `test/features/feedback/feedback_service_test.dart`).
 
 ## 9. Truy vết yêu cầu
 
-| User story | Test case |
-|---|---|
-| US01 | TC-01 → TC-04 |
-| US02 | TC-05, TC-06 |
-| US03 | TC-07 → TC-09 |
-| US04, US18 | TC-10, TC-11 |
-| US05 | TC-12, TC-13 |
-| US06 | TC-14 |
-| US07 | TC-15, TC-16 |
-| US08 | TC-17 → TC-21, TC-36 |
-| US09 | TC-22, TC-23 |
-| US10 | TC-24 → TC-27 |
-| US11 | TC-28 |
-| US12, US13 | TC-30 → TC-33 |
-| US14 | TC-29 |
-| US15 | TC-34, TC-35 |
-| US16 | TC-36, TC-37 |
-| US19, US20 | TC-50 |
-| US21, US22 | TC-43, TC-45, TC-49 |
-| US23 | TC-12, TC-42 |
-| US24 | TC-38 → TC-41, TC-44 |
-| US17 | Chưa có (ngoài phạm vi bản 0.1) |
+| User story | Test case | Ghi chú |
+|---|---|---|
+| US01 | TC-01 → TC-04 | |
+| US02 | TC-05, TC-06 | |
+| US03 | TC-07 → TC-09, TC-51 → TC-53 | Bản đồ + chỉ đường (tuần 5) |
+| US04 | TC-10, TC-11, TC-58, TC-61 | |
+| US05 | TC-12, TC-13, TC-54, TC-55 | |
+| US06 | TC-14, TC-56, TC-57 | |
+| US07 | TC-15, TC-16, TC-64 | |
+| US08 | TC-17 → TC-21, TC-36, TC-65 → TC-68 | |
+| US09 | TC-22, TC-23 | |
+| US10 | TC-24 → TC-27 | |
+| US11 | TC-28, TC-74 | TC-74 là việc P2 |
+| US12 | TC-30 → TC-32 | |
+| US13 | TC-33, TC-71 | |
+| US14 | TC-29, TC-73 | TC-73 là việc P1 |
+| US15 | TC-34, TC-35, TC-68, TC-70 | |
+| US16 | TC-36, TC-37, TC-72, TC-81 | |
+| US17 | TC-86 | Xuất PDF/Excel: chạy ở tuần 6 |
+| US18 | TC-10, TC-58 | |
+| US19 | TC-50, TC-59 | |
+| US20 | TC-50, TC-60, TC-69 | |
+| US21 | TC-43, TC-45, TC-57, TC-63, TC-75, TC-79 | |
+| US22 | TC-43, TC-49, TC-62, TC-63, TC-79 → TC-81 | |
+| US23 | TC-12, TC-42, TC-54 | |
+| US24 | TC-38 → TC-41, TC-44, TC-75, TC-76, TC-80, TC-83 | |
+| Phi chức năng | TC-46 → TC-48, TC-77, TC-78, TC-82, TC-84, TC-85 | Định tuyến, giám sát, Swagger, cache, triển khai |
+
+Phủ 24/24 user story (US17 có test case TC-86, chạy ở tuần 6 khi có chức năng xuất báo cáo).
+
+## 10. Test case phụ thuộc việc chưa xong (tình trạng 01/11/2026)
+
+| Việc chưa xong | Người | Test case bị chặn | Cách chạy tạm |
+|---|---|---|---|
+| Route Gateway `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**` | Tường (Bảo review) | TC-34 → TC-36, TC-47, TC-70, TC-75 (phần feedback) | Đã thêm trên nhánh `feature/tuong-w5-feedback-web-mobile` (có `GatewayRoutesConfigTest`), chờ merge. Trước khi merge, Web/8080 duyệt vào Backend cũ (`smart_heritage_db`), KHÔNG tính là đạt |
+| Xuất báo cáo PDF/Excel | Tuấn | TC-86 | Tuần 6 |
+| personalization-service 8085 | Phú | TC-62 → TC-64, TC-76 (phần visits), TC-82 | Chạy trên Backend cũ |
+| analytics-service 8087 + flow NiFi feedbacks, danh mục | Tuấn | TC-72, TC-79 → TC-81 | — |
+| Luồng quét W5, nút giả lập, FCM, `PUT /api/ibeacons/{id}/position` | Khoa | TC-58 → TC-61, TC-69, TC-71 | — |
+| Swagger gom, monitoring, smoke test | Bảo | TC-77, TC-78, TC-85 | Swagger từng cổng riêng |
+
+Test case bản đồ (Ân) và đa ngôn ngữ/media (Xuân Anh) sẽ được bổ sung chi tiết khi hai bạn gửi vào Chủ nhật 08/11 (task tuần 5).

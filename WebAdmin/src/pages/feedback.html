@@ -15,7 +15,7 @@
                 <div class="mark">SH</div>
                 <span>Smart Heritage</span>
             </div>
-            <span class="pill">Dữ liệu mẫu</span>
+            <span class="pill" id="data-source">Đang tải...</span>
         </div>
 
         <div class="panel-title fb-head">
@@ -26,11 +26,8 @@
             </div>
         </div>
 
-        <!-- <div class="fb-note" role="note">
-            Đây là dữ liệu mẫu minh họa, lấy theo các bản ghi trong <b>Infra/init_db.sql</b>.
-            Nút Duyệt/Từ chối chỉ đổi trạng thái trong trình duyệt, tải lại trang sẽ trở về ban đầu
-            và chưa lưu vào Backend hay Database.
-        </div> -->
+        <!-- Lỗi tải danh sách / đổi trạng thái (feedback.js gán nội dung) -->
+        <div class="fb-note fb-error" id="feedback-error" role="alert" hidden></div>
 
         <div class="dashboard-grid">
             <div class="card stat">
@@ -47,18 +44,23 @@
             </div>
             <div class="card stat">
                 <strong id="stat-average">0.0</strong>
-                <span class="muted">Điểm TB (tất cả phản hồi)</span>
+                <span class="muted">Điểm TB (đã duyệt)</span>
             </div>
         </div>
 
         <div class="card fb-section">
             <div class="panel-title fb-list-head">
                 <h2>Danh sách phản hồi</h2>
-                <div class="nav" id="filter-bar">
-                    <button type="button" class="active" data-filter="ALL" aria-pressed="true">Tất cả</button>
-                    <button type="button" data-filter="PENDING" aria-pressed="false">Chờ duyệt</button>
-                    <button type="button" data-filter="APPROVED" aria-pressed="false">Đã duyệt</button>
-                    <button type="button" data-filter="REJECTED" aria-pressed="false">Từ chối</button>
+                <div class="fb-filters">
+                    <select id="artifact-filter" class="fb-select" aria-label="Lọc theo hiện vật">
+                        <option value="">Tất cả hiện vật</option>
+                    </select>
+                    <div class="nav" id="filter-bar">
+                        <button type="button" class="active" data-filter="ALL" aria-pressed="true">Tất cả</button>
+                        <button type="button" data-filter="PENDING" aria-pressed="false">Chờ duyệt</button>
+                        <button type="button" data-filter="APPROVED" aria-pressed="false">Đã duyệt</button>
+                        <button type="button" data-filter="REJECTED" aria-pressed="false">Đã ẩn</button>
+                    </div>
                 </div>
             </div>
 
@@ -80,8 +82,17 @@
             </div>
 
             <div class="fb-empty muted" id="feedback-empty" hidden>
-                Không có phản hồi nào ở trạng thái này.
+                Không có phản hồi nào phù hợp bộ lọc.
             </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết một đánh giá: Duyệt / Ẩn ngay trong khung -->
+    <div class="modal fb-modal" id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+        <div class="card modal-card fb-modal-card">
+            <h2 id="detail-title">Chi tiết đánh giá</h2>
+            <dl class="fb-detail" id="detail-list"></dl>
+            <div class="fb-actions fb-detail-actions" id="detail-actions"></div>
         </div>
     </div>
 

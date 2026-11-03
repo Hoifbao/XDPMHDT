@@ -1,0 +1,14 @@
+# Grafana tự nạp dashboard trong thư mục json/ khi khởi động (Bảo - Sprint 5).
+# Mở http://localhost:3000 -> Dashboards -> thư mục "Smart Heritage".
+# Dashboard nạp từ file: sửa trên giao diện được nhưng KHÔNG lưu đè file; muốn giữ thay đổi thì
+# Export -> JSON rồi chép đè vào thư mục json/ và commit.
+apiVersion: 1
+providers:
+  - name: smart-heritage
+    folder: Smart Heritage
+    type: file
+    disableDeletion: true
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

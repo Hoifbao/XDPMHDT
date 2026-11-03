@@ -1,0 +1,39 @@
+# analytics-service (Tuấn - Sprint 5). Chạy: mvn -pl services/analytics-service spring-boot:run
+# Gateway (8080) chuyển /api/statistics/** về đây khi đặt ANALYTICS_SERVICE_URL=http://localhost:8087 (chỉ ADMIN).
+server:
+  port: ${SERVER_PORT:8087}
+
+spring:
+  application:
+    name: analytics-service
+  datasource:
+    # Schema analytics_db do Infra/db/07_analytics.sql tạo, NiFi đổ dữ liệu vào.
+    # User riêng: DB_USERNAME=analytics_user, DB_PASSWORD=analytics_pass_dev
+    url: "${DB_URL:jdbc:mysql://localhost:3307/analytics_db?useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      # Không có entity; bảng do script SQL quản lý, service chỉ đọc
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # Cần cho biểu đồ độ trễ p95 trên Grafana (giống content-service, feedback-service)
+      percentiles-histogram:
+        http.server.requests: true

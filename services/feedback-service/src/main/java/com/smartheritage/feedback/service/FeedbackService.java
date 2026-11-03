@@ -9,6 +9,8 @@ import com.smartheritage.feedback.dto.RatingSummaryResponse;
 import com.smartheritage.feedback.entity.Feedback;
 import com.smartheritage.feedback.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,16 +54,23 @@ public class FeedbackService {
     private final ArtifactClient artifactClient;
     private final UserProfileClient userProfileClient;
 
-    // ──────────────────────────── CREATE ───────────────────────────
+    // ──────────────────────────── SUBMIT ───────────────────────────
+
+    /** Kết quả gửi đánh giá: created = true nếu tạo mới, false nếu ghi đè đánh giá cũ. */
+    public record SubmitResult(FeedbackResponse feedback, boolean created) {
+    }
 
     /**
-     * Gửi đánh giá cho một hiện vật. Feedback mới luôn có trạng thái PENDING.
+     * Gửi đánh giá cho một hiện vật. Chặn spam: mỗi người chỉ có 1 đánh giá cho 1 hiện vật;
+     * gửi lại thì ghi đè số sao, bình luận, tên hiển thị của đánh giá cũ (giữ id, createdAt)
+     * và đưa về PENDING để ADMIN duyệt lại. Kết quả luôn ở trạng thái PENDING.
      * Thứ tự kiểm tra: dữ liệu request (400) → hiện vật không tồn tại (404)
      * → hiện vật không ACTIVE (400). content-service không phản hồi → 503.
+     * Hai lần gửi đầu tiên cùng lúc va vào khóa duy nhất → 409, gửi lại sẽ thành ghi đè.
      *
      * @param userId ID người gửi, lấy từ header X-User-Id do Gateway gắn (không phải từ body)
      */
-    public FeedbackResponse createFeedback(Long artifactId, Long userId, FeedbackRequest request) {
+    public SubmitResult submitFeedback(Long artifactId, Long userId, FeedbackRequest request) {
         // 1. Kiểm tra dữ liệu request
         validateArtifactId(artifactId);
         validateUserId(userId);
@@ -80,16 +89,24 @@ public class FeedbackService {
         // 4. Chụp lại tên hiển thị lúc gửi (lỗi thì để null -> "Khách")
         String reviewerName = userProfileClient.findCurrentUserFullName().orElse(null);
 
-        Feedback feedback = Feedback.builder()
-                .userId(userId)
-                .artifactId(artifactId)
-                .reviewerName(reviewerName)
-                .rating(rating)
-                .comment(comment)
-                .status(STATUS_PENDING)
-                .build();
-        feedbackRepository.save(feedback);
-        return toResponse(feedback);
+        // 5. Đã có đánh giá thì ghi đè, chưa có thì tạo mới
+        Feedback feedback = feedbackRepository.findByUserIdAndArtifactId(userId, artifactId).orElse(null);
+        boolean created = feedback == null;
+        if (created) {
+            feedback = Feedback.builder().userId(userId).artifactId(artifactId).build();
+        }
+        feedback.setReviewerName(reviewerName);
+        feedback.setRating(rating);
+        feedback.setComment(comment);
+        feedback.setStatus(STATUS_PENDING);
+        try {
+            // flush ngay để updatedAt (@PreUpdate) có trong phản hồi và bắt được lỗi trùng khóa tại đây
+            feedbackRepository.saveAndFlush(feedback);
+        } catch (DataIntegrityViolationException e) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Đánh giá của bạn cho hiện vật này vừa được gửi, vui lòng thử lại");
+        }
+        return new SubmitResult(toResponse(feedback), created);
     }
 
     // ──────────────────────────── READ ────────────────────────────
@@ -146,18 +163,30 @@ public class FeedbackService {
     /**
      * ADMIN xem danh sách đánh giá, mới nhất trước.
      * status rỗng/null → tất cả; PENDING | APPROVED | REJECTED (không phân biệt hoa thường) → lọc; giá trị khác → 400.
+     * artifactId null → mọi hiện vật; có thì phải > 0 (sai → 400). Không gọi content-service.
      */
     @Transactional(readOnly = true)
-    public List<FeedbackResponse> getFeedbacksForAdmin(String status) {
-        List<Feedback> feedbacks;
-        if (status == null || status.isBlank()) {
-            feedbacks = feedbackRepository.findAllByOrderByCreatedAtDescIdDesc();
-        } else {
-            String normalized = status.trim().toUpperCase(Locale.ROOT);
+    public List<FeedbackResponse> getFeedbacksForAdmin(String status, Long artifactId) {
+        String normalized = null;
+        if (status != null && !status.isBlank()) {
+            normalized = status.trim().toUpperCase(Locale.ROOT);
             if (!ALL_STATUSES.contains(normalized)) {
                 throw ApiException.badRequest("Trạng thái chỉ nhận PENDING, APPROVED hoặc REJECTED");
             }
-            feedbacks = feedbackRepository.findByStatusOrderByCreatedAtDescIdDesc(normalized);
+        }
+        if (artifactId != null) {
+            validateArtifactId(artifactId);
+        }
+
+        List<Feedback> feedbacks;
+        if (artifactId == null) {
+            feedbacks = normalized == null
+                    ? feedbackRepository.findAllByOrderByCreatedAtDescIdDesc()
+                    : feedbackRepository.findByStatusOrderByCreatedAtDescIdDesc(normalized);
+        } else {
+            feedbacks = normalized == null
+                    ? feedbackRepository.findByArtifactIdOrderByCreatedAtDescIdDesc(artifactId)
+                    : feedbackRepository.findByArtifactIdAndStatusOrderByCreatedAtDescIdDesc(artifactId, normalized);
         }
         return feedbacks.stream().map(this::toResponse).toList();
     }
@@ -177,7 +206,7 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy đánh giá với ID: " + feedbackId));
         feedback.setStatus(normalized);
-        feedbackRepository.save(feedback);
+        feedbackRepository.saveAndFlush(feedback);
         return toResponse(feedback);
     }
 
@@ -245,6 +274,7 @@ public class FeedbackService {
                 .reviewerName(displayName(feedback.getReviewerName()))
                 .status(feedback.getStatus())
                 .createdAt(feedback.getCreatedAt())
+                .updatedAt(feedback.getUpdatedAt())
                 .build();
     }
 }

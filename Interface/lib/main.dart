@@ -9,6 +9,8 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/beacon/beacon_scan_screen.dart';
 import 'features/beacon/beacon_service.dart';
+import 'features/notify/device_registration_service.dart';
+import 'features/heritage_sites/map_screen.dart'; // Ân W5
 import 'screens/artifact_detail_screen.dart';
 import 'shared/app_sidebar.dart';
 
@@ -24,6 +26,12 @@ void main() {
     await AuthService.init();
     // Prefetch registry iBeacon 1 lần khi mở app (cache 30 phút + đĩa)
     unawaited(BeaconService.getRegistry());
+    // Sprint 5 – FCM: nếu đã đăng nhập thì lấy token (Firebase) + POST /api/me/devices;
+    // đăng nhập xong (đổi user) cũng nhắc lại đăng ký.
+    unawaited(DeviceRegistrationService.I.ensureRegistered());
+    AuthService.currentUser.addListener(
+      () => unawaited(DeviceRegistrationService.I.ensureRegistered()),
+    );
     runApp(const SmartHeritageApp());
   }, () => AuthHttpClient(inner));
 }
@@ -390,9 +398,23 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 12),
           const Text(
             'Ứng dụng sẽ tự động phát hiện iBeacon khi bạn đến gần hiện vật.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          // Ân W5: mở bản đồ di tích tương tác
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const MapScreen())),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Mở bản đồ di tích'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF718B78),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
         ],

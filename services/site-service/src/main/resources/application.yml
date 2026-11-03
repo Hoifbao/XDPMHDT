@@ -1,0 +1,33 @@
+# site-service (Ân - Sprint 4): di tích + tìm di tích gần (nearby).
+# Client gọi qua Gateway http://localhost:8080; chạy riêng ở cổng 8082 để test Swagger/Actuator.
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: site-service
+  datasource:
+    # Bảng tạo bởi Infra/db/02_site.sql (Tường); ddl-auto update để chạy thử khi chưa có script
+    url: "${DB_URL:jdbc:mysql://localhost:3307/site_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:rootpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

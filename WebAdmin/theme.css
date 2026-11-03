@@ -448,3 +448,64 @@ h1 {
     background: #f4e1e1;
     color: #9a4545
 }
+
+.btn.fb-sm:disabled {
+    opacity: .55;
+    cursor: wait
+}
+
+.fb-note.fb-error {
+    border-color: #c98a8a;
+    background: #f4e1e1;
+    color: #9a4545
+}
+
+.fb-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap
+}
+
+.fb-select {
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 8px 10px;
+    background: white;
+    font: inherit
+}
+
+.fb-small {
+    font-size: 12px
+}
+
+/* .modal có sẵn đặt display:grid nên phải ẩn rõ khi có thuộc tính hidden */
+.modal.fb-modal[hidden] {
+    display: none
+}
+
+.fb-modal-card {
+    max-width: 520px
+}
+
+.fb-detail {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 16px;
+    margin: 16px 0
+}
+
+.fb-detail dt {
+    color: var(--muted);
+    white-space: nowrap
+}
+
+.fb-detail dd {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere
+}
+
+.fb-detail-actions {
+    justify-content: flex-end
+}

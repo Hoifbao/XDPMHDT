@@ -27,5 +27,12 @@ replay_pid*.log
 # JDBC driver cho NiFi: mỗi người tự tải (Infra/nifi/drivers/README.md)
 Infra/nifi/drivers/*.jar
 
+# Firebase config: mỗi người tải riêng từ Firebase Console (Khoa W4), gửi qua kênh riêng
+**/google-services.json
+
 # Do not commit the standalone personalization delivery ZIP
 Smart_Heritage_Personalization_History_Favorites_Offline_Cache.zip
+
+# Local config, do not commit
+.claude/
+.githooks/

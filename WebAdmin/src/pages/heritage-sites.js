@@ -78,7 +78,18 @@ function setSelectedCoordinates(latitude, longitude) {
     document.getElementById('f-lng').value = longitude.toFixed(7);
     if (!siteMap) return;
     if (selectedMarker) selectedMarker.setLatLng([latitude, longitude]);
-    else selectedMarker = L.marker([latitude, longitude]).addTo(siteMap);
+    else selectedMarker = createDraggableMarker(latitude, longitude);
+}
+
+// Marker kéo được: thả chuột xong thì tự điền lại latitude/longitude
+function createDraggableMarker(latitude, longitude) {
+    const marker = L.marker([latitude, longitude], { draggable: true }).addTo(siteMap);
+    marker.on('dragend', function () {
+        const position = marker.getLatLng();
+        document.getElementById('f-lat').value = position.lat.toFixed(7);
+        document.getElementById('f-lng').value = position.lng.toFixed(7);
+    });
+    return marker;
 }
 
 function syncMarkerFromInputs() {
@@ -95,7 +106,7 @@ function syncMarkerFromInputs() {
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
         && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
         if (selectedMarker) selectedMarker.setLatLng([latitude, longitude]);
-        else selectedMarker = L.marker([latitude, longitude]).addTo(siteMap);
+        else selectedMarker = createDraggableMarker(latitude, longitude);
         siteMap.setView([latitude, longitude], 15);
     }
 }
@@ -287,7 +298,8 @@ function handleSubmit(e) {
     }).then(async response => {
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error((body && body.message) || ('Lưu thất bại (HTTP ' + response.status + ')'));
-        const site = body;
+        // site-service trả {success, message, data}; Backend cũ trả thẳng object
+        const site = body && body.data ? body.data : body;
         if (editId) {
             const index = SITES.findIndex(item => item.id === parseInt(editId));
             if (index !== -1) SITES[index] = site;
