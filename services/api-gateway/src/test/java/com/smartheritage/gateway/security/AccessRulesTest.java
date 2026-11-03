@@ -14,6 +14,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class AccessRulesTest {
 
+    @Test
+    void languageManagementAndUploadAreAdminOnly() {
+        for (String path : java.util.List.of("/api/admin/languages", "/api/admin/languages/fr", "/api/media/upload")) {
+            assertEquals(UNAUTHORIZED, rules.check(HttpMethod.POST, path, null));
+            assertEquals(FORBIDDEN, rules.check(HttpMethod.POST, path, visitor));
+            assertEquals(ALLOW, rules.check(HttpMethod.POST, path, admin));
+        }
+        assertEquals(ALLOW, rules.check(HttpMethod.GET, "/api/languages", null));
+        assertEquals(UNAUTHORIZED, rules.check(HttpMethod.GET, "/api/admin/languages", null));
+        assertEquals(ALLOW, rules.check(HttpMethod.GET, "/api/media/files/test.mp3", null));
+    }
+
     private final AccessRules rules = new AccessRules();
     private final AuthPrincipal admin = new AuthPrincipal(1L, "admin", Roles.ADMIN);
     private final AuthPrincipal visitor = new AuthPrincipal(2L, "visitor1", Roles.VISITOR);

@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 public class ArtifactService {
 
     static final int MAX_BATCH = 100;
-    private static final Set<String> LANGUAGES = Set.of("vi", "en");
     private static final Set<String> STATUSES = Set.of("ACTIVE", "INACTIVE");
     private static final Set<String> MEDIA_TYPES = Set.of("IMAGE", "AUDIO", "VIDEO");
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -39,6 +38,7 @@ public class ArtifactService {
     private final ArtifactContentRepository contentRepository;
     private final MediaResourceRepository mediaRepository;
     private final SiteClient siteClient;
+    private final LanguageService languageService;
 
     // ──────────────────────────── READ ────────────────────────────
 
@@ -208,6 +208,7 @@ public class ArtifactService {
     @Transactional(readOnly = true)
     public ArtifactContentResponse getContentByLanguage(Long artifactId, String languageCode) {
         String normalized = language(languageCode);
+        if (!languageService.require(normalized).isActive()) normalized = "vi";
         findOrThrow(artifactId);
         return contentRepository.findByArtifactIdAndLanguageCode(artifactId, normalized)
                 .or(() -> contentRepository.findByArtifactIdAndLanguageCode(artifactId, "vi"))
@@ -248,8 +249,7 @@ public class ArtifactService {
 
     private String language(String lang) {
         String value = lang == null ? "vi" : lang.trim().toLowerCase(Locale.ROOT);
-        if (!LANGUAGES.contains(value)) throw new IllegalArgumentException("lang phải là vi hoặc en");
-        return value;
+        return languageService.require(value).getCode();
     }
 
     private void url(String value) {

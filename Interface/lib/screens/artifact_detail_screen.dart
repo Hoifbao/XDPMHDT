@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:video_player/video_player.dart';
 
 import '../core/artifact_service.dart';
+import '../core/media_lifecycle.dart';
 import '../features/auth/auth_service.dart';
 import '../features/feedback/feedback_screen.dart';
 import '../features/personalization/personalization_service.dart';
@@ -52,6 +54,9 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   bool _isOffline = false; // đang xem từ cache
 
   bool _isFavorite = false;
+  bool _favoriteBusy = false;
+  int _favoriteVersion = 0;
+  int _loadVersion = 0;
 
   @override
   void initState() {
@@ -71,8 +76,10 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   // ── Load dữ liệu ──────────────────────────────────────────────────────────
 
   Future<void> _loadArtifact() async {
+    final version = ++_loadVersion;
     setState(() {
       _loading = true;
+      _artifact = null;
       _error = null;
       _isOffline = false;
     });
@@ -81,22 +88,21 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
         widget.artifactId,
         _lang,
       );
-      if (!mounted) return;
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _artifact = result.artifact;
         _isOffline = result.fromCache;
         _loading = false;
       });
     } on SocketException {
-      if (!mounted) return;
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _loading = false;
         _isOffline = true;
-        _error =
-            'Không có kết nối mạng và chưa có bản đã tải.\nVui lòng kết nối internet rồi thử lại.';
+        _error = 'Không có kết nối mạng và chưa có bản đã tải.\nVui lòng kết nối internet rồi thử lại.';
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _loading = false;
         _error = 'Không tải được hiện vật.\n${e.toString()}';
@@ -113,14 +119,18 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   // ── Yêu thích (API của Phú) ───────────────────────────────────────────────
 
   Future<void> _loadFavorite() async {
+    final version = _favoriteVersion;
     if (!AuthService.isLoggedIn) return;
     try {
       final liked = await PersonalizationService.isFavorite(widget.artifactId);
-      if (mounted) setState(() => _isFavorite = liked);
+      if (mounted && !_favoriteBusy && version == _favoriteVersion) {
+        setState(() => _isFavorite = liked);
+      }
     } catch (_) {}
   }
 
   Future<void> _toggleFavorite() async {
+    if (_favoriteBusy) return;
     final messenger = ScaffoldMessenger.of(context);
     if (!AuthService.isLoggedIn) {
       messenger.showSnackBar(
@@ -129,7 +139,11 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       return;
     }
     final next = !_isFavorite;
-    setState(() => _isFavorite = next);
+    ++_favoriteVersion;
+    setState(() {
+      _isFavorite = next;
+      _favoriteBusy = true;
+    });
     final a = _artifact;
     final result = next
         ? await PersonalizationService.addFavorite(
@@ -140,7 +154,10 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
           )
         : await PersonalizationService.removeFavorite(widget.artifactId);
     if (!mounted) return;
-    if (!result.success) setState(() => _isFavorite = !next);
+    setState(() {
+      _favoriteBusy = false;
+      if (!result.success) _isFavorite = !next;
+    });
     messenger.showSnackBar(SnackBar(content: Text(result.message)));
   }
 
@@ -156,10 +173,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     }
 
     if (_error != null && _artifact == null) {
-      return _ErrorScreen(
-        message: _error!,
-        onRetry: _loadArtifact,
-      );
+      return _ErrorScreen(message: _error!, onRetry: _loadArtifact);
     }
 
     final artifact = _artifact!;
@@ -190,8 +204,9 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                 borderColor: Colors.orange.shade200,
                 icon: Icons.translate,
                 iconColor: Colors.orange.shade700,
-                text:
-                    'Chưa có bản dịch, đang hiển thị tiếng Việt',
+                text: content.languageCode == 'vi'
+                    ? 'Chưa có bản dịch, đang hiển thị tiếng Việt'
+                    : 'Chưa lưu bản dịch này, đang hiển thị nội dung ${content.languageCode}',
               ),
             Expanded(child: _buildTabBarView(content)),
           ],
@@ -262,9 +277,10 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   // ── Language Selector ─────────────────────────────────────────────────────
 
   SliverPersistentHeader _buildLangSelector(ArtifactDetail artifact) {
-    const langs = [
+    final langs = [
       ('vi', '🇻🇳 Tiếng Việt'),
       ('en', '🇬🇧 English'),
+      if (!['vi', 'en'].contains(_lang)) (_lang, _lang.toUpperCase()),
     ];
     return SliverPersistentHeader(
       pinned: true,
@@ -285,11 +301,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? Colors.white
-                          : Colors.white.withOpacity(0.2),
+                          : Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -327,11 +345,20 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
             unselectedLabelColor: Colors.grey.shade500,
             indicatorColor: _primaryBrown,
             indicatorWeight: 2.5,
-            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            labelStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
             tabs: const [
               Tab(icon: Icon(Icons.article_outlined, size: 18), text: 'Mô tả'),
-              Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: 'Hình ảnh'),
-              Tab(icon: Icon(Icons.volume_up_outlined, size: 18), text: 'Âm thanh'),
+              Tab(
+                icon: Icon(Icons.photo_library_outlined, size: 18),
+                text: 'Hình ảnh',
+              ),
+              Tab(
+                icon: Icon(Icons.volume_up_outlined, size: 18),
+                text: 'Âm thanh',
+              ),
               Tab(icon: Icon(Icons.info_outline, size: 18), text: 'Thông tin'),
             ],
           ),
@@ -347,7 +374,10 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       controller: _tabController,
       children: [
         _DescriptionTab(content: content),
-        _GalleryTab(images: content?.imageUrls ?? []),
+        _GalleryTab(
+          key: ValueKey((_lang, content?.imageUrls.join("|"))),
+          images: content?.imageUrls ?? [],
+        ),
         _AudioTab(
           // Key theo URL để đổi ngôn ngữ → tải lại audio mới
           key: ValueKey(content?.audioUrl ?? 'no-audio'),
@@ -368,7 +398,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, -2),
             ),
@@ -385,7 +415,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                   foregroundColor: _primaryBrown,
                   side: const BorderSide(color: _primaryBrown),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
@@ -401,7 +432,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                     backgroundColor: _primaryBrown,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -416,20 +448,18 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   void _openVideoFullscreen(String url) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => _VideoFullscreenScreen(videoUrl: url),
-      ),
+      MaterialPageRoute(builder: (_) => _VideoFullscreenScreen(videoUrl: url)),
     );
   }
 
   void _showRatingDialog() {
-    final name = _artifact?.contentFor(_lang)?.title ??
-        _artifact?.name ??
-        'Hiện vật';
+    final name =
+        _artifact?.contentFor(_lang)?.title ?? _artifact?.name ?? 'Hiện vật';
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FeedbackScreen(artifactId: widget.artifactId, artifactName: name),
+        builder: (_) =>
+            FeedbackScreen(artifactId: widget.artifactId, artifactName: name),
       ),
     );
   }
@@ -480,25 +510,33 @@ class _DescriptionTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF6B3A1F).withOpacity(0.06),
+                color: const Color(0xFF6B3A1F).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: const Color(0xFF6B3A1F).withOpacity(0.2)),
+                  color: const Color(0xFF6B3A1F).withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(children: [
-                    Icon(Icons.record_voice_over_outlined,
-                        size: 16, color: Color(0xFF6B3A1F)),
-                    SizedBox(width: 6),
-                    Text('Phụ đề thuyết minh',
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.record_voice_over_outlined,
+                        size: 16,
+                        color: Color(0xFF6B3A1F),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Phụ đề thuyết minh',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                           color: Color(0xFF6B3A1F),
-                        )),
-                  ]),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     content!.transcript!,
@@ -524,7 +562,7 @@ class _DescriptionTab extends StatelessWidget {
 
 class _GalleryTab extends StatefulWidget {
   final List<String> images;
-  const _GalleryTab({required this.images});
+  const _GalleryTab({super.key, required this.images});
 
   @override
   State<_GalleryTab> createState() => _GalleryTabState();
@@ -550,10 +588,8 @@ class _GalleryTabState extends State<_GalleryTab> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _PhotoGalleryScreen(
-          images: widget.images,
-          initialIndex: index,
-        ),
+        builder: (_) =>
+            _PhotoGalleryScreen(images: widget.images, initialIndex: index),
       ),
     );
   }
@@ -584,15 +620,18 @@ class _GalleryTabState extends State<_GalleryTab> {
                   child: CachedNetworkImage(
                     imageUrl: widget.images[index],
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
+                    placeholder: (_, _) => Container(
                       color: const Color(0xFFEDD9C0),
                       child: const Center(child: CircularProgressIndicator()),
                     ),
-                    errorWidget: (_, __, ___) => Container(
+                    errorWidget: (_, _, _) => Container(
                       color: const Color(0xFFEDD9C0),
                       child: const Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            size: 48, color: Color(0xFF6B3A1F)),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          size: 48,
+                          color: Color(0xFF6B3A1F),
+                        ),
                       ),
                     ),
                   ),
@@ -628,8 +667,7 @@ class _GalleryTabState extends State<_GalleryTab> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
             'Bấm vào ảnh để phóng to  •  ${_current + 1}/${widget.images.length}',
-            style:
-                TextStyle(fontSize: 12, color: Colors.brown.shade400),
+            style: TextStyle(fontSize: 12, color: Colors.brown.shade400),
           ),
         ),
       ],
@@ -652,11 +690,19 @@ class _PhotoGalleryScreen extends StatefulWidget {
 
 class _PhotoGalleryScreenState extends State<_PhotoGalleryScreen> {
   late int _current;
+  late final PageController _controller;
 
   @override
   void initState() {
     super.initState();
     _current = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -670,21 +716,22 @@ class _PhotoGalleryScreenState extends State<_PhotoGalleryScreen> {
       ),
       body: PhotoViewGallery.builder(
         itemCount: widget.images.length,
-        pageController: PageController(initialPage: widget.initialIndex),
+        pageController: _controller,
         onPageChanged: (i) => setState(() => _current = i),
         builder: (context, index) => PhotoViewGalleryPageOptions(
-          imageProvider:
-              CachedNetworkImageProvider(widget.images[index]),
+          imageProvider: CachedNetworkImageProvider(widget.images[index]),
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 4,
-          errorBuilder: (_, __, ___) => const Center(
-            child: Icon(Icons.broken_image_outlined,
-                size: 64, color: Colors.white54),
+          errorBuilder: (_, _, _) => const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 64,
+              color: Colors.white54,
+            ),
           ),
         ),
-        loadingBuilder: (_, __) => const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        loadingBuilder: (_, _) =>
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
         backgroundDecoration: const BoxDecoration(color: Colors.black),
       ),
     );
@@ -726,31 +773,77 @@ class _AudioPlayerWidget extends StatefulWidget {
   State<_AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
 }
 
-class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
+class _AudioPlayerWidgetState extends State<_AudioPlayerWidget>
+    with MediaLifecycle<_AudioPlayerWidget> {
   static const _primaryBrown = Color(0xFF6B3A1F);
 
   late final AudioPlayer _player;
+  StreamSubscription<PlaybackEvent>? _audioEvents;
+  Timer? _bufferTimer;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayer();
+    _audioEvents = _player.playbackEventStream.listen(
+      (event) {
+        if (event.processingState == ProcessingState.buffering ||
+            event.processingState == ProcessingState.loading) {
+          _bufferTimer ??= Timer(const Duration(seconds: 20), _failAudio);
+        } else {
+          _bufferTimer?.cancel();
+          _bufferTimer = null;
+        }
+      },
+      onError: (Object error, StackTrace stack) {
+        _failAudio();
+      },
+    );
     _initAudio();
   }
 
   Future<void> _initAudio() async {
     try {
-      await _player.setUrl(widget.audioUrl);
+      final uri = Uri.parse(widget.audioUrl);
+      if (!['http', 'https'].contains(uri.scheme) || uri.host.isEmpty) {
+        throw const FormatException();
+      }
+      await _player
+          .setUrl(widget.audioUrl)
+          .timeout(const Duration(seconds: 20));
     } catch (_) {
-      if (mounted) setState(() => _hasError = true);
+      _failAudio();
     }
+  }
+
+  void _failAudio() {
+    _bufferTimer?.cancel();
+    if (mounted) setState(() => _hasError = true);
+    unawaited(pauseMedia());
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _bufferTimer?.cancel();
+    _audioEvents?.cancel();
+    _player.dispose().catchError((Object _) {});
     super.dispose();
+  }
+
+  Future<void> _audioAction(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      _failAudio();
+    }
+  }
+
+  @override
+  Future<void> pauseMedia() async {
+    try {
+      await _player.pause();
+    } catch (_) {}
   }
 
   String _formatDuration(Duration? d) {
@@ -770,15 +863,17 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.red.shade200),
         ),
-        child: const Row(children: [
-          Icon(Icons.error_outline, color: Colors.red),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Không tải được file âm thanh. Kiểm tra đường link hoặc kết nối mạng.',
+        child: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Không tải được file âm thanh. Kiểm tra đường link hoặc kết nối mạng.',
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       );
     }
 
@@ -793,7 +888,7 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B3A1F).withOpacity(0.3),
+            color: const Color(0xFF6B3A1F).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -806,16 +901,23 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.museum_outlined, size: 48, color: Colors.white),
+            child: const Icon(
+              Icons.museum_outlined,
+              size: 48,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
             'Thuyết minh âm thanh',
             style: TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -837,8 +939,12 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 3,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 12,
+                      ),
                       activeTrackColor: Colors.white,
                       inactiveTrackColor: Colors.white24,
                       thumbColor: Colors.white,
@@ -848,8 +954,9 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                       value: curVal,
                       min: 0,
                       max: maxSafe,
-                      onChanged: (v) =>
-                          _player.seek(Duration(milliseconds: v.toInt())),
+                      onChanged: (v) => _audioAction(
+                        () => _player.seek(Duration(milliseconds: v.toInt())),
+                      ),
                     ),
                   ),
                   Padding(
@@ -857,12 +964,20 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(_formatDuration(position),
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 11)),
-                        Text(_formatDuration(_player.duration),
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 11)),
+                        Text(
+                          _formatDuration(position),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(_player.duration),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -885,21 +1000,28 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.replay_10_rounded,
-                        color: Colors.white, size: 28),
+                    icon: const Icon(
+                      Icons.replay_10_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     onPressed: () {
                       final pos = _player.position;
                       final seek = pos - const Duration(seconds: 10);
-                      _player.seek(seek < Duration.zero ? Duration.zero : seek);
+                      _audioAction(
+                        () => _player.seek(
+                          seek < Duration.zero ? Duration.zero : seek,
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () {
                       if (isPlaying) {
-                        _player.pause();
+                        _audioAction(_player.pause);
                       } else {
-                        _player.play();
+                        _audioAction(_player.play);
                       }
                     },
                     child: Container(
@@ -910,16 +1032,18 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8),
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                          ),
                         ],
                       ),
                       child: isLoading
                           ? const Padding(
                               padding: EdgeInsets.all(16),
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF6B3A1F)),
+                                strokeWidth: 2,
+                                color: Color(0xFF6B3A1F),
+                              ),
                             )
                           : Icon(
                               isPlaying
@@ -932,13 +1056,18 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.forward_10_rounded,
-                        color: Colors.white, size: 28),
+                    icon: const Icon(
+                      Icons.forward_10_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     onPressed: () {
                       final pos = _player.position;
                       final duration = _player.duration ?? Duration.zero;
                       final seek = pos + const Duration(seconds: 10);
-                      _player.seek(seek > duration ? duration : seek);
+                      _audioAction(
+                        () => _player.seek(seek > duration ? duration : seek),
+                      );
                     },
                   ),
                 ],
@@ -963,10 +1092,32 @@ class _VideoFullscreenScreen extends StatefulWidget {
   State<_VideoFullscreenScreen> createState() => _VideoFullscreenScreenState();
 }
 
-class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen> {
-  late VideoPlayerController _controller;
+class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
+    with MediaLifecycle<_VideoFullscreenScreen> {
+  VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
+  int _generation = 0;
+  bool _fullscreen = false;
+  Timer? _videoBufferTimer;
+
+  Future<void> _toggleFullscreen() async {
+    final next = !_fullscreen;
+    setState(() => _fullscreen = next);
+    try {
+      await SystemChrome.setEnabledSystemUIMode(
+        next ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+      await SystemChrome.setPreferredOrientations(
+        next
+            ? [
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]
+            : [],
+      );
+    } catch (_) {}
+  }
 
   @override
   void initState() {
@@ -975,23 +1126,87 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen> {
   }
 
   Future<void> _initVideo() async {
+    _videoBufferTimer?.cancel();
+    _videoBufferTimer = null;
+    final generation = ++_generation;
+    final old = _controller;
+    _controller = null;
     try {
-      _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videoUrl),
-      );
-      await _controller.initialize();
-      if (mounted) {
-        setState(() => _initialized = true);
-        _controller.play();
+      await _releaseVideo(old);
+      if (!mounted || generation != _generation) return;
+      final uri = Uri.parse(widget.videoUrl);
+      if (!['http', 'https'].contains(uri.scheme) || uri.host.isEmpty) {
+        throw const FormatException();
       }
+      final controller = VideoPlayerController.networkUrl(uri);
+      _controller = controller;
+      controller.addListener(() {
+        if (!mounted || !identical(_controller, controller)) return;
+        if (controller.value.isBuffering) {
+          _videoBufferTimer ??= Timer(const Duration(seconds: 20), () {
+            if (mounted && identical(_controller, controller)) {
+              setState(() => _hasError = true);
+              unawaited(pauseMedia());
+            }
+          });
+        } else {
+          _videoBufferTimer?.cancel();
+          _videoBufferTimer = null;
+        }
+        if (mounted &&
+            identical(_controller, controller) &&
+            controller.value.hasError &&
+            !_hasError) {
+          setState(() => _hasError = true);
+        }
+      });
+      await controller.initialize().timeout(const Duration(seconds: 20));
+      if (!mounted || generation != _generation) return;
+      setState(() => _initialized = true);
+      await _videoAction(controller.play);
+    } catch (_) {
+      if (mounted && generation == _generation) {
+        setState(() => _hasError = true);
+      }
+    }
+  }
+
+  Future<void> _videoAction(Future<void> Function() action) async {
+    try {
+      await action();
     } catch (_) {
       if (mounted) setState(() => _hasError = true);
     }
   }
 
   @override
+  Future<void> pauseMedia() async {
+    try {
+      await _controller?.pause();
+    } catch (_) {}
+  }
+
+  Future<void> _releaseVideo(VideoPlayerController? player) async {
+    if (player == null) return;
+    try {
+      await player.pause();
+    } catch (_) {}
+    try {
+      await player.dispose().timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    ++_generation;
+    _videoBufferTimer?.cancel();
+    if (_fullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setPreferredOrientations([]);
+    }
+    final controller = _controller;
+    _controller = null;
+    unawaited(_releaseVideo(controller));
     super.dispose();
   }
 
@@ -1005,18 +1220,23 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('Video thuyết minh'),
-      ),
+      appBar: _fullscreen
+          ? null
+          : AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              title: const Text('Video thuyết minh'),
+            ),
       body: _hasError
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.video_library_outlined,
-                      color: Colors.white54, size: 64),
+                  const Icon(
+                    Icons.video_library_outlined,
+                    color: Colors.white54,
+                    size: 64,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'Không tải được video.\nKiểm tra đường link hoặc kết nối mạng.',
@@ -1038,82 +1258,111 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen> {
               ),
             )
           : !_initialized
-              ? const Center(child: CircularProgressIndicator(color: Colors.white))
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Video
-                    AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Video
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: _controller!.value.aspectRatio,
+                      child: VideoPlayer(_controller!),
                     ),
-                    // Controls
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: _controller,
-                      builder: (_, val, __) {
-                        final pos = val.position;
-                        final dur = val.duration;
-                        final maxMs = dur.inMilliseconds.toDouble();
+                  ),
+                ),
+                // Controls
+                ValueListenableBuilder<VideoPlayerValue>(
+                  valueListenable: _controller!,
+                  builder: (_, val, _) {
+                    final pos = val.position;
+                    final dur = val.duration;
+                    final maxMs = dur.inMilliseconds.toDouble();
 
-                        return Container(
-                          color: Colors.black87,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: Column(
+                    return Container(
+                      color: Colors.black87,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        children: [
+                          // Seek bar
+                          Slider(
+                            value: pos.inMilliseconds.toDouble().clamp(
+                              0,
+                              maxMs > 0 ? maxMs : 1,
+                            ),
+                            min: 0,
+                            max: maxMs > 0 ? maxMs : 1,
+                            activeColor: Colors.white,
+                            inactiveColor: Colors.white24,
+                            thumbColor: Colors.white,
+                            onChanged: (v) => _videoAction(
+                              () => _controller!.seekTo(
+                                Duration(milliseconds: v.toInt()),
+                              ),
+                            ),
+                          ),
+                          // Time
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Seek bar
-                              Slider(
-                                value: pos.inMilliseconds
-                                    .toDouble()
-                                    .clamp(0, maxMs > 0 ? maxMs : 1),
-                                min: 0,
-                                max: maxMs > 0 ? maxMs : 1,
-                                activeColor: Colors.white,
-                                inactiveColor: Colors.white24,
-                                thumbColor: Colors.white,
-                                onChanged: (v) => _controller
-                                    .seekTo(Duration(milliseconds: v.toInt())),
+                              Text(
+                                _formatDuration(pos),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
-                              // Time
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(_formatDuration(pos),
-                                      style: const TextStyle(
-                                          color: Colors.white70, fontSize: 12)),
-                                  Text(_formatDuration(dur),
-                                      style: const TextStyle(
-                                          color: Colors.white70, fontSize: 12)),
-                                ],
-                              ),
-                              // Play / Pause
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(
-                                      val.isPlaying
-                                          ? Icons.pause_circle_filled_rounded
-                                          : Icons.play_circle_filled_rounded,
-                                      color: Colors.white,
-                                      size: 48,
-                                    ),
-                                    onPressed: () {
-                                      val.isPlaying
-                                          ? _controller.pause()
-                                          : _controller.play();
-                                    },
-                                  ),
-                                ],
+                              Text(
+                                _formatDuration(dur),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
-                        );
-                      },
-                    ),
-                  ],
+                          // Play / Pause
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  val.isPlaying
+                                      ? Icons.pause_circle_filled_rounded
+                                      : Icons.play_circle_filled_rounded,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                                onPressed: () {
+                                  val.isPlaying
+                                      ? _videoAction(() => _controller!.pause())
+                                      : _videoAction(() => _controller!.play());
+                                },
+                              ),
+                              IconButton(
+                                tooltip: _fullscreen
+                                    ? 'Thoát toàn màn hình'
+                                    : 'Toàn màn hình',
+                                icon: Icon(
+                                  _fullscreen
+                                      ? Icons.fullscreen_exit
+                                      : Icons.fullscreen,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _toggleFullscreen,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
+              ],
+            ),
     );
   }
 }
@@ -1169,8 +1418,11 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final List<Widget> children;
-  const _InfoCard(
-      {required this.title, required this.icon, required this.children});
+  const _InfoCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1181,7 +1433,7 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1190,16 +1442,20 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, size: 18, color: const Color(0xFF6B3A1F)),
-            const SizedBox(width: 8),
-            Text(title,
+          Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF6B3A1F)),
+              const SizedBox(width: 8),
+              Text(
+                title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                   color: Color(0xFF6B3A1F),
-                )),
-          ]),
+                ),
+              ),
+            ],
+          ),
           const Divider(height: 20),
           ...children,
         ],
@@ -1223,18 +1479,21 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label,
-                style: TextStyle(fontSize: 13, color: Colors.brown.shade500)),
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13, color: Colors.brown.shade500),
+            ),
           ),
-          const Text(' : ',
-              style: TextStyle(fontSize: 13, color: Colors.grey)),
+          const Text(' : ', style: TextStyle(fontSize: 13, color: Colors.grey)),
           Expanded(
-            child: Text(value!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF3E2000),
-                )),
+            child: Text(
+              value!,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF3E2000),
+              ),
+            ),
           ),
         ],
       ),
@@ -1256,18 +1515,18 @@ class _HeroImage extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: url!,
         fit: BoxFit.cover,
-        errorWidget: (_, __, ___) => _placeholder(),
+        errorWidget: (_, _, _) => _placeholder(),
       );
     }
     return _placeholder();
   }
 
   Widget _placeholder() => Container(
-        color: const Color(0xFFEDD9C0),
-        child: const Center(
-          child: Icon(Icons.museum_outlined, size: 80, color: Color(0xFF6B3A1F)),
-        ),
-      );
+    color: const Color(0xFFEDD9C0),
+    child: const Center(
+      child: Icon(Icons.museum_outlined, size: 80, color: Color(0xFF6B3A1F)),
+    ),
+  );
 }
 
 class _BeaconBadge extends StatelessWidget {
@@ -1280,21 +1539,27 @@ class _BeaconBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: active
-            ? Colors.green.shade600.withOpacity(0.9)
-            : Colors.grey.withOpacity(0.8),
+            ? Colors.green.shade600.withValues(alpha: 0.9)
+            : Colors.grey.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white54, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.bluetooth_searching_rounded,
-              color: Colors.white, size: 14),
+          const Icon(
+            Icons.bluetooth_searching_rounded,
+            color: Colors.white,
+            size: 14,
+          ),
           const SizedBox(width: 4),
           Text(
             active ? 'Beacon Active' : 'Beacon Off',
             style: const TextStyle(
-                color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -1359,7 +1624,10 @@ class _EmptyContent extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Colors.brown.shade400, fontSize: 15, height: 1.5),
+                color: Colors.brown.shade400,
+                fontSize: 15,
+                height: 1.5,
+              ),
             ),
           ],
         ),
@@ -1383,8 +1651,11 @@ class _ErrorScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_outlined,
-                  size: 64, color: Colors.grey.shade400),
+              Icon(
+                Icons.cloud_off_outlined,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
               const SizedBox(height: 20),
               Text(
                 message,

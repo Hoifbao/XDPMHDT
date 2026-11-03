@@ -12,6 +12,8 @@ import 'features/beacon/beacon_service.dart';
 import 'features/notify/device_registration_service.dart';
 import 'features/heritage_sites/map_screen.dart'; // Ân W5
 import 'screens/artifact_detail_screen.dart';
+import 'screens/recent_artifacts_screen.dart';
+import 'core/media_lifecycle.dart';
 import 'shared/app_sidebar.dart';
 
 void main() {
@@ -42,6 +44,7 @@ class SmartHeritageApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [mediaRouteObserver],
       debugShowCheckedModeBanner: false,
       title: 'Smart Heritage',
       theme: ThemeData(
@@ -176,6 +179,11 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Hiện vật đã xem — đọc offline',
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecentArtifactsScreen())),
+          ),
           // Nút tài khoản: chưa đăng nhập -> Login, đã đăng nhập -> Profile
           ValueListenableBuilder<AuthUser?>(
             valueListenable: AuthService.currentUser,

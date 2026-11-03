@@ -52,6 +52,7 @@ public class ArtifactResponse {
     private String languageCode;
     @Schema(description = "true = chưa có bản dịch yêu cầu, đang trả bản tiếng Việt", example = "false")
     private boolean fallback;
+    public boolean isFallbackUsed() { return fallback; }
     @Schema(description = "Nội dung theo ngôn ngữ đã chọn")
     private ArtifactContentResponse content;
 }

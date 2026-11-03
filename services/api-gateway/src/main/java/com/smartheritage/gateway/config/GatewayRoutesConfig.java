@@ -37,7 +37,7 @@ public class GatewayRoutesConfig {
                                 "/api/feedbacks/**")
                         .filters(GatewayRoutesConfig::common).uri(t.feedback()))
                 .route("content-service", r -> r.order(4)
-                        .path("/api/artifacts/**", "/api/media/**")
+                        .path("/api/artifacts/**", "/api/media/**", "/api/languages", "/api/admin/languages", "/api/admin/languages/**")
                         .filters(GatewayRoutesConfig::common).uri(t.content()))
                 .route("beacon-service", r -> r.order(5)
                         // Khoa W5: /api/me/devices/** = module notification của beacon-service
