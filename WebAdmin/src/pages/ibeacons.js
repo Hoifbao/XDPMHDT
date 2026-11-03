@@ -239,6 +239,8 @@ function render() {
     renderSiteFilter();
     renderFilterBar();
     renderTable();
+    // Ân W5: cập nhật select di tích cho bản đồ
+    if (typeof renderMapSiteSelect === 'function') renderMapSiteSelect();
 }
 
 filterBar.addEventListener('click', function (event) {
@@ -462,7 +464,7 @@ async function handleBeaconSubmit(event) {
 
 function findBeacon(id) {
     return beacons.find(function (beacon) {
-        return String(beacon.id) === String(id);
+        return Number(beacon.id) === Number(id);
     }) || { artifactId: null };
 }
 
@@ -594,3 +596,311 @@ async function deleteBeacon(id) {
 
 loadBeacons();
 loadSites();
+
+
+// ─── Ân W5: Bản đồ vị trí beacon trên sơ đồ di tích ─────────────────────────
+//
+// Dùng Leaflet với L.CRS.Simple (toạ độ pixel, không phải địa lý).
+// Trong CRS.Simple: lat = posY, lng = posX.
+// Kéo marker beacon → thả → tự lưu PUT /api/ibeacons/{id} (posX, posY).
+// Beacon chưa có toạ độ → nút "Đặt trên bản đồ" → bấm vào sơ đồ để đặt.
+// ─────────────────────────────────────────────────────────────────────────────
+
+var floorplanMap = null;
+var floorplanMarkers = [];
+var floorplanImageOverlay = null;
+var currentMapSiteId = null;
+var placingBeaconId = null;
+
+var DEFAULT_MAP_W = 1000;
+var DEFAULT_MAP_H = 700;
+
+// ── Khởi tạo Leaflet map ─────────────────────────────────────────────────────
+
+function initFloorplanMap() {
+    if (floorplanMap || !window.L) return;
+
+    floorplanMap = L.map('beacon-floorplan-map', {
+        crs: L.CRS.Simple,
+        minZoom: -3,
+        maxZoom: 4,
+        zoomSnap: 0.5,
+    });
+
+    // Bấm vào bản đồ khi đang đặt beacon
+    floorplanMap.on('click', function (e) {
+        if (placingBeaconId == null) return;
+        confirmPlaceBeacon(placingBeaconId, e.latlng.lng, e.latlng.lat);
+    });
+}
+
+// ── Điền select di tích cho bản đồ ──────────────────────────────────────────
+
+function renderMapSiteSelect() {
+    var sel = document.getElementById('map-site-select');
+    if (!sel) return;
+    var current = sel.value;
+    sel.replaceChildren();
+    var emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = '— Chọn di tích —';
+    sel.appendChild(emptyOpt);
+    sites.forEach(function (site) {
+        var opt = document.createElement('option');
+        opt.value = site.id;
+        opt.textContent = site.name;
+        sel.appendChild(opt);
+    });
+    if (current && sites.some(function (s) { return String(s.id) === current; })) {
+        sel.value = current;
+    }
+}
+
+document.getElementById('map-site-select').addEventListener('change', function () {
+    var siteId = this.value ? Number(this.value) : null;
+    renderFloorplanMap(siteId);
+});
+
+// ── Render bản đồ cho di tích đang chọn ─────────────────────────────────────
+
+async function renderFloorplanMap(siteId) {
+    if (!window.L) {
+        document.getElementById('map-hint').textContent =
+            'Leaflet chưa tải được. Kiểm tra thư mục WebAdmin/vendor/leaflet/.';
+        return;
+    }
+    initFloorplanMap();
+    currentMapSiteId = siteId;
+    placingBeaconId = null;
+    document.getElementById('beacon-floorplan-map').style.cursor = '';
+
+    // Xóa markers + overlay cũ
+    floorplanMarkers.forEach(function (m) { floorplanMap.removeLayer(m); });
+    floorplanMarkers = [];
+    if (floorplanImageOverlay) {
+        floorplanMap.removeLayer(floorplanImageOverlay);
+        floorplanImageOverlay = null;
+    }
+
+    if (!siteId) {
+        document.getElementById('map-beacon-count').textContent = '0 beacon';
+        document.getElementById('map-hint').textContent = 'Chọn di tích ở trên để xem sơ đồ.';
+        return;
+    }
+
+    var siteBeacons = beacons.filter(function (b) {
+        return Number(b.siteId) === Number(siteId);
+    });
+    document.getElementById('map-beacon-count').textContent = siteBeacons.length + ' beacon';
+    // Lấy mapImageUrl từ site-service
+    var mapImageUrl = null;
+    var mapW = DEFAULT_MAP_W;
+    var mapH = DEFAULT_MAP_H;
+    try {
+        var resp = await fetch(API_BASE + '/api/heritage-sites/' + siteId);
+        if (resp.ok) {
+            var body = await resp.json();
+            var siteData = body.data || body;
+            mapImageUrl = siteData.mapImageUrl || null;
+        }
+    } catch (e) { /* giữ mapImageUrl null */ }
+
+    // Tải ảnh để lấy kích thước thật
+    if (mapImageUrl) {
+        await new Promise(function (resolve) {
+            var img = new Image();
+            img.onload = function () {
+                mapW = img.naturalWidth || DEFAULT_MAP_W;
+                mapH = img.naturalHeight || DEFAULT_MAP_H;
+                resolve();
+            };
+            img.onerror = resolve;
+            img.src = mapImageUrl;
+        });
+        var bounds = [[0, 0], [mapH, mapW]];
+        floorplanImageOverlay = L.imageOverlay(mapImageUrl, bounds, {
+            opacity: 0.9, interactive: false,
+        }).addTo(floorplanMap);
+        floorplanMap.fitBounds(bounds, { padding: [10, 10] });
+    }
+
+    // Vẽ marker beacon có tọa độ
+    var withPos = siteBeacons.filter(function (b) { return b.posX != null && b.posY != null; });
+    var withoutPos = siteBeacons.filter(function (b) { return b.posX == null || b.posY == null; });
+    withPos.forEach(function (b) { addBeaconMarker(b); });
+
+    // Thêm nút đặt vị trí cho beacon chưa có tọa độ
+    addPlaceButtons(withoutPos);
+
+    // Cập nhật hint
+    if (!mapImageUrl) {
+        document.getElementById('map-hint').textContent =
+            'Di tích chưa có ảnh sơ đồ (mapImageUrl trống). '
+            + 'Cập nhật ảnh sơ đồ trong trang Quản lý Di tích, rồi quay lại.';
+    } else if (withoutPos.length > 0) {
+        document.getElementById('map-hint').textContent =
+            withoutPos.length + ' beacon chưa có vị trí – bấm "📍 Đặt trên bản đồ" trong bảng bên dưới, rồi bấm vào sơ đồ.';
+    } else if (withPos.length > 0) {
+        document.getElementById('map-hint').textContent =
+            'Kéo ghim để di chuyển. Thả chuột → tự lưu.';
+    } else {
+        document.getElementById('map-hint').textContent =
+            'Không có beacon nào thuộc di tích này.';
+    }
+}
+
+// ── Marker beacon ─────────────────────────────────────────────────────────────
+
+function beaconColor(beacon) {
+    if (beacon.status === 'INACTIVE') return '#888888';
+    if (beacon.batteryLevel != null && beacon.batteryLevel < 20) return '#c0392b';
+    return '#27ae60';
+}
+
+function addBeaconMarker(beacon) {
+    if (!floorplanMap) return;
+    var latlng = L.latLng(beacon.posY, beacon.posX); // CRS.Simple: lat=Y, lng=X
+    var color = beaconColor(beacon);
+
+    var icon = L.divIcon({
+        html: '<div style="width:20px;height:20px;border-radius:50%;'
+            + 'background:' + color + ';border:3px solid #fff;'
+            + 'box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:grab;"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10], className: '',
+    });
+
+    var marker = L.marker(latlng, { draggable: true, icon: icon }).addTo(floorplanMap);
+
+    var artifactLabel = beacon.artifactName
+        ? escHtml(beacon.artifactName)
+        : '<span style="color:#999">Chưa gán hiện vật</span>';
+    var battLabel = beacon.batteryLevel != null
+        ? beacon.batteryLevel + '%' + (beacon.batteryLevel < 20 ? ' ⚠️' : '')
+        : '—';
+
+    function popupHtml(px, py) {
+        return '<strong>Beacon #' + escHtml(String(beacon.id)) + '</strong><br>'
+            + 'Major ' + escHtml(String(beacon.major))
+            + ' / Minor ' + escHtml(String(beacon.minor)) + '<br>'
+            + 'Hiện vật: ' + artifactLabel + '<br>'
+            + 'Pin: ' + battLabel + '<br>'
+            + 'Trạng thái: ' + escHtml(STATUS_LABEL[beacon.status] || beacon.status) + '<br>'
+            + '<small style="color:#999">X=' + Number(px).toFixed(1)
+            + ' Y=' + Number(py).toFixed(1) + '</small>';
+    }
+
+    marker.bindPopup(popupHtml(beacon.posX, beacon.posY));
+
+    marker.on('dragend', function () {
+        var pos = marker.getLatLng();
+        var newX = pos.lng, newY = pos.lat;
+        marker.setPopupContent(popupHtml(newX, newY));
+        saveBeaconPosition(beacon.id, newX, newY);
+    });
+
+    floorplanMarkers.push(marker);
+}
+
+// ── Lưu vị trí beacon ────────────────────────────────────────────────────────
+
+async function saveBeaconPosition(id, posX, posY) {
+    // findBeacon so sánh string, ép kiểu để chắc chắn match dù API trả number hay string
+    var beacon = beacons.find(function (b) { return Number(b.id) === Number(id); });
+    if (!beacon || !beacon.uuid || beacon.siteId == null) {
+        alert('Không tìm thấy dữ liệu beacon #' + id + ' để lưu vị trí.');
+        return;
+    }
+    var payload = {
+        uuid: beacon.uuid,
+        major: beacon.major,
+        minor: beacon.minor,
+        siteId: Number(beacon.siteId),
+        artifactId: beacon.artifactId != null ? Number(beacon.artifactId) : null,
+        posX: Math.round(posX * 10) / 10,
+        posY: Math.round(posY * 10) / 10,
+        batteryLevel: beacon.batteryLevel != null ? Number(beacon.batteryLevel) : null,
+        status: beacon.status || 'ACTIVE',
+    };
+    try {
+        var resp = await fetch(API_BASE + '/api/ibeacons/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+            var msg = await readMessage(resp, function () {
+                return 'Lưu vị trí thất bại (HTTP ' + resp.status + ')';
+            });
+            alert('Lưu vị trí beacon #' + id + ' thất bại: ' + msg);
+            return;
+        }
+        // Cập nhật cache local ngay, không cần reload toàn bộ
+        var idx = beacons.findIndex(function (b) { return Number(b.id) === Number(id); });
+        if (idx >= 0) {
+            beacons[idx] = Object.assign({}, beacons[idx], {
+                posX: payload.posX, posY: payload.posY,
+            });
+        }
+    } catch (e) {
+        alert('Lỗi kết nối khi lưu vị trí: ' + e.message);
+    }
+}
+
+// ── Beacon chưa có tọa độ: thêm nút vào bảng ────────────────────────────────
+
+function addPlaceButtons(unplaced) {
+    if (unplaced.length === 0) return;
+    var rows = document.querySelectorAll('#beacon-body tr');
+    unplaced.forEach(function (beacon) {
+        rows.forEach(function (row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length < 3) return;
+            if (cells[0].textContent.trim() === beacon.uuid
+                && parseInt(cells[1].textContent.trim()) === beacon.major
+                && parseInt(cells[2].textContent.trim()) === beacon.minor
+                && !row.querySelector('.ib-place-btn')) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn fb-sm ib-place-btn';
+                btn.style.cssText = 'background:var(--sage);color:#fff;margin-left:4px;';
+                btn.textContent = '📍 Đặt trên bản đồ';
+                btn.addEventListener('click', function () { startPlacingBeacon(beacon.id); });
+                var actionGroup = cells[cells.length - 1].querySelector('.fb-actions');
+                if (actionGroup) actionGroup.appendChild(btn);
+            }
+        });
+    });
+}
+
+// ── Chế độ đặt vị trí ────────────────────────────────────────────────────────
+
+function startPlacingBeacon(id) {
+    placingBeaconId = id;
+    var beacon = findBeacon(id);
+    var label = beacon ? 'Major ' + beacon.major + '/Minor ' + beacon.minor : '#' + id;
+    document.getElementById('map-hint').textContent =
+        '🎯 Đang đặt beacon ' + label + ' – bấm vào sơ đồ để xác nhận vị trí.';
+    document.getElementById('beacon-floorplan-map').style.cursor = 'crosshair';
+    document.getElementById('beacon-floorplan-map').scrollIntoView({
+        behavior: 'smooth', block: 'center',
+    });
+}
+
+async function confirmPlaceBeacon(id, posX, posY) {
+    placingBeaconId = null;
+    document.getElementById('beacon-floorplan-map').style.cursor = '';
+    document.getElementById('map-hint').textContent = 'Đang lưu…';
+    await saveBeaconPosition(id, posX, posY);
+    await loadBeacons();
+    if (currentMapSiteId) renderFloorplanMap(currentMapSiteId);
+}
+
+// Khởi tạo map ngay khi script chạy (script ở cuối body nên DOM đã sẵn sàng)
+if (window.L) {
+    initFloorplanMap();
+} else {
+    // Leaflet chưa parse xong (hiếm gặp vì script đặt sau) – chờ thêm
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.L) initFloorplanMap();
+    });
+}
