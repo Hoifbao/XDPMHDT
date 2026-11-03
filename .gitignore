@@ -10,6 +10,7 @@
 
 # Java and Maven build output
 **/target/
+**/uploads/
 
 # Local environment and IDE files
 .env

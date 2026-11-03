@@ -83,6 +83,8 @@ services:
       context: ..
       dockerfile: services/content-service/Dockerfile
     container_name: smart_heritage_content
+    volumes:
+      - content_uploads:/app/uploads
     environment:
       DB_URL: jdbc:mysql://mysql-db:3306/content_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
@@ -245,6 +247,7 @@ services:
         condition: service_healthy
 
 volumes:
+  content_uploads:
   mysql_data:
   grafana_data:
   nifi_conf:

@@ -6,8 +6,14 @@ import com.smartheritage.content.client.SiteClient;
 import com.smartheritage.content.repository.ArtifactContentRepository;
 import com.smartheritage.content.repository.ArtifactRepository;
 import com.smartheritage.content.repository.MediaResourceRepository;
+import com.smartheritage.content.repository.LanguageRepository;
+import com.smartheritage.content.entity.Language;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -43,6 +50,12 @@ class ArtifactApiTest {
     @Autowired ArtifactContentRepository contents;
     @Autowired MediaResourceRepository media;
     @MockitoBean SiteClient sites;
+    @Autowired LanguageRepository languages;
+    @TempDir static Path uploads;
+    @DynamicPropertySource
+    static void uploadDirectory(DynamicPropertyRegistry registry) {
+        registry.add("app.media.directory", () -> uploads.toString());
+    }
 
     static final String VI = """
             {"siteId":1,"name":"Trong dong","contents":[{"languageCode":"vi","title":"Trong dong","description":"Mo ta","imageUrls":"[\\"https://example.com/a.jpg\\"]"}],
@@ -51,12 +64,75 @@ class ArtifactApiTest {
 
     @BeforeEach
     void clean() {
+        languages.findAll().stream().filter(l -> !l.getCode().equals("vi") && !l.getCode().equals("en"))
+                .forEach(languages::delete);
+        languages.save(new Language("en", "English", true));
         media.deleteAll();
         contents.deleteAll();
         artifacts.deleteAll();
         reset(sites);
         when(sites.requireSite(1L)).thenReturn(new SiteClient.Site(1L, "Museum"));
         when(sites.findName(anyLong())).thenReturn(Optional.of("Museum"));
+    }
+
+    @Test
+    void managesLanguagesAndUsesVietnameseWhenDisabled() throws Exception {
+        mvc.perform(post("/api/admin/languages").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"fr\",\"name\":\"Français\",\"active\":true}"))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/admin/languages").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"fr\",\"name\":\"Duplicate\",\"active\":true}"))
+                .andExpect(status().isBadRequest());
+        long id = create(VI);
+        mvc.perform(post("/api/artifacts/{id}/contents", id).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"languageCode\":\"fr\",\"title\":\"Tambour\",\"description\":\"Description française\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/artifacts/{id}?lang=fr", id))
+                .andExpect(jsonPath("$.data.content.title").value("Tambour"))
+                .andExpect(jsonPath("$.data.fallbackUsed").value(false));
+        mvc.perform(put("/api/admin/languages/fr").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"French\",\"active\":false}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/languages")).andExpect(jsonPath("$.data.length()").value(2));
+        mvc.perform(get("/api/admin/languages")).andExpect(jsonPath("$.data.length()").value(3));
+        mvc.perform(get("/api/artifacts/{id}?lang=fr", id))
+                .andExpect(jsonPath("$.data.content.languageCode").value("vi"))
+                .andExpect(jsonPath("$.data.fallbackUsed").value(true));
+        mvc.perform(put("/api/admin/languages/vi").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Vietnamese\",\"active\":false}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/languages").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"../bad\",\"name\":\"Invalid\",\"active\":true}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void uploadsImageAndAudioThroughGatewayOriginAndSupportsRanges() throws Exception {
+        byte[] png = java.util.Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aKxkAAAAASUVORK5CYII=");
+        var result = mvc.perform(multipart("/api/media/upload")
+                .file(new MockMultipartFile("file", "photo.png", "image/png", png))
+                .header("X-Forwarded-Host", "museum.example").header("X-Forwarded-Proto", "https"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.mediaType").value("IMAGE"))
+                .andReturn();
+        String url = json.readTree(result.getResponse().getContentAsString()).at("/data/fileUrl").asText();
+        org.junit.jupiter.api.Assertions.assertTrue(url.startsWith("https://museum.example/api/media/files/"));
+        mvc.perform(get(java.net.URI.create(url).getPath())).andExpect(status().isOk())
+                .andExpect(content().bytes(png)).andExpect(header().string("Content-Type", "image/png"));
+        byte[] mp3 = new byte[32]; mp3[0] = 'I'; mp3[1] = 'D'; mp3[2] = '3';
+        var audio = mvc.perform(multipart("/api/media/upload")
+                .file(new MockMultipartFile("file", "audio.mp3", "audio/mpeg", mp3)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.mediaType").value("AUDIO")).andReturn();
+        String audioPath = java.net.URI.create(json.readTree(audio.getResponse().getContentAsString()).at("/data/fileUrl").asText()).getPath();
+        mvc.perform(get(audioPath).header("Range", "bytes=0-9")).andExpect(status().isPartialContent())
+                .andExpect(header().string("Content-Range", "bytes 0-9/32"));
+        mvc.perform(multipart("/api/media/upload").file(new MockMultipartFile("file", "fake.png", "image/png", mp3)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(multipart("/api/media/upload").file(new MockMultipartFile("file", "bad.svg", "image/svg+xml", png)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(multipart("/api/media/upload").file(new MockMultipartFile("file", "empty.mp3", "audio/mpeg", new byte[0])))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/media/files/missing.png")).andExpect(status().isNotFound());
     }
 
     long create(String body) throws Exception {

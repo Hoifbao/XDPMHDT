@@ -6,6 +6,8 @@ const submit = form.querySelector('[type="submit"]');
 const base = (window.SHAuth && window.SHAuth.apiBase) || 'http://localhost:8080';
 let id = new URLSearchParams(location.search).get('id');
 let busy = false;
+let languages = [];
+let uploading = 0;
 const fields = { name: 'name', artifact_code: 'artifactCode', description: 'description', thumbnail_url: 'thumbnailUrl', period: 'period', material: 'material', dimensions: 'dimensions', beacon_uuid: 'beaconUuid', status: 'status' };
 const contentFields = { 'language_code[]': 'languageCode', 'content_title[]': 'title', 'content_description[]': 'description', 'audio_url[]': 'audioUrl', 'video_url[]': 'videoUrl' };
 const mediaFields = { 'media_type[]': 'mediaType', 'file_url[]': 'fileUrl', 'caption[]': 'caption' };
@@ -23,12 +25,16 @@ async function api(path, method = 'GET', body) {
 function updateButtons(container) { container.querySelectorAll('.remove-item').forEach(button => { button.disabled = container.children.length === 1; }); }
 function add(container, template) {
     container.appendChild(document.getElementById(template).content.cloneNode(true)); updateButtons(container);
-    return container.lastElementChild;
+    const row = container.lastElementChild;
+    if (container === translations) populateLanguages(row);
+    addUploadInputs(row);
+    return row;
 }
 document.getElementById('add-translation').onclick = () => {
-    if (translations.children.length >= 2) return;
-    const lang = value(translations.firstElementChild, 'language_code[]') === 'vi' ? 'en' : 'vi';
-    input(add(translations, 'translation-template'), 'language_code[]').value = lang;
+    const used = [...translations.children].map(row => value(row, 'language_code[]'));
+    const next = languages.find(lang => lang.active && !used.includes(lang.code));
+    if (!next) return;
+    input(add(translations, 'translation-template'), 'language_code[]').value = next.code;
 };
 document.getElementById('add-media').onclick = () => add(mediaResources, 'media-template');
 document.addEventListener('click', event => {
@@ -68,7 +74,7 @@ function rememberId(nextId) {
     document.querySelector('h1').textContent = id ? 'Cập nhật hiện vật' : 'Thêm hiện vật';
 }
 form.addEventListener('submit', async event => {
-    event.preventDefault(); if (busy) return;
+    event.preventDefault(); if (busy || uploading) return;
     busy = true; submit.disabled = true;
     try {
         message.textContent = 'Đang lưu…';
@@ -78,7 +84,7 @@ form.addEventListener('submit', async event => {
     finally { busy = false; submit.disabled = false; }
 });
 form.addEventListener('reset', event => {
-    if (busy) { event.preventDefault(); return; }
+    if (busy || uploading) { event.preventDefault(); return; }
     rememberId(null);
     setTimeout(() => {
         [translations, mediaResources].forEach(container => { [...container.children].slice(1).forEach(row => row.remove()); updateButtons(container); });
@@ -107,6 +113,8 @@ async function loadList() {
 async function init() {
     submit.disabled = true;
     try {
+        await loadLanguages();
+        addUploadInputs(form);
         const sites = await api('/api/heritage-sites'), select = form.elements.location_id;
         select.replaceChildren(new Option('Chọn địa điểm', ''));
         sites.forEach(site => select.add(new Option(site.name, site.id)));
@@ -115,7 +123,7 @@ async function init() {
             input(form, 'location_id').value = data.siteId; fill(form, fields, data);
             translations.replaceChildren();
             for (const c of data.contents) {
-                const row = add(translations, 'translation-template'); fill(row, contentFields, c);
+                const row = add(translations, 'translation-template'); fill(row, contentFields, c); populateLanguages(row, c.languageCode);
                 input(row, 'image_urls[]').value = c.imageUrls ? JSON.parse(c.imageUrls).join('\n') : '';
             }
             mediaResources.replaceChildren();
@@ -127,4 +135,96 @@ async function init() {
     } catch (error) { message.textContent = 'Không tải được dữ liệu: ' + error.message; }
     await loadList();
 }
+function populateLanguages(row, selected) {
+    const select = input(row, 'language_code[]');
+    if (!select) return;
+    const current = selected || select.value;
+    select.replaceChildren();
+    for (const lang of languages.filter(l => l.active || l.code === current)) {
+        const option = new Option(`${lang.name} (${lang.code})${lang.active ? '' : ' — đã tắt'}`, lang.code);
+        option.disabled = !lang.active && lang.code !== current;
+        select.add(option);
+    }
+    if ([...select.options].some(o => o.value === current)) select.value = current;
+}
+
+async function loadLanguages() {
+    languages = await api('/api/admin/languages');
+    [...translations.children].forEach(row => populateLanguages(row));
+    const list = document.getElementById('language-list');
+    list.replaceChildren();
+    for (const lang of languages) {
+        const row = document.createElement('div');
+        const code = document.createElement('span'); code.textContent = `${lang.code}: `;
+        const name = document.createElement('input'); name.value = lang.name; name.maxLength = 100;
+        name.setAttribute('aria-label', `Tên ngôn ngữ ${lang.code}`);
+        const active = document.createElement('input'); active.type = 'checkbox'; active.checked = lang.active;
+        active.disabled = lang.code === 'vi'; active.setAttribute('aria-label', `Bật ngôn ngữ ${lang.code}`);
+        const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Lưu';
+        save.onclick = async () => {
+            save.disabled = true;
+            try {
+                await api('/api/admin/languages/' + encodeURIComponent(lang.code), 'PUT', {name: name.value.trim(), active: active.checked});
+                await loadLanguages(); document.getElementById('language-message').textContent = 'Đã cập nhật ngôn ngữ.';
+            } catch (error) { document.getElementById('language-message').textContent = error.message; }
+            finally { save.disabled = false; }
+        };
+        row.append(code, name, active, save); list.append(row);
+    }
+}
+
+document.getElementById('language-form').onsubmit = async event => {
+    event.preventDefault();
+    const languageForm = event.currentTarget, button = languageForm.querySelector('button');
+    button.disabled = true;
+    try {
+        await api('/api/admin/languages', 'POST', {
+            code: languageForm.elements.code.value.trim(), name: languageForm.elements.name.value.trim(),
+            active: languageForm.elements.active.checked,
+        });
+        languageForm.reset(); await loadLanguages();
+        document.getElementById('language-message').textContent = 'Đã thêm ngôn ngữ.';
+    } catch (error) { document.getElementById('language-message').textContent = error.message; }
+    finally { button.disabled = false; }
+};
+
+function addUploadInputs(container) {
+    const specs = [
+        ['thumbnail_url', 'IMAGE'], ['image_urls[]', 'IMAGE'], ['audio_url[]', 'AUDIO'],
+        ['video_url[]', 'VIDEO'], ['file_url[]', null],
+    ];
+    for (const [field, kind] of specs) {
+        for (const target of container.querySelectorAll(`[name="${field}"]`)) {
+            if (target.dataset.uploadReady) continue;
+            target.dataset.uploadReady = 'true';
+            const label = document.createElement('span'); label.style.display = 'block'; label.textContent = 'Hoặc tải tệp từ máy: ';
+            const chooser = document.createElement('input'); chooser.type = 'file';
+            const accepts = {IMAGE: '.jpg,.jpeg,.png,.webp', AUDIO: '.mp3,.wav,.ogg,.m4a', VIDEO: '.mp4,.webm'};
+            chooser.accept = accepts[kind] || Object.values(accepts).join(',');
+            const status = document.createElement('span'); status.setAttribute('role', 'status');
+            label.append(chooser, status); target.parentElement.append(label);
+            chooser.onchange = async () => {
+                if (busy) { chooser.value = ''; return; }
+                const file = chooser.files[0]; if (!file) return;
+                const expected = kind || value(target.closest('.repeat-item'), 'media_type[]');
+                if (file.size > {IMAGE: 10, AUDIO: 30, VIDEO: 100}[expected] * 1024 * 1024) {
+                    status.textContent = 'Tệp quá lớn: ảnh tối đa 10 MB, audio 30 MB, video 100 MB.'; chooser.value = ''; return;
+                }
+                ++uploading; submit.disabled = true; chooser.disabled = true; status.textContent = 'Đang tải…';
+                try {
+                    const body = new FormData(); body.append('file', file);
+                    const response = await fetch(base + '/api/media/upload', {method: 'POST', body});
+                    const result = await response.json();
+                    if (!response.ok || !result.success) throw new Error(result.message || `HTTP ${response.status}`);
+                    const uploaded = result.data;
+                    if (uploaded.mediaType !== expected) throw new Error('Loại tệp không khớp với trường đã chọn.');
+                    target.value = field === 'image_urls[]' ? [target.value.trim(), uploaded.fileUrl].filter(Boolean).join('\n') : uploaded.fileUrl;
+                    status.textContent = 'Đã tải. Bấm Lưu hiện vật để lưu thay đổi.';
+                } catch (error) { status.textContent = 'Không tải được: ' + error.message; }
+                finally { --uploading; chooser.disabled = false; chooser.value = ''; submit.disabled = busy || uploading > 0; }
+            };
+        }
+    }
+}
+
 init();

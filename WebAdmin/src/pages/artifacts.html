@@ -26,6 +26,18 @@
         </div>
 
         <section class="card form-section"><h2>Danh sách hiện vật</h2><div id="artifact-list" role="status">Đang tải…</div></section>
+        <section class="card form-section">
+            <h2>Ngôn ngữ hỗ trợ</h2>
+            <p>Tiếng Việt luôn hoạt động để làm bản dự phòng. Tắt ngôn ngữ sẽ giữ nguyên các bản dịch đã lưu.</p>
+            <form id="language-form" class="form-grid">
+                <label class="field"><span>Mã ngôn ngữ</span><input name="code" required maxlength="10" pattern="[a-z]{2,3}(-[a-z0-9]{2,6})?" placeholder="fr"></label>
+                <label class="field"><span>Tên ngôn ngữ</span><input name="name" required maxlength="100" placeholder="Français"></label>
+                <label><input name="active" type="checkbox" checked> Đang hoạt động</label>
+                <button class="button" type="submit">Thêm ngôn ngữ</button>
+            </form>
+            <p id="language-message" role="status"></p>
+            <div id="language-list"></div>
+        </section>
         <form id="artifact-form">
             <section class="card form-section" aria-labelledby="artifact-info-heading">
                 <div class="section-heading">
