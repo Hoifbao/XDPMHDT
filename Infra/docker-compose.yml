@@ -175,6 +175,7 @@ services:
     container_name: smart_heritage_prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"   # cần trên Linux; Windows/Mac đã có sẵn
     ports:
