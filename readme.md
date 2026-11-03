@@ -182,6 +182,11 @@ Hệ thống bao gồm 6 module cốt lõi[cite: 1]:
 Chạy đủ bằng 1 lệnh (thư mục gốc repo): `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1`.
 Chi tiết: [services/README.md](services/README.md).
 
+**Swagger chung (W5):** http://localhost:8080/swagger-ui.html, ô *Select a definition* (góc trên bên phải) chọn auth / site / content / beacon / personalization / feedback / analytics / backend-cu.
+- "Try it out" đi qua Gateway (kiểm JWT, phân quyền như Web/Mobile). Đăng nhập `POST /api/auth/login` ở mục auth-service, copy `accessToken`, bấm **Authorize** rồi dán (không gõ chữ `Bearer`); token giữ nguyên khi đổi service.
+- Mỗi mục lấy tài liệu từ đúng địa chỉ Gateway đang chuyển request tới. content / beacon / analytics mặc định vẫn trỏ Backend cũ 8090: muốn xem tài liệu service mới thì đặt `CONTENT_SERVICE_URL`, `BEACON_SERVICE_URL`, `ANALYTICS_SERVICE_URL` trước khi chạy Gateway.
+- Service đang tắt → mục đó báo *Failed to load API definition*, các mục khác vẫn dùng được.
+
 ## 4. Cấu Trúc Repository / Repository Structure
 
 - `Backend/`: Java/Maven REST API; mã nguồn hiện tại dùng package `com.smartheritage.backend`.

@@ -22,6 +22,34 @@ app:
     feedback: ${FEEDBACK_SERVICE_URL:http://localhost:8086}
     analytics: ${ANALYTICS_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
 
+# Bảo W5: Swagger chung tại http://localhost:8080/swagger-ui.html (ô "Select a definition" chọn service).
+# Mỗi mục đọc /v3/api-docs/<tên> -> Gateway chuyển tới /v3/api-docs của service đó (GatewayRoutesConfig).
+# Service đang tắt -> mục đó báo "Failed to load API definition", các mục khác vẫn dùng được.
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls-primary-name: auth-service
+    urls:
+      - name: auth-service
+        url: /v3/api-docs/auth
+      - name: site-service
+        url: /v3/api-docs/site
+      - name: content-service
+        url: /v3/api-docs/content
+      - name: beacon-service
+        url: /v3/api-docs/beacon
+      - name: personalization-service
+        url: /v3/api-docs/personalization
+      - name: feedback-service
+        url: /v3/api-docs/feedback
+      - name: analytics-service
+        url: /v3/api-docs/analytics
+      - name: backend-cu (8090)
+        url: /v3/api-docs/legacy
+    # Giữ token sau khi bấm Authorize, kể cả khi đổi service hoặc tải lại trang
+    persist-authorization: true
+    display-request-duration: true
+
 # Giám sát: http://localhost:8080/actuator/prometheus
 management:
   endpoints:

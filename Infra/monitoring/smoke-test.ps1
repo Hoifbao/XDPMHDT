@@ -9,6 +9,7 @@ param(
     [string]$GrafanaUrl = "http://localhost:3000",
     [string]$MysqlExporterUrl = "http://localhost:9104",
     [string]$RedisExporterUrl = "http://localhost:9121",
+    [string]$GatewayUrl = "http://localhost:8080",
     [string]$GrafanaUser = "admin",
     [string]$GrafanaPassword = "change-me-grafana",
     # Service bat buoc phai UP (mac dinh khong bat buoc - service nao chua chay chi canh bao)
@@ -119,6 +120,29 @@ else {
         $d = Get-Json "$GrafanaUrl/api/dashboards/uid/$uid" $auth
         if ($null -eq $d) { Fail "Chua nap dashboard uid=$uid (xem docker logs smart_heritage_grafana)" }
         else { Ok "Dashboard '$($d.dashboard.title)' -> $GrafanaUrl/d/$uid" }
+    }
+}
+
+# ---------- 5. Swagger chung tai Gateway (Bao W5) ----------
+Write-Host "== 5. Swagger chung tai Gateway ($GatewayUrl/swagger-ui.html)"
+$cfg = Get-Json "$GatewayUrl/v3/api-docs/swagger-config" $null
+if ($null -eq $cfg) {
+    if ($RequireServices -contains "api-gateway") { Fail "Gateway khong tra /v3/api-docs/swagger-config" }
+    else { Warn "Gateway chua chay hoac chua co Swagger chung - bo qua" }
+} else {
+    $urls = @($cfg.urls)
+    Ok ("Swagger chung co {0} muc chon" -f $urls.Count)
+    foreach ($u in $urls) {
+        $line = "{0,-24} {1}" -f $u.name, $u.url
+        $doc = Get-Json ($GatewayUrl + $u.url) $null
+        if ($null -ne $doc -and $doc.openapi) {
+            $n = @($doc.paths.PSObject.Properties).Count
+            $server = @($doc.servers)[0].url
+            if ($server -eq "/") { Ok "$line  $n duong dan API, Try it out goi qua Gateway" }
+            else { Fail "$line  servers = $server (phai la / de goi qua Gateway)" }
+        }
+        elseif ($RequireServices -contains $u.name) { Fail "$line  khong tai duoc tai lieu" }
+        else { Warn "$line  khong tai duoc (service chua chay?)" }
     }
 }
 

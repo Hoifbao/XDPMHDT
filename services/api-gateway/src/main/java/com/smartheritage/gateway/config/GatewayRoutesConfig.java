@@ -1,15 +1,21 @@
 package com.smartheritage.gateway.config;
 
+import com.smartheritage.gateway.docs.OpenApiDocRewriter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.GatewayFilterSpec;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.gateway.route.builder.UriSpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import reactor.core.publisher.Mono;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Bảng định tuyến (task_w4_chi_tiet.docx mục III.2). Thứ tự = order, số nhỏ khớp trước.
  * Route feedbacks PHẢI đứng trước route /api/artifacts/**.
+ * Bảo W5: thêm route tài liệu /v3/api-docs/{service} cho Swagger UI chung tại Gateway.
  */
 @Configuration
 public class GatewayRoutesConfig {
@@ -19,9 +25,24 @@ public class GatewayRoutesConfig {
             + "Access-Control-Allow-Methods Access-Control-Allow-Headers Access-Control-Max-Age "
             + "Access-Control-Expose-Headers";
 
+    /** Tài nguyên của Swagger UI do chính Gateway phục vụ: KHÔNG được rơi vào route Backend cũ. */
+    static final String[] SWAGGER_UI_ASSETS = {"/webjars/**", "/swagger-ui/**"};
+
     @Bean
-    public RouteLocator smartHeritageRoutes(RouteLocatorBuilder builder, RouteTargets t) {
-        return builder.routes()
+    public RouteLocator smartHeritageRoutes(RouteLocatorBuilder builder, RouteTargets t, OpenApiDocRewriter docs) {
+        RouteLocatorBuilder.Builder routes = builder.routes();
+
+        // Bảo W5 (task_w5 mục III.1): /v3/api-docs/{service} -> /v3/api-docs của service đó.
+        // Dùng đúng địa chỉ mà route API đang dùng, nên tài liệu luôn khớp nơi request thật được chuyển tới.
+        // /v3/api-docs/swagger-config do springdoc của Gateway trả, không qua route.
+        apiDocTargets(t).forEach((name, uri) -> routes.route("api-docs-" + name, r -> r.order(0)
+                .path("/v3/api-docs/" + name)
+                .filters(f -> f.setPath("/v3/api-docs")
+                        .modifyResponseBody(String.class, String.class,
+                                (exchange, body) -> Mono.justOrEmpty(docs.rewrite(body))))
+                .uri(uri)));
+
+        return routes
                 .route("auth-service", r -> r.order(1)
                         .path("/api/auth/**")
                         .filters(GatewayRoutesConfig::common).uri(t.auth()))
@@ -52,11 +73,27 @@ public class GatewayRoutesConfig {
                 .route("analytics-service", r -> r.order(7)
                         .path("/api/statistics/**")
                         .filters(GatewayRoutesConfig::common).uri(t.analytics()))
-                // Còn lại (kể cả /api/demo/**, Swagger của Backend cũ) -> Backend cũ 8090
+                // Còn lại (kể cả /api/demo/**) -> Backend cũ 8090.
+                // Trừ file tĩnh của Swagger UI tại Gateway. Swagger Backend cũ: chọn "backend-cu (8090)"
+                // trong Swagger chung, hoặc mở thẳng http://localhost:8090/swagger-ui/index.html
                 .route("legacy-backend", r -> r.order(100)
-                        .path("/**")
+                        .path("/**").and().not(p -> p.path(SWAGGER_UI_ASSETS))
                         .filters(GatewayRoutesConfig::common).uri(t.legacy()))
                 .build();
+    }
+
+    /** Tên trong đường dẫn /v3/api-docs/{tên} -> địa chỉ service (thứ tự = thứ tự trong Swagger UI). */
+    static Map<String, String> apiDocTargets(RouteTargets t) {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("auth", t.auth());
+        m.put("site", t.site());
+        m.put("content", t.content());
+        m.put("beacon", t.beacon());
+        m.put("personalization", t.personalization());
+        m.put("feedback", t.feedback());
+        m.put("analytics", t.analytics());
+        m.put("legacy", t.legacy());
+        return m;
     }
 
     private static UriSpec common(GatewayFilterSpec f) {
