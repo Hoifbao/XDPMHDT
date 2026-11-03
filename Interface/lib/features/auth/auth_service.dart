@@ -32,7 +32,7 @@ class AuthUser {
       email: json['email']?.toString() ?? '',
       fullName: json['fullName']?.toString() ?? '',
       role: json['role']?.toString() ?? 'VISITOR',
-      preferredLanguage: (lang == 'en') ? 'en' : 'vi',
+      preferredLanguage: RegExp(r'^[a-z]{2,3}(-[a-z0-9]{2,6})?$').hasMatch(lang) && lang.length <= 10 ? lang : 'vi',
     );
   }
 

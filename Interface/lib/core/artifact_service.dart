@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/auth/auth_service.dart';
@@ -42,8 +42,8 @@ class ArtifactContentItem {
       languageCode: json['languageCode']?.toString() ?? 'vi',
       title: _str(json['title']),
       description: _str(json['description']),
-      audioUrl: _str(json['audioUrl']),
-      videoUrl: _str(json['videoUrl']),
+      audioUrl: _mediaUrl(_str(json['audioUrl'])),
+      videoUrl: _mediaUrl(_str(json['videoUrl'])),
       imageUrls: _parseImageUrls(json['imageUrls']),
       transcript: _str(json['transcript']),
       fallbackUsed: fallbackUsed || json['fallbackUsed'] == true,
@@ -115,7 +115,8 @@ class ArtifactDetail {
         fallbackUsed: fallback,
       );
     } else if (contents.isNotEmpty) {
-      final requested = json['requestedLanguage']?.toString() ??
+      final requested =
+          json['requestedLanguage']?.toString() ??
           json['languageCode']?.toString();
       ArtifactContentItem match = contents.first;
       for (final c in contents) {
@@ -142,7 +143,7 @@ class ArtifactDetail {
     String? videoUrl;
     for (final item in media.whereType<Map<String, dynamic>>()) {
       final type = item['mediaType']?.toString().toUpperCase();
-      final url = _str(item['fileUrl']);
+      final url = _mediaUrl(_str(item['fileUrl']));
       if (url == null) continue;
       switch (type) {
         case 'IMAGE':
@@ -158,7 +159,7 @@ class ArtifactDetail {
       id: (json['id'] as num).toInt(),
       name: _str(json['name']) ?? '',
       artifactCode: _str(json['artifactCode']),
-      thumbnailUrl: _str(json['thumbnailUrl']),
+      thumbnailUrl: _mediaUrl(_str(json['thumbnailUrl'])),
       period: _str(json['period']),
       material: _str(json['material']),
       dimensions: _str(json['dimensions']),
@@ -212,10 +213,7 @@ class ArtifactFetchResult {
   final ArtifactDetail artifact;
   final bool fromCache;
 
-  const ArtifactFetchResult({
-    required this.artifact,
-    required this.fromCache,
-  });
+  const ArtifactFetchResult({required this.artifact, required this.fromCache});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,45 +226,41 @@ class ArtifactApiService {
   static const Duration _timeout = Duration(seconds: 10);
   static const int _maxCache = 20;
   static const String _cachePrefix = 'sh_artifact_';
-  static const String _cacheKeysKey = 'sh_artifact_keys';
+  static const String _cacheKeysKey = 'sh_artifact_recent_v2';
+  static Future<void>? _cacheQueue;
 
-  /// Lấy chi tiết hiện vật theo ngôn ngữ.
-  ///
-  /// 1. GET /api/artifacts/{id}?lang={lang}
-  /// 2. Lỗi mạng / HTTP → đọc cache SharedPreferences (tối đa 20 bài)
-  /// 3. Không có cache → ném lỗi
+  static Future<T> _locked<T>(Future<T> Function() action) async {
+    final previous = _cacheQueue;
+    final release = Completer<void>();
+    _cacheQueue = release.future;
+    if (previous != null) await previous;
+    try {
+      return await action();
+    } finally {
+      if (identical(_cacheQueue, release.future)) _cacheQueue = null;
+      release.complete();
+    }
+  }
+
   static Future<ArtifactFetchResult> fetchArtifact(int id, String lang) async {
     try {
-      final uri = Uri.parse(
-        '${AuthService.baseUrl}/api/artifacts/$id?lang=$lang',
-      );
-      final response = await http.get(uri).timeout(_timeout);
-
-      if (response.statusCode == 200) {
-        final bodyStr = utf8.decode(response.bodyBytes);
-        final body = jsonDecode(bodyStr) as Map<String, dynamic>;
-        final data = (body['data'] as Map<String, dynamic>?) ?? body;
-        final artifact = ArtifactDetail.fromJson(data);
-        await _saveCache(id, lang, bodyStr);
-        return ArtifactFetchResult(artifact: artifact, fromCache: false);
+      final uri = Uri.parse('${AuthService.baseUrl}/api/artifacts/$id')
+          .replace(queryParameters: {'lang': lang});
+      final response = await AuthService.rawClient.get(uri).timeout(_timeout);
+      if (response.statusCode != 200) {
+        throw HttpException(
+          'Không tải được hiện vật (mã ${response.statusCode}).',
+        );
       }
-
-      final cached = await _loadCache(id, lang);
-      if (cached != null) {
-        return ArtifactFetchResult(artifact: cached, fromCache: true);
-      }
-      throw HttpException(
-        'Không tải được hiện vật (mã ${response.statusCode}).',
-      );
-    } on SocketException {
-      final cached = await _loadCache(id, lang);
-      if (cached != null) {
-        return ArtifactFetchResult(artifact: cached, fromCache: true);
-      }
-      throw const SocketException('Không có kết nối mạng và chưa có cache.');
-    } catch (e) {
-      if (e is SocketException || e is HttpException) rethrow;
-      final cached = await _loadCache(id, lang);
+      final raw = utf8.decode(response.bodyBytes);
+      final artifact = _decode(raw);
+      // A storage failure must not discard a successful HTTP response.
+      try {
+        await _locked(() => _saveCache(id, lang, raw));
+      } catch (_) {}
+      return ArtifactFetchResult(artifact: artifact, fromCache: false);
+    } catch (_) {
+      final cached = await _locked(() => _loadCache(id, lang));
       if (cached != null) {
         return ArtifactFetchResult(artifact: cached, fromCache: true);
       }
@@ -274,55 +268,96 @@ class ArtifactApiService {
     }
   }
 
-  static Future<bool> hasCached(int id, [String lang = 'vi']) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.containsKey(_cacheKey(id, lang)) ||
-          prefs.containsKey('$_cachePrefix$id');
-    } catch (_) {
-      return false;
-    }
+  static ArtifactDetail _decode(String raw) {
+    final body = jsonDecode(raw) as Map<String, dynamic>;
+    return ArtifactDetail.fromJson(
+      (body['data'] as Map<String, dynamic>?) ?? body,
+    );
   }
 
-  static String _cacheKey(int id, String lang) => '$_cachePrefix${id}_$lang';
+  static Future<bool> hasCached(int id, [String lang = 'vi']) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey('$_cachePrefix$id');
+  }
 
-  static Future<void> _saveCache(int id, String lang, String jsonStr) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKey(id, lang);
-      await prefs.setString(key, jsonStr);
-      // Giữ key cũ không có lang để tương thích
-      await prefs.setString('$_cachePrefix$id', jsonStr);
-
-      final keys = prefs.getStringList(_cacheKeysKey) ?? [];
-      final idStr = '$id:$lang';
-      keys.remove(idStr);
-      keys.insert(0, idStr);
-      while (keys.length > _maxCache) {
-        final evicted = keys.removeLast();
-        final parts = evicted.split(':');
-        if (parts.length == 2) {
-          await prefs.remove(_cacheKey(int.parse(parts[0]), parts[1]));
-        }
-        await prefs.remove('$_cachePrefix${parts.first}');
+  // Migrate previous cache keys without counting language variants as separate artifacts.
+  static Future<List<String>> _recent(SharedPreferences prefs) async {
+    final current = prefs.getStringList(_cacheKeysKey);
+    if (current != null) return current;
+    final ids = <String>[];
+    for (final key in prefs.getStringList('sh_artifact_keys') ?? <String>[]) {
+      final id = key.split(':').first;
+      if (!ids.contains(id) && prefs.containsKey('$_cachePrefix$id')) {
+        ids.add(id);
       }
-      await prefs.setStringList(_cacheKeysKey, keys);
-    } catch (_) {}
+    }
+    await prefs.setStringList(_cacheKeysKey, ids.take(_maxCache).toList());
+    return ids.take(_maxCache).toList();
+  }
+
+  static Future<void> _touch(SharedPreferences prefs, int id) async {
+    final ids = await _recent(prefs);
+    ids.remove('$id');
+    ids.insert(0, '$id');
+    while (ids.length > _maxCache) {
+      final old = ids.removeLast();
+      for (final key
+          in prefs
+              .getKeys()
+              .where(
+                (k) =>
+                    k == '$_cachePrefix$old' ||
+                    k.startsWith('$_cachePrefix${old}_'),
+              )
+              .toList()) {
+        await prefs.remove(key);
+      }
+    }
+    await prefs.setStringList(_cacheKeysKey, ids);
+  }
+
+  static Future<void> _saveCache(int id, String lang, String raw) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _recent(prefs);
+    await prefs.setString('$_cachePrefix${id}_$lang', raw);
+    await prefs.setString('$_cachePrefix$id', raw);
+    await _touch(prefs, id);
   }
 
   static Future<ArtifactDetail?> _loadCache(int id, String lang) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey(id, lang)) ??
+      final raw =
+          prefs.getString('$_cachePrefix${id}_$lang') ??
+          prefs.getString('$_cachePrefix${id}_vi') ??
           prefs.getString('$_cachePrefix$id');
       if (raw == null) return null;
+      final saved = _decode(raw);
+      final content = saved.contentFor(lang);
       final body = jsonDecode(raw) as Map<String, dynamic>;
       final data = (body['data'] as Map<String, dynamic>?) ?? body;
+      // Recompute fallback for the current request language.
+      data['requestedLanguage'] = lang;
+      data['fallback'] = content != null && content.languageCode != lang;
+      data['fallbackUsed'] = data['fallback'];
+      await _touch(prefs, id);
       return ArtifactDetail.fromJson(data);
     } catch (_) {
       return null;
     }
   }
+
+  static Future<List<ArtifactDetail>> recentArtifacts() => _locked(() async {
+    final prefs = await SharedPreferences.getInstance();
+    final result = <ArtifactDetail>[];
+    for (final id in await _recent(prefs)) {
+      try {
+        final raw = prefs.getString('$_cachePrefix$id');
+        if (raw != null) result.add(_decode(raw));
+      } catch (_) {}
+    }
+    return result;
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -334,11 +369,19 @@ List<String> _parseImageUrls(dynamic raw) {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
-        return decoded.whereType<String>().where((s) => s.isNotEmpty).toList();
+        return decoded
+            .whereType<String>()
+            .where((s) => s.isNotEmpty)
+            .map((s) => _mediaUrl(s)!)
+            .toList();
       }
     } catch (_) {}
   } else if (raw is List) {
-    return raw.whereType<String>().where((s) => s.isNotEmpty).toList();
+    return raw
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .map((s) => _mediaUrl(s)!)
+        .toList();
   }
   return const [];
 }
@@ -347,4 +390,14 @@ String? _str(dynamic v) {
   if (v == null) return null;
   final s = v.toString().trim();
   return s.isEmpty ? null : s;
+}
+
+// Uploaded media always follows the configured Gateway origin (including Android emulator).
+String? _mediaUrl(String? raw) {
+  if (raw == null) return null;
+  final uri = Uri.tryParse(raw);
+  if (uri != null && uri.path.startsWith('/api/media/files/')) {
+    return Uri.parse(AuthService.baseUrl).resolve(uri.path).toString();
+  }
+  return raw;
 }

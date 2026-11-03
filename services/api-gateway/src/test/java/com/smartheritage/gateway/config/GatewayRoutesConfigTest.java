@@ -25,6 +25,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest
 class GatewayRoutesConfigTest {
 
+    @Test
+    void languagesAndUploadsReachContentService() {
+        for (String path : List.of("/api/languages", "/api/admin/languages", "/api/admin/languages/fr",
+                "/api/media/upload", "/api/media/files/test.mp3")) {
+            Route route = routeFor(HttpMethod.GET, path);
+            assertEquals("content-service", route.getId(), path);
+            assertEquals("http://localhost:8083", route.getUri().toString(), path);
+        }
+    }
+
     @Autowired
     private RouteLocator routeLocator;
 

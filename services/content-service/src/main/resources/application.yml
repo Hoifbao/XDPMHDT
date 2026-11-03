@@ -2,8 +2,13 @@
 # Client gọi qua Gateway http://localhost:8080; chạy riêng ở cổng 8083 để test Swagger/Actuator.
 server:
   port: ${SERVER_PORT:8083}
+  forward-headers-strategy: framework
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 101MB
   application:
     name: content-service
   datasource:
@@ -21,6 +26,8 @@ spring:
 # Gọi site-service để kiểm tra siteId và lấy tên di tích.
 # Chưa có site-service (Ân) thì mặc định gọi Backend cũ 8090 (cùng API GET /api/heritage-sites/{id}).
 app:
+  media:
+    directory: ${MEDIA_DIRECTORY:./uploads}
   clients:
     site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     timeout: ${CLIENT_TIMEOUT:2s}
