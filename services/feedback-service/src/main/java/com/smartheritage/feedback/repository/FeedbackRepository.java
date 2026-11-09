@@ -30,6 +30,12 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     /** ADMIN xem tất cả. */
     List<Feedback> findAllByOrderByCreatedAtDescIdDesc();
 
+    /** "Đánh giá của tôi": mọi trạng thái, vừa sửa/vừa được duyệt lên trước. */
+    List<Feedback> findByUserIdOrderByUpdatedAtDescIdDesc(Long userId);
+
+    /** Số đánh giá theo trạng thái (số chờ duyệt trên menu Web Admin). */
+    long countByStatus(String status);
+
     /** Số lượt theo từng mức sao của một hiện vật: mỗi phần tử là [rating (Integer), số lượt (Long)]. */
     @Query("SELECT f.rating, COUNT(f) FROM Feedback f "
             + "WHERE f.artifactId = :artifactId AND f.status = :status GROUP BY f.rating")

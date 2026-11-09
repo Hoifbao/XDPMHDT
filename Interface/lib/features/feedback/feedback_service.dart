@@ -5,35 +5,49 @@ import 'package:http/http.dart' as http;
 
 import '../auth/auth_service.dart';
 
-/// Một đánh giá đã duyệt (GET /api/artifacts/{id}/feedbacks).
+/// Một đánh giá (GET /api/artifacts/{id}/feedbacks hoặc GET /api/feedbacks/me).
 class FeedbackItem {
   final int id;
+  final int artifactId;
   final int rating;
   final String? comment;
   final String reviewerName;
   final String status;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const FeedbackItem({
     required this.id,
+    this.artifactId = 0,
     required this.rating,
     this.comment,
     required this.reviewerName,
     required this.status,
     this.createdAt,
+    this.updatedAt,
   });
 
   factory FeedbackItem.fromJson(Map<String, dynamic> json) {
     final comment = json['comment']?.toString().trim();
     return FeedbackItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
+      artifactId: (json['artifactId'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num?)?.toInt() ?? 0,
       comment: comment == null || comment.isEmpty ? null : comment,
       reviewerName: json['reviewerName']?.toString() ?? 'Khách',
       status: json['status']?.toString() ?? 'PENDING',
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );
   }
+}
+
+/// Một dòng trong "Đánh giá của tôi": đánh giá kèm tên hiện vật.
+class MyFeedback {
+  final FeedbackItem item;
+  final String artifactName;
+
+  const MyFeedback({required this.item, required this.artifactName});
 }
 
 /// Điểm trung bình và số lượt theo mức sao, chỉ tính đánh giá APPROVED.
@@ -121,6 +135,7 @@ class FeedbackSubmitResult {
 ///   GET  /api/artifacts/{id}/rating-summary  – công khai
 ///   GET  /api/artifacts/{id}/feedbacks       – công khai, chỉ đánh giá đã duyệt
 ///   POST /api/artifacts/{id}/feedbacks       – cần đăng nhập; 201 tạo mới, 200 ghi đè đánh giá cũ
+///   GET  /api/feedbacks/me                   – cần đăng nhập; mọi đánh giá của tôi, kèm trạng thái (tuần 6)
 /// Token được AuthHttpClient (main.dart) tự gắn cho mọi lệnh http.*; không gửi userId trong body.
 class FeedbackService {
   FeedbackService._();
@@ -128,6 +143,9 @@ class FeedbackService {
   static const int maxRating = 5;
   static const int maxCommentLength = 500;
   static const Duration _timeout = Duration(seconds: 8);
+
+  /// Giới hạn của GET /api/artifacts/batch
+  static const int _maxBatchIds = 100;
 
   static String get _baseUrl => AuthService.baseUrl;
 
@@ -153,6 +171,62 @@ class FeedbackService {
   static String _connectionError() =>
       'Không kết nối được máy chủ ($_baseUrl). Hãy kiểm tra mạng hoặc Backend đã chạy chưa.';
 
+  static List<FeedbackItem> _parseItems(http.Response response) {
+    final body = _decode(response);
+    final data = body is Map ? body['data'] : null;
+    return data is List
+        ? data.whereType<Map<String, dynamic>>().map(FeedbackItem.fromJson).toList()
+        : <FeedbackItem>[];
+  }
+
+  /// Danh sách "Đánh giá của tôi", mọi trạng thái, mới cập nhật lên trước.
+  static Future<List<MyFeedback>> loadMine() async {
+    final List<FeedbackItem> items;
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/api/feedbacks/me'), headers: _headers())
+          .timeout(_timeout);
+      if (response.statusCode == 401) {
+        throw const FeedbackException('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+      }
+      if (response.statusCode != 200) {
+        throw FeedbackException(_message(response, 'Không tải được đánh giá của bạn'));
+      }
+      items = _parseItems(response);
+    } on FeedbackException {
+      rethrow;
+    } catch (_) {
+      throw FeedbackException(_connectionError());
+    }
+
+    final names = await _loadArtifactNames(items.map((item) => item.artifactId).toSet());
+    return [
+      for (final item in items)
+        MyFeedback(item: item, artifactName: names[item.artifactId] ?? 'Hiện vật #${item.artifactId}'),
+    ];
+  }
+
+  /// Tên hiện vật theo id. Lỗi thì trả rỗng: danh sách vẫn hiện, chỉ thiếu tên.
+  static Future<Map<int, String>> _loadArtifactNames(Set<int> ids) async {
+    if (ids.isEmpty) return const {};
+    try {
+      final query = ids.take(_maxBatchIds).join(',');
+      final response = await http
+          .get(Uri.parse('$_baseUrl/api/artifacts/batch?ids=$query'), headers: _headers())
+          .timeout(_timeout);
+      final body = _decode(response);
+      final data = body is Map ? body['data'] : null;
+      if (response.statusCode != 200 || data is! List) return const {};
+      return {
+        for (final artifact in data.whereType<Map<String, dynamic>>())
+          if (artifact['id'] is num && artifact['name'] != null)
+            (artifact['id'] as num).toInt(): artifact['name'].toString(),
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
   /// Tải điểm trung bình + bình luận đã duyệt. Danh sách lỗi thì báo lỗi;
   /// riêng rating-summary lỗi thì tự tính từ danh sách (cùng quy tắc: chỉ APPROVED).
   static Future<FeedbackOverview> loadOverview(int artifactId) async {
@@ -164,11 +238,7 @@ class FeedbackService {
       if (response.statusCode != 200) {
         throw FeedbackException(_message(response, 'Không tải được đánh giá'));
       }
-      final body = _decode(response);
-      final data = body is Map ? body['data'] : null;
-      approved = data is List
-          ? data.whereType<Map<String, dynamic>>().map(FeedbackItem.fromJson).toList()
-          : <FeedbackItem>[];
+      approved = _parseItems(response);
     } on FeedbackException {
       rethrow;
     } catch (_) {

@@ -18,6 +18,14 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: false
+  # Tuần 6: RabbitMQ (profile mq). Mặc định khớp Infra/docker-compose.yml.
+  # connection-timeout ngắn để RabbitMQ tắt thì API gửi/duyệt đánh giá không bị treo lâu.
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:smartheritage}
+    password: ${SPRING_RABBITMQ_PASSWORD:change-me-rabbit}
+    connection-timeout: 2s
 
 # Gọi service khác (timeout 2 giây)
 app:
@@ -34,6 +42,10 @@ springdoc:
 
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
+  # RabbitMQ tắt không làm service bị coi là DOWN: gửi sự kiện lỗi chỉ ghi log, API vẫn chạy
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:

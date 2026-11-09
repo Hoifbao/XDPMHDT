@@ -10,6 +10,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.util.Optional;
+
 /**
  * Hỏi content-service (tuần 4: Backend cũ 8090) trạng thái của một hiện vật,
  * thay cho ArtifactRepository khi còn chung database.
@@ -33,6 +35,27 @@ public class ArtifactClient {
 
     /** @return trạng thái của hiện vật (có thể null nếu content-service không trả trường status) */
     public String getArtifactStatus(Long artifactId) {
+        JsonNode status = fetchArtifact(artifactId).get("status");
+        return status == null || status.isNull() ? null : status.asText();
+    }
+
+    /**
+     * Tên hiện vật cho nội dung thông báo. Không ném lỗi: không lấy được tên thì trả rỗng
+     * để việc duyệt đánh giá vẫn hoàn tất.
+     */
+    public Optional<String> findArtifactName(Long artifactId) {
+        try {
+            JsonNode name = fetchArtifact(artifactId).get("name");
+            return name == null || name.isNull() || name.asText().isBlank()
+                    ? Optional.empty()
+                    : Optional.of(name.asText());
+        } catch (ApiException e) {
+            log.warn("Không lấy được tên hiện vật {}: {}", artifactId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private JsonNode fetchArtifact(Long artifactId) {
         JsonNode body;
         try {
             body = restClient.get()
@@ -50,7 +73,6 @@ public class ArtifactClient {
             log.warn("content-service trả phản hồi không có data cho hiện vật {}", artifactId);
             throw ApiException.serviceUnavailable(UNAVAILABLE);
         }
-        JsonNode status = data.get("status");
-        return status == null || status.isNull() ? null : status.asText();
+        return data;
     }
 }

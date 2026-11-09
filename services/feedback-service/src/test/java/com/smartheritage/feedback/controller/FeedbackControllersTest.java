@@ -24,7 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Kiểm tra lớp web: đọc người gửi từ header X-User-*, mã HTTP và khung JSON {success, message, data}. */
-@WebMvcTest({FeedbackController.class, AdminFeedbackController.class, RatingSummaryController.class})
+@WebMvcTest({FeedbackController.class, AdminFeedbackController.class, RatingSummaryController.class,
+        MyFeedbackController.class})
 class FeedbackControllersTest {
 
     @Autowired
@@ -100,6 +101,33 @@ class FeedbackControllersTest {
         mockMvc.perform(patch("/api/admin/feedbacks/3/status")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"APPROVED\"}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void myFeedbacks_khongCoHeaderNguoiDung_tra401() throws Exception {
+        mockMvc.perform(get("/api/feedbacks/me"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(feedbackService);
+    }
+
+    @Test
+    void myFeedbacks_dungUserIdTuHeader() throws Exception {
+        when(feedbackService.getMyFeedbacks(2L))
+                .thenReturn(List.of(FeedbackResponse.builder().id(3L).status("PENDING").build()));
+
+        mockMvc.perform(get("/api/feedbacks/me").header("X-User-Id", "2").header("X-User-Role", "VISITOR"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].status").value("PENDING"));
+        verify(feedbackService).getMyFeedbacks(2L);
+    }
+
+    @Test
+    void pendingCount_traSoChoDuyet() throws Exception {
+        when(feedbackService.countPending()).thenReturn(2L);
+
+        mockMvc.perform(get("/api/admin/feedbacks/pending-count"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.pending").value(2));
     }
 
     @Test

@@ -103,6 +103,76 @@ void main() {
     });
   });
 
+  group('loadMine', () {
+    test('đọc mọi trạng thái và ghép tên hiện vật từ /api/artifacts/batch', () async {
+      final batchQueries = <String?>[];
+      final mine = await http.runWithClient(
+        FeedbackService.loadMine,
+        () => MockClient((request) async {
+          if (request.url.path == '/api/artifacts/batch') {
+            batchQueries.add(request.url.queryParameters['ids']);
+            return _json(200, {
+              'success': true,
+              'data': [
+                {'id': 1, 'name': 'Khuê Văn Các'},
+              ],
+            });
+          }
+          expect(request.url.path, '/api/feedbacks/me');
+          return _json(200, {
+            'success': true,
+            'data': [
+              {'id': 3, 'artifactId': 1, 'rating': 3, 'reviewerName': 'Trần Thị Mai', 'status': 'PENDING'},
+              {'id': 5, 'artifactId': 2, 'rating': 2, 'reviewerName': 'Trần Thị Mai', 'status': 'REJECTED'},
+            ],
+          });
+        }),
+      );
+      expect(batchQueries, ['1,2']);
+      expect(mine.map((m) => m.item.status), ['PENDING', 'REJECTED']);
+      expect(mine.map((m) => m.artifactName), ['Khuê Văn Các', 'Hiện vật #2']);
+    });
+
+    test('không lấy được tên hiện vật thì vẫn trả danh sách', () async {
+      final mine = await http.runWithClient(
+        FeedbackService.loadMine,
+        () => MockClient((request) async {
+          if (request.url.path == '/api/artifacts/batch') return _json(503, {'success': false});
+          return _json(200, {
+            'success': true,
+            'data': [
+              {'id': 3, 'artifactId': 1, 'rating': 3, 'status': 'PENDING'},
+            ],
+          });
+        }),
+      );
+      expect(mine.single.artifactName, 'Hiện vật #1');
+    });
+
+    test('danh sách rỗng thì không gọi batch', () async {
+      final paths = <String>[];
+      final mine = await http.runWithClient(
+        FeedbackService.loadMine,
+        () => MockClient((request) async {
+          paths.add(request.url.path);
+          return _json(200, {'success': true, 'data': []});
+        }),
+      );
+      expect(mine, isEmpty);
+      expect(paths, ['/api/feedbacks/me']);
+    });
+
+    test('401 thì báo phiên hết hạn', () async {
+      expect(
+        () => http.runWithClient(
+          FeedbackService.loadMine,
+          () => MockClient((_) async => _json(401, {'success': false})),
+        ),
+        throwsA(isA<FeedbackException>().having((e) => e.message, 'message', contains('hết hạn'))),
+      );
+    });
+  });
+
   group('submit', () {
     test('chưa đăng nhập: không gọi API, yêu cầu đăng nhập', () async {
       var called = false;

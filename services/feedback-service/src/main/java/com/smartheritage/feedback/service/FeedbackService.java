@@ -7,6 +7,7 @@ import com.smartheritage.feedback.dto.FeedbackRequest;
 import com.smartheritage.feedback.dto.FeedbackResponse;
 import com.smartheritage.feedback.dto.RatingSummaryResponse;
 import com.smartheritage.feedback.entity.Feedback;
+import com.smartheritage.feedback.event.FeedbackEventPublisher;
 import com.smartheritage.feedback.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,6 +54,7 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final ArtifactClient artifactClient;
     private final UserProfileClient userProfileClient;
+    private final FeedbackEventPublisher eventPublisher;
 
     // ──────────────────────────── SUBMIT ───────────────────────────
 
@@ -67,6 +69,7 @@ public class FeedbackService {
      * Thứ tự kiểm tra: dữ liệu request (400) → hiện vật không tồn tại (404)
      * → hiện vật không ACTIVE (400). content-service không phản hồi → 503.
      * Hai lần gửi đầu tiên cùng lúc va vào khóa duy nhất → 409, gửi lại sẽ thành ghi đè.
+     * Chỉ đánh giá tạo mới mới phát FeedbackCreated, để số đếm thời gian thực không bị cộng trùng.
      *
      * @param userId ID người gửi, lấy từ header X-User-Id do Gateway gắn (không phải từ body)
      */
@@ -105,6 +108,9 @@ public class FeedbackService {
         } catch (DataIntegrityViolationException e) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Đánh giá của bạn cho hiện vật này vừa được gửi, vui lòng thử lại");
+        }
+        if (created) {
+            eventPublisher.publishCreated(feedback);
         }
         return new SubmitResult(toResponse(feedback), created);
     }
@@ -158,7 +164,23 @@ public class FeedbackService {
                 .build();
     }
 
+    /** "Đánh giá của tôi": mọi trạng thái của một người, kể cả đánh giá đang chờ duyệt hoặc bị ẩn. */
+    @Transactional(readOnly = true)
+    public List<FeedbackResponse> getMyFeedbacks(Long userId) {
+        validateUserId(userId);
+        return feedbackRepository.findByUserIdOrderByUpdatedAtDescIdDesc(userId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     // ──────────────────────────── ADMIN ───────────────────────────
+
+    /** Số đánh giá đang chờ duyệt, hiện trên menu Web Admin. */
+    @Transactional(readOnly = true)
+    public long countPending() {
+        return feedbackRepository.countByStatus(STATUS_PENDING);
+    }
 
     /**
      * ADMIN xem danh sách đánh giá, mới nhất trước.
@@ -194,6 +216,7 @@ public class FeedbackService {
     /**
      * ADMIN duyệt hoặc từ chối một đánh giá. Chỉ nhận APPROVED hoặc REJECTED
      * (không đặt lại PENDING). Đặt lại đúng trạng thái hiện tại vẫn thành công.
+     * Chỉ khi chuyển sang APPROVED mới phát FeedbackApproved, duyệt lại không báo du khách lần nữa.
      */
     public FeedbackResponse updateStatus(Long feedbackId, String status) {
         if (feedbackId == null) {
@@ -205,8 +228,12 @@ public class FeedbackService {
         }
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy đánh giá với ID: " + feedbackId));
+        boolean newlyApproved = STATUS_APPROVED.equals(normalized) && !STATUS_APPROVED.equals(feedback.getStatus());
         feedback.setStatus(normalized);
         feedbackRepository.saveAndFlush(feedback);
+        if (newlyApproved) {
+            eventPublisher.publishApproved(feedback, artifactDisplayName(feedback.getArtifactId()));
+        }
         return toResponse(feedback);
     }
 
@@ -259,6 +286,11 @@ public class FeedbackService {
     /** Hoạt động khi status sau trim bằng ACTIVE (không phân biệt hoa thường); null/rỗng/giá trị lạ đều là không hoạt động. */
     private static boolean isActive(String status) {
         return status != null && STATUS_ACTIVE.equalsIgnoreCase(status.trim());
+    }
+
+    /** content-service lỗi vẫn duyệt được: thông báo dùng tên thay thế "Hiện vật #id". */
+    private String artifactDisplayName(Long artifactId) {
+        return artifactClient.findArtifactName(artifactId).orElse("Hiện vật #" + artifactId);
     }
 
     private static String displayName(String reviewerName) {

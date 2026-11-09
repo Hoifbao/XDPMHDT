@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="theme.css">
     <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
     <script src="src/api/auth.js" data-guard="admin"></script>
+    <script src="src/pages/feedback-pending-badge.js" defer></script>
 </head>
 <body>
     <div id="app">
@@ -18,6 +19,7 @@
                 </div>
                 <div class="nav">
                     <button class="active" onclick="mode='admin';render()">Quản trị</button>
+                    <a href="src/pages/feedback.html"><button type="button">Phản hồi</button></a>
                     <button type="button" onclick="location.href='src/pages/profile.html'">Tài khoản</button>
                     <div class="lang">
                         <button class="sel" onclick="setLang('vi')">VI</button>

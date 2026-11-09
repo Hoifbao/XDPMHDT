@@ -7,6 +7,7 @@ import com.smartheritage.feedback.dto.FeedbackRequest;
 import com.smartheritage.feedback.dto.FeedbackResponse;
 import com.smartheritage.feedback.dto.RatingSummaryResponse;
 import com.smartheritage.feedback.entity.Feedback;
+import com.smartheritage.feedback.event.FeedbackEventPublisher;
 import com.smartheritage.feedback.repository.FeedbackRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,8 @@ class FeedbackServiceTest {
     private ArtifactClient artifactClient;
     @Mock
     private UserProfileClient userProfileClient;
+    @Mock
+    private FeedbackEventPublisher eventPublisher;
 
     @InjectMocks
     private FeedbackService feedbackService;
@@ -156,6 +159,108 @@ class FeedbackServiceTest {
         assertStatus(() -> feedbackService.submitFeedback(1L, 2L, new FeedbackRequest(3.0, null)),
                 HttpStatus.SERVICE_UNAVAILABLE);
         verify(feedbackRepository, never()).saveAndFlush(any());
+    }
+
+    // ─────────────── sự kiện ───────────────
+
+    @Test
+    void submitFeedback_taoMoi_guiFeedbackCreated() {
+        when(artifactClient.getArtifactStatus(1L)).thenReturn("ACTIVE");
+        when(userProfileClient.findCurrentUserFullName()).thenReturn(Optional.empty());
+        when(feedbackRepository.findByUserIdAndArtifactId(2L, 1L)).thenReturn(Optional.empty());
+
+        feedbackService.submitFeedback(1L, 2L, new FeedbackRequest(4.0, null));
+
+        verify(eventPublisher).publishCreated(any(Feedback.class));
+    }
+
+    @Test
+    void submitFeedback_ghiDe_khongGuiFeedbackCreated() {
+        when(artifactClient.getArtifactStatus(1L)).thenReturn("ACTIVE");
+        when(userProfileClient.findCurrentUserFullName()).thenReturn(Optional.empty());
+        when(feedbackRepository.findByUserIdAndArtifactId(2L, 1L))
+                .thenReturn(Optional.of(feedback(1L, 5, "APPROVED", "A")));
+
+        feedbackService.submitFeedback(1L, 2L, new FeedbackRequest(2.0, null));
+
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void submitFeedback_trungKhoa_khongGuiSuKien() {
+        when(artifactClient.getArtifactStatus(1L)).thenReturn("ACTIVE");
+        when(userProfileClient.findCurrentUserFullName()).thenReturn(Optional.empty());
+        when(feedbackRepository.findByUserIdAndArtifactId(2L, 1L)).thenReturn(Optional.empty());
+        when(feedbackRepository.saveAndFlush(any(Feedback.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_feedbacks_user_artifact"));
+
+        assertStatus(() -> feedbackService.submitFeedback(1L, 2L, new FeedbackRequest(4.0, null)),
+                HttpStatus.CONFLICT);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void updateStatus_chuyenSangApproved_guiKemTenHienVat() {
+        Feedback f = feedback(3L, 3, "PENDING", "Trần Thị Mai");
+        when(feedbackRepository.findById(3L)).thenReturn(Optional.of(f));
+        when(artifactClient.findArtifactName(1L)).thenReturn(Optional.of("Khuê Văn Các"));
+
+        feedbackService.updateStatus(3L, "APPROVED");
+
+        verify(eventPublisher).publishApproved(f, "Khuê Văn Các");
+    }
+
+    @Test
+    void updateStatus_khongLayDuocTenHienVat_vanDuyetVaDungTenThayThe() {
+        Feedback f = feedback(3L, 3, "PENDING", "Trần Thị Mai");
+        when(feedbackRepository.findById(3L)).thenReturn(Optional.of(f));
+        when(artifactClient.findArtifactName(1L)).thenReturn(Optional.empty());
+
+        assertThat(feedbackService.updateStatus(3L, "APPROVED").getStatus()).isEqualTo("APPROVED");
+
+        verify(eventPublisher).publishApproved(f, "Hiện vật #1");
+    }
+
+    @Test
+    void updateStatus_duyetLaiDanhGiaDaDuyet_khongGuiLan2() {
+        when(feedbackRepository.findById(1L)).thenReturn(Optional.of(feedback(1L, 5, "APPROVED", "A")));
+
+        feedbackService.updateStatus(1L, "APPROVED");
+
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void updateStatus_rejected_khongGuiSuKien() {
+        when(feedbackRepository.findById(3L)).thenReturn(Optional.of(feedback(3L, 3, "PENDING", "A")));
+
+        feedbackService.updateStatus(3L, "REJECTED");
+
+        verifyNoInteractions(eventPublisher);
+    }
+
+    // ─────────────── đánh giá của tôi, số chờ duyệt ───────────────
+
+    @Test
+    void getMyFeedbacks_traMoiTrangThaiCuaNguoiDo() {
+        when(feedbackRepository.findByUserIdOrderByUpdatedAtDescIdDesc(2L))
+                .thenReturn(List.of(feedback(3L, 3, "PENDING", "A"), feedback(1L, 5, "REJECTED", "A")));
+
+        assertThat(feedbackService.getMyFeedbacks(2L))
+                .extracting(FeedbackResponse::getStatus).containsExactly("PENDING", "REJECTED");
+    }
+
+    @Test
+    void getMyFeedbacks_userIdKhongHopLe_tra400() {
+        assertStatus(() -> feedbackService.getMyFeedbacks(0L), HttpStatus.BAD_REQUEST);
+        verifyNoInteractions(feedbackRepository);
+    }
+
+    @Test
+    void countPending_chiDemPending() {
+        when(feedbackRepository.countByStatus("PENDING")).thenReturn(2L);
+
+        assertThat(feedbackService.countPending()).isEqualTo(2L);
     }
 
     // ─────────────── getApprovedFeedbacks ───────────────

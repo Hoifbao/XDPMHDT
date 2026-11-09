@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +78,31 @@ class ClientsTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("content-service")
                 .extracting(e -> ((ApiException) e).getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void findArtifactName_200_docTen() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://content");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://content/api/artifacts/1"))
+                .andRespond(withSuccess("{\"data\":{\"id\":1,\"name\":\"Khuê Văn Các\"}}",
+                        new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8)));
+
+        assertThat(new ArtifactClient(builder.build()).findArtifactName(1L)).contains("Khuê Văn Các");
+        server.verify();
+    }
+
+    @Test
+    void findArtifactName_contentServiceLoiHoacThieuTen_traEmpty() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://content");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://content/api/artifacts/1")).andRespond(withServerError());
+        server.expect(requestTo("http://content/api/artifacts/1"))
+                .andRespond(withSuccess("{\"data\":{\"id\":1}}", MediaType.APPLICATION_JSON));
+
+        ArtifactClient client = new ArtifactClient(builder.build());
+        assertThat(client.findArtifactName(1L)).isEmpty();
+        assertThat(client.findArtifactName(1L)).isEmpty();
     }
 
     // ─────────────── UserProfileClient ───────────────
