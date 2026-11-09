@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.smartheritage.feedback.entity.Feedback;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.ConnectException;
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -34,11 +36,13 @@ class FeedbackEventPublisherTest {
     private RabbitTemplate rabbitTemplate;
     private FeedbackEventPublisher publisher;
     private TransactionTemplate transaction;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
         rabbitTemplate = mock(RabbitTemplate.class);
-        publisher = new FeedbackEventPublisher(rabbitTemplate);
+        meterRegistry = new SimpleMeterRegistry();
+        publisher = new FeedbackEventPublisher(rabbitTemplate, meterRegistry);
         transaction = new TransactionTemplate(new FakeTransactionManager());
     }
 
@@ -60,11 +64,41 @@ class FeedbackEventPublisherTest {
 
     @Test
     void publishApproved_sauCommit_coUserIdVaTenHienVat() {
-        transaction.executeWithoutResult(status -> publisher.publishApproved(feedback(), "Khuê Văn Các"));
+        transaction.executeWithoutResult(status -> publisher.publishApproved(feedback(), () -> "Khuê Văn Các"));
 
         FeedbackEventEnvelope<?> event = sentEvent("feedback.approved");
         assertThat(event.type()).isEqualTo("FeedbackApproved");
         assertThat(event.data()).isEqualTo(new FeedbackEventData.Approved(7L, 2L, 1L, "Khuê Văn Các"));
+    }
+
+    @Test
+    void publishApproved_tenHienVatChiLaySauCommit() {
+        AtomicInteger calls = new AtomicInteger();
+        transaction.executeWithoutResult(status -> {
+            publisher.publishApproved(feedback(), () -> {
+                calls.incrementAndGet();
+                return "Khuê Văn Các";
+            });
+            // Trong giao dịch chưa được gọi content-service
+            assertThat(calls).hasValue(0);
+        });
+
+        assertThat(calls).hasValue(1);
+    }
+
+    @Test
+    void publishApproved_rollback_khongLayTenVaKhongGui() {
+        AtomicInteger calls = new AtomicInteger();
+        transaction.executeWithoutResult(status -> {
+            publisher.publishApproved(feedback(), () -> {
+                calls.incrementAndGet();
+                return "X";
+            });
+            status.setRollbackOnly();
+        });
+
+        assertThat(calls).hasValue(0);
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 
     @Test
@@ -84,6 +118,20 @@ class FeedbackEventPublisherTest {
 
         assertThatCode(() -> transaction.executeWithoutResult(status -> publisher.publishCreated(feedback())))
                 .doesNotThrowAnyException();
+        assertThat(publishedCount("FeedbackCreated", "failed")).isEqualTo(1.0);
+        assertThat(publishedCount("FeedbackCreated", "success")).isZero();
+    }
+
+    @Test
+    void guiThanhCong_tangMetricSuccess() {
+        transaction.executeWithoutResult(status -> publisher.publishCreated(feedback()));
+
+        assertThat(publishedCount("FeedbackCreated", "success")).isEqualTo(1.0);
+    }
+
+    private double publishedCount(String type, String result) {
+        var counter = meterRegistry.find("feedback.events.published").tag("type", type).tag("result", result).counter();
+        return counter == null ? 0.0 : counter.count();
     }
 
     @Test

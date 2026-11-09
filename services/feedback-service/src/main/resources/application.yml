@@ -18,7 +18,8 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: false
-  # Tuần 6: RabbitMQ (profile mq). Mặc định khớp Infra/docker-compose.yml.
+  # Tuần 6: RabbitMQ. Service không có Spring profile riêng, luôn gửi sự kiện; container rabbitmq
+  # bật bằng docker compose --profile mq. Mặc định khớp Infra/docker-compose.yml.
   # connection-timeout ngắn để RabbitMQ tắt thì API gửi/duyệt đánh giá không bị treo lâu.
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
@@ -42,7 +43,8 @@ springdoc:
 
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
-  # RabbitMQ tắt không làm service bị coi là DOWN: gửi sự kiện lỗi chỉ ghi log, API vẫn chạy
+  # RabbitMQ tắt không làm service bị coi là DOWN: gửi sự kiện lỗi chỉ ghi log, API vẫn chạy.
+  # Đổi lại /actuator/health không phản ánh RabbitMQ: theo dõi qua metric feedback_events_published_total{result="failed"}.
   health:
     rabbit:
       enabled: false

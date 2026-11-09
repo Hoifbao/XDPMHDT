@@ -232,7 +232,8 @@ public class FeedbackService {
         feedback.setStatus(normalized);
         feedbackRepository.saveAndFlush(feedback);
         if (newlyApproved) {
-            eventPublisher.publishApproved(feedback, artifactDisplayName(feedback.getArtifactId()));
+            // Tên hiện vật lấy sau commit (Supplier) để không giữ giao dịch DB khi gọi content-service
+            eventPublisher.publishApproved(feedback, () -> artifactDisplayName(feedback.getArtifactId()));
         }
         return toResponse(feedback);
     }
