@@ -14,7 +14,7 @@ public record FeedbackEventEnvelope<T>(UUID eventId, String type, int version, I
 
     static final int CURRENT_VERSION = 1;
 
-    static <T> FeedbackEventEnvelope<T> of(String type, T data) {
-        return new FeedbackEventEnvelope<>(UUID.randomUUID(), type, CURRENT_VERSION, Instant.now(), data);
+    static <T> FeedbackEventEnvelope<T> of(UUID eventId, String type, T data) {
+        return new FeedbackEventEnvelope<>(eventId, type, CURRENT_VERSION, Instant.now(), data);
     }
 }

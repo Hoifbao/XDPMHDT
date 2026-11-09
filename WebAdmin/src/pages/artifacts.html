@@ -22,7 +22,10 @@
                 <h1>Thêm hiện vật</h1>
                 <p class="muted">Nhập thông tin hiện vật, nội dung thuyết minh và tài nguyên đa phương tiện.</p>
             </div>
-            <a class="button button-secondary" href="../../admin.html">Quay lại</a>
+            <div class="form-actions">
+                <a class="button button-secondary" href="./feedback.html">Phản hồi</a>
+                <a class="button button-secondary" href="../../admin.html">Quay lại</a>
+            </div>
         </div>
 
         <section class="card form-section"><h2>Danh sách hiện vật</h2><div id="artifact-list" role="status">Đang tải…</div></section>
@@ -255,6 +258,7 @@
     </template>
 
     <script src="../api/auth.js" data-guard="admin"></script>
+    <script src="./feedback-pending-badge.js"></script>
     <script src="./artifacts.js"></script>
 </body>
 </html>

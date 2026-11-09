@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../../theme.css">
     <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
     <script src="../api/auth.js" data-guard="admin"></script>
+    <script src="./feedback-pending-badge.js" defer></script>
 </head>
 <body>
     <div class="shell">
@@ -15,7 +16,11 @@
                 <div class="mark">SH</div>
                 <span>Smart Heritage</span>
             </div>
-            <span class="pill" id="data-source">Đang tải...</span>
+            <div class="nav" style="align-items: center">
+                <a href="../../admin.html"><button type="button">Tổng quan</button></a>
+                <a href="./feedback.html"><button type="button" class="active">Phản hồi</button></a>
+                <span class="pill" id="data-source">Đang tải...</span>
+            </div>
         </div>
 
         <div class="panel-title fb-head">

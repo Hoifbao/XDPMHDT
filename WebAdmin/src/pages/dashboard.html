@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="dashboard.css">
     <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
     <script src="../api/auth.js" data-guard="admin"></script>
+    <script src="./feedback-pending-badge.js" defer></script>
 </head>
 <body>
     <div class="shell">
@@ -18,6 +19,7 @@
             </div>
             <div class="nav">
                 <button class="active" type="button">Thống kê</button>
+                <a href="./feedback.html"><button type="button">Phản hồi</button></a>
                 <!-- Tuan 2: chua doi ngon ngu that nen tat nut, tranh bam ma khong co tac dung -->
                 <div class="lang">
                     <button class="sel" type="button" disabled title="Sẽ làm ở tuần sau">VI</button>

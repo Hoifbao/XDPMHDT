@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.ConnectException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -129,6 +130,25 @@ class FeedbackEventPublisherTest {
         assertThat(publishedCount("FeedbackCreated", "success")).isEqualTo(1.0);
     }
 
+    @Test
+    void layTenHienVatLoi_khongNemLoiRaNgoaiVaTangMetricFailed() {
+        assertThatCode(() -> transaction.executeWithoutResult(status -> publisher.publishApproved(feedback(), () -> {
+            throw new IllegalStateException("content-service lỗi");
+        }))).doesNotThrowAnyException();
+
+        assertThat(publishedCount("FeedbackApproved", "failed")).isEqualTo(1.0);
+        assertThat(publishedCount("FeedbackApproved", "success")).isZero();
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
+
+    @Test
+    void khoiTao_taoSan4CounterBang0ChoAlert() {
+        var counters = meterRegistry.find("feedback.events.published").counters();
+
+        assertThat(counters).hasSize(4);
+        assertThat(counters).allSatisfy(counter -> assertThat(counter.count()).isZero());
+    }
+
     private double publishedCount(String type, String result) {
         var counter = meterRegistry.find("feedback.events.published").tag("type", type).tag("result", result).counter();
         return counter == null ? 0.0 : counter.count();
@@ -138,8 +158,8 @@ class FeedbackEventPublisherTest {
     void envelope_raJsonDu5TruongVaNgayDangChuoi() {
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        FeedbackEventEnvelope<FeedbackEventData.Created> event = FeedbackEventEnvelope.of("FeedbackCreated",
-                new FeedbackEventData.Created(7L, 2L, 1L, 4, CREATED_AT));
+        FeedbackEventEnvelope<FeedbackEventData.Created> event = FeedbackEventEnvelope.of(UUID.randomUUID(),
+                "FeedbackCreated", new FeedbackEventData.Created(7L, 2L, 1L, 4, CREATED_AT));
 
         JsonNode json = mapper.valueToTree(event);
 

@@ -303,7 +303,7 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 | TC-90 | US08 | Gửi lại không phát FeedbackCreated (Tường) | Sau TC-89 | Gửi lại `POST /api/artifacts/3/feedbacks` | `{"rating":2}` | 200, đánh giá về PENDING; không có tin `feedback.created` mới | C |
 | TC-91 | US15, US20 | FeedbackApproved khi Admin duyệt (Tường) | Đánh giá PENDING id 3 | `PATCH /api/admin/feedbacks/3/status` bằng token admin | `{"status":"APPROVED"}` | 200; có đúng 1 tin `feedback.approved`; `data` có `feedbackId = 3, userId = 3, artifactId = 1`, `artifactName` là tên hiện vật 1 | C |
 | TC-92 | US15 | Không báo lặp khi duyệt lại hoặc ẩn (Tường) | Sau TC-91 | Gửi lại APPROVED cho id 3; gửi REJECTED cho id 5 | — | Cả 2 trả 200; không có tin `feedback.approved` mới | C |
-| TC-93 | — | RabbitMQ tắt không ảnh hưởng đánh giá (Tường) | `docker stop smart_heritage_rabbitmq` | Gửi đánh giá, duyệt đánh giá; xem `:8086/actuator/health` và log | — | API vẫn 200/201 trong khoảng 2 giây; dữ liệu đã lưu; health UP; log ghi "Không gửi được sự kiện" kèm `eventId` | C |
+| TC-93 | — | RabbitMQ tắt không ảnh hưởng đánh giá (Tường) | `docker stop smart_heritage_rabbitmq` | Gửi đánh giá, duyệt đánh giá; xem `:8086/actuator/health` và log | — | API vẫn 200/201 trong khoảng 2 giây; dữ liệu đã lưu; health UP; log ghi "Không gửi được sự kiện" kèm `eventId`; `:8086/actuator/prometheus` có `feedback_events_published_total{result="failed",...}` tăng | C |
 | TC-94 | US10, US11, US14 | ArtifactUpdated khi đổi hiện vật (Xuân Anh) | Đăng nhập `admin` | Tạo, sửa, xóa hiện vật; sửa nội dung đa ngôn ngữ; thêm media trên CMS | — | Mỗi thao tác có 1 tin `artifact.updated`; `data` có `artifactId, siteId, changedFields, updatedAt`; `changedFields` đúng phần vừa sửa | C |
 | TC-95 | US07 | Sửa hiện vật thì xóa cache (Phú, Xuân Anh) | Đã mở Yêu thích có hiện vật 2 | Sửa tên hiện vật 2 trên CMS; `GET /api/me/favorites`; xem log 2 service | Tên mới | Log personalization có xóa key `artifact:summary:2`; Yêu thích hiện tên mới ngay | C |
 | TC-96 | US12, US18 | Đổi beacon thì registry mới (Xuân Anh, Khoa) | Beacon 4 chưa gán | Gán beacon 4 cho hiện vật 2; `GET /api/ibeacons/registry` | `{"artifactId":2}` | Có sự kiện tương ứng; registry trả beacon 4 trỏ hiện vật 2 | C |
@@ -334,7 +334,7 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 | TC-114 | US08 | Sau khi gửi hiện chờ duyệt (Tường) | Đăng nhập `visitor1`, chưa đánh giá hiện vật 2 | Chi tiết hiện vật 2 → Đánh giá → 5 sao → Gửi | 5★ | Hiện "Đã gửi đánh giá", trạng thái "Đánh giá đang chờ duyệt", có nút "Xem đánh giá của tôi" | C |
 | TC-115 | US08 | Màn "Đánh giá của tôi" (Tường) | Đăng nhập `visitor_mai`; có đánh giá đủ trạng thái | Menu bên → "Đánh giá của tôi"; Admin đổi trạng thái; kéo xuống; bấm 1 dòng | Id 3 PENDING, id 5 REJECTED | Hiện tên hiện vật, số sao, bình luận, ngày và nhãn Chờ duyệt/Đã duyệt/Không được duyệt; nhãn đổi sau khi tải lại; bấm mở đúng màn đánh giá; tài khoản mới thấy hướng dẫn trống | C |
 | TC-116 | US08, US24 | API đánh giá của tôi (Tường) | Token `visitor_mai` | `GET /api/feedbacks/me` có token; không token; thêm header `X-User-Id: 2` giả | — | Có token: 200, chỉ đánh giá của user 3; không token: 401; header giả bị bỏ qua | C |
-| TC-117 | US15 | Số chờ duyệt trên menu Web (Tường) | Đăng nhập `admin`, có đánh giá PENDING | Mở `admin.html` và `heritage-sites.html`; duyệt hết trên `feedback.html`; tải lại | — | Nút "Phản hồi" hiện đúng số PENDING; hết chờ duyệt thì không hiện số; tắt feedback-service thì menu vẫn dùng được | C |
+| TC-117 | US15 | Số chờ duyệt trên menu Web (Tường) | Đăng nhập `admin`, có đánh giá PENDING | Mở `admin.html`, `heritage-sites.html`, `dashboard.html`, `artifacts.html`, `feedback.html`; bấm Duyệt trên `feedback.html`; duyệt hết rồi tải lại | — | Nút "Phản hồi" hiện đúng số PENDING trên cả 5 trang; trên `feedback.html` số giảm ngay sau khi bấm Duyệt hoặc Ẩn, không cần tải lại; hết chờ duyệt thì không hiện số; tắt feedback-service thì menu vẫn dùng được | C |
 | TC-118 | US15, US24 | Phân quyền số chờ duyệt (Tường) | — | `GET /api/admin/feedbacks/pending-count` bằng token admin, visitor, không token | — | Lần lượt 200 `{"pending":n}`, 403, 401 | C |
 | TC-119 | US05 | Chi tiết hiện vật không vỡ giao diện (Xuân Anh) | Hiện vật mô tả rất dài; hiện vật không có media | Mở trên màn hình nhỏ | — | Không tràn chữ, không lỗi layout; không có media vẫn hiển thị gọn | C |
 
@@ -362,7 +362,7 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 
 **Tổng: 131 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
 Tuần 6: 46 (TC-86 → TC-131).
-Unit test tự động đi kèm: feedback-service `mvn test` (59 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
+Unit test tự động đi kèm: feedback-service `mvn test` (64 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
 app `flutter test` (gồm thư mục `test/features/feedback`, 26 test).
 
 ## 9. Truy vết yêu cầu

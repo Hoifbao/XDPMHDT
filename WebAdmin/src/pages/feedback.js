@@ -382,6 +382,9 @@ async function changeStatus(feedbackId, newStatus) {
             return updated ? Object.assign({}, item, updated) : Object.assign({}, item, { status: newStatus });
         });
         showError('');
+        if (window.SHFeedbackBadge) {
+            window.SHFeedbackBadge.refresh();
+        }
     } catch (error) {
         showError(error instanceof TypeError
             ? 'Không kết nối được máy chủ (' + API_BASE + '), trạng thái chưa được lưu.'
