@@ -1,14 +1,22 @@
-# Test Plan – Smart Heritage (bản 0.2)
+# Test Plan – Smart Heritage (bản 1.0)
 
 | Mục | Nội dung |
 |---|---|
-| Phiên bản | 0.2 (Sprint 5) |
+| Phiên bản | 1.0 (Sprint 6, dùng cho System Testing lần 1) |
 | Người lập | Tường (đầu mối QA) |
-| Ngày | 01/11/2026 (bản 0.1: 30/10/2026) |
-| Căn cứ | User story US01–US24 trong `readme.md`; `task_w4_chi_tiet` mục III; `task_w5_chi_tiet` mục III (route Gateway, luồng quét beacon, NiFi) và tiêu chí nghiệm thu của từng thành viên |
-| Trạng thái | Nháp: cập nhật mỗi sprint khi tách thêm service |
+| Ngày | 09/11/2026 (bản 0.2: 01/11/2026; bản 0.1: 30/10/2026) |
+| Căn cứ | User story US01–US24 trong `readme.md`; `task_w4_chi_tiet` mục III; `task_w5_chi_tiet` mục III (route Gateway, luồng quét beacon, NiFi); `task_w6_chi_tiet` mục II, III, V (sự kiện RabbitMQ, mức độ lỗi) và tiêu chí nghiệm thu của từng thành viên |
+| Trạng thái | Đã chốt để Ân chạy System Testing lần 1; test case có việc chưa xong ghi ở mục 10 |
 
-**Thay đổi so với bản 0.1**
+**Thay đổi so với bản 0.2**
+
+- Thêm 45 test case tuần 6 (TC-87 → TC-131): 5 sự kiện RabbitMQ, FCM, pin beacon, thống kê thời gian thực,
+  xuất báo cáo, hoàn thiện Mobile/Web, cảnh báo, load test, trường hợp đặc biệt, phân quyền và smoke test bản chốt.
+- TC-86 (xuất báo cáo) chuyển vào nhóm tuần 6, không còn là test case đặt trước.
+- Mức độ lỗi đổi sang Blocker, Critical, Major, Minor kèm hạn sửa theo `task_w6_chi_tiet` mục V.
+- Thêm mục 3.1: cách xem sự kiện trên RabbitMQ UI.
+
+**Thay đổi của bản 0.2 so với bản 0.1**
 
 - Thêm 35 test case tuần 5 (TC-51 → TC-85): luồng quét beacon, ngoại tuyến, bản đồ, chi tiết hiện vật đa phương tiện,
   đánh giá trên app và Web, phân quyền route mới, Swagger/giám sát tại Gateway, NiFi, smoke test.
@@ -26,6 +34,8 @@
 - Tuần 5: kiểm tra 7 service chạy sau Gateway, luồng du khách (đăng nhập → quét beacon → xem hiện vật → yêu thích
   → đánh giá), luồng Admin (duyệt đánh giá, bản đồ beacon, dashboard) và đồng bộ NiFi sang `analytics_db`.
 - Đo 2 yêu cầu hiệu năng của Đề tài: nhận diện hiện vật ≤ 2 giây, tạo Dashboard ≤ 5 giây.
+- Tuần 6: kiểm tra toàn luồng du khách trên Mobile, luồng Admin trên Web, sự kiện RabbitMQ giữa các service,
+  cảnh báo giám sát, và đối chiếu yêu cầu 500 người dùng đồng thời, p95 ≤ 2 giây.
 - Làm danh sách test case nền để viết Test Report.
 
 ## 2. Phạm vi
@@ -34,16 +44,15 @@
 
 | Nhóm | Chức năng |
 |---|---|
-| Visitor (app Flutter, API) | Đăng ký/đăng nhập, hồ sơ và ngôn ngữ, bản đồ di tích + chỉ đường, quét iBeacon tự hiện hiện vật, chi tiết hiện vật đa ngôn ngữ (ảnh, audio, video), xem lại offline, yêu thích, lịch sử tham quan, hàng đợi ngoại tuyến, gửi/sửa đánh giá |
-| Administrator (Web Admin, API) | Đăng nhập, CRUD di tích/hiện vật, media, bản dịch, danh sách ngôn ngữ, quản lý và gán iBeacon, bản đồ vị trí beacon, duyệt/ẩn đánh giá, dashboard thống kê |
-| System | JWT + RBAC tại Gateway, chống giả mạo header, định tuyến Gateway, Swagger gom tại Gateway, fallback ngôn ngữ, chống báo trùng beacon, đồng bộ offline không trùng, cô lập database theo service, giám sát Prometheus/Grafana, xử lý khi service phụ thuộc bị tắt, luồng NiFi, Redis cache, thông báo FCM |
+| Visitor (app Flutter, API) | Đăng ký/đăng nhập, hồ sơ và ngôn ngữ, bản đồ di tích + chỉ đường, quét iBeacon tự hiện hiện vật, chi tiết hiện vật đa ngôn ngữ (ảnh, audio, video), xem lại offline, yêu thích, lịch sử tham quan, hàng đợi ngoại tuyến, gửi/sửa đánh giá, "Đánh giá của tôi", thông báo khi đánh giá được duyệt |
+| Administrator (Web Admin, API) | Đăng nhập, CRUD di tích/hiện vật, media, bản dịch, danh sách ngôn ngữ, quản lý và gán iBeacon, bản đồ vị trí beacon, duyệt/ẩn đánh giá, số đánh giá chờ duyệt trên menu, dashboard thống kê, xuất báo cáo PDF/Excel, cảnh báo pin beacon |
+| System | JWT + RBAC tại Gateway, chống giả mạo header, định tuyến Gateway, Swagger gom tại Gateway, fallback ngôn ngữ, chống báo trùng beacon, đồng bộ offline không trùng, cô lập database theo service, giám sát Prometheus/Grafana, xử lý khi service phụ thuộc bị tắt, luồng NiFi, Redis cache, thông báo FCM, sự kiện RabbitMQ và dead-letter queue, cảnh báo Grafana, kiểm thử tải k6 |
 
-**Ngoài phạm vi bản 0.2**
+**Ngoài phạm vi bản 1.0**
 
 - iOS (thư viện iBeacon chỉ demo trên Android).
 - Quét beacon khi app chạy nền lâu (Android giới hạn); demo chính với app đang mở.
-- Xuất báo cáo PDF/Excel (US17) – tuần 6.
-- Kiểm thử tải (load test) và cảnh báo Grafana – tuần 6; kiểm thử bảo mật chuyên sâu.
+- Kiểm thử bảo mật chuyên sâu.
 
 ## 3. Môi trường
 
@@ -55,6 +64,7 @@
 | auth / site / content / beacon | 8081 / 8082 / 8083 / 8084 (Swagger ở cổng riêng: `/swagger-ui.html`) |
 | personalization / feedback / analytics | 8085 / 8086 / 8087 (tách ở tuần 5, route qua Gateway) |
 | Backend cũ (monolith) | `http://localhost:8090`, schema `smart_heritage_db`. Service chưa tách thì Gateway chuyển về đây |
+| RabbitMQ (bắt buộc tuần 6) | `--profile mq`: AMQP 5672, giao diện `http://localhost:15672` (`smartheritage` / `change-me-rabbit`, nếu `Infra/.env` không đổi) |
 | Monitoring (tuỳ chọn) | `--profile monitoring`: Prometheus 9090, Grafana 3000, mysqld-exporter, redis-exporter |
 | NiFi (tuỳ chọn) | `--profile nifi`: `https://localhost:8443/nifi` |
 | Web Admin | Mở `WebAdmin/src/pages/login.html` bằng Live Server |
@@ -76,11 +86,24 @@
 - Đánh giá (`feedback_db`): APPROVED id 1 (hiện vật 1, 5★), 2 (hiện vật 2, 4★), 4 (hiện vật 3, 5★); PENDING id 3, 5;
   REJECTED id 6. Điểm TB đúng (chỉ APPROVED): hiện vật 1 = 5.0, hiện vật 2 = 4.0, hiện vật 3 = 5.0.
 
+### 3.1 Cách xem sự kiện trên RabbitMQ UI
+
+Sự kiện chỉ giữ lại khi có queue bind vào exchange, nên trước khi chạy TC-87 → TC-100:
+
+1. Mở `http://localhost:15672`, vào **Queues and Streams** → **Add a new queue**, tên `qa.events`, bấm **Add queue**.
+2. Vào **Exchanges** → `sh.events` → mục **Add binding from this exchange**: To queue `qa.events`, Routing key `#`, bấm **Bind**.
+3. Sau mỗi bước test, vào queue `qa.events` → **Get messages** (Ack Mode: *Automatic ack*, Messages: 10) để xem nội dung JSON.
+4. Test xong xóa queue `qa.events` để không tích tin.
+
+Exchange `sh.events` được tạo ở lần gửi sự kiện đầu tiên. Chưa thấy exchange thì gửi 1 đánh giá mới trước.
+Mỗi tin phải có đủ 5 trường: `eventId`, `type`, `version`, `occurredAt`, `data`.
+
 ## 4. Vai trò
 
 | Người | Trách nhiệm |
 |---|---|
 | Tường | Lập và duy trì Test Plan, tổng hợp kết quả, quản lý danh sách lỗi; test Feedback và Database |
+| Ân | Chạy System Testing lần 1 trên Mobile và Web, tạo Issue, ghi kết quả vào `Docs/testing/test-report.md` |
 | Thành viên phụ trách module | Chạy test case của module mình trước khi mở PR, ghi kết quả vào PR |
 | Bảo | Test tích hợp qua Gateway (Web Admin + Mobile), xác nhận 401/403 |
 | Người review PR | Chạy lại ít nhất các test case ưu tiên Cao của module được review |
@@ -106,10 +129,10 @@
 
 **Kết thúc vòng test khi:**
 
-- 100% test case ưu tiên Cao đã chạy, ít nhất 90% đạt.
-- Không còn lỗi mức Nghiêm trọng hoặc Cao đang mở.
-- Lỗi mức Trung bình/Thấp còn mở đều đã ghi vào danh sách và có người nhận.
-- Kết quả đã ghi vào cột "Kết quả" (Đạt / Không đạt / Chưa chạy) và gửi nhóm.
+- Đã chạy ít nhất 90% tổng số test case, trong đó 100% test case ưu tiên Cao và ít nhất 90% số đó đạt.
+- Không còn lỗi Blocker hoặc Critical đang mở.
+- Lỗi Major/Minor còn mở đều đã có Issue, mức độ và người phụ trách.
+- Kết quả đã ghi vào `Docs/testing/test-report.md` (Đạt / Không đạt / Chưa chạy) và gửi nhóm.
 
 ## 7. Mẫu báo lỗi
 
@@ -118,17 +141,25 @@ Tạo GitHub Issue với tiêu đề `[BUG][<module>] <mô tả ngắn>`, nội 
 ```
 Mã lỗi        : BUG-<số>
 Test case     : TC-xx
-Mức độ        : Nghiêm trọng | Cao | Trung bình | Thấp
+Mức độ        : Blocker | Critical | Major | Minor
+Service       : tên service liên quan
 Môi trường    : nhánh/commit, Gateway hay cổng riêng, thiết bị (nếu là Mobile)
 Bước tái hiện : 1. ... 2. ... 3. ...
 Dữ liệu       : tài khoản, id, body request
 Kết quả mong đợi :
-Kết quả thực tế  : (mã HTTP, JSON, ảnh chụp màn hình / log)
+Kết quả thực tế  : (mã HTTP, JSON, log)
+Ảnh/video        :
 Người phụ trách  :
 ```
 
-Mức độ: **Nghiêm trọng** = sập service, mất dữ liệu, lộ quyền; **Cao** = chức năng chính không dùng được;
-**Trung bình** = sai một phần, có cách đi vòng; **Thấp** = giao diện, câu chữ.
+| Mức độ | Ý nghĩa | Hạn sửa |
+|---|---|---|
+| Blocker | Chặn luồng demo chính (không đăng nhập được, quét beacon không mở hiện vật, Gateway lỗi) | Trong 24 giờ |
+| Critical | Sai dữ liệu, lỗi phân quyền, mất dữ liệu | Trước Thứ 3 tuần 7 |
+| Major | Chức năng chạy nhưng sai một phần, giao diện vỡ trên màn hình phổ biến | Trước Thứ 5 tuần 7 |
+| Minor | Lỗi chữ, căn lề, thông báo chưa rõ | Nếu còn thời gian |
+
+Sau 18:00 Thứ 6 13/11 chỉ merge PR sửa lỗi có Issue, mô tả PR ghi `Fixes #<số Issue>`.
 
 ## 8. Danh sách test case
 
@@ -251,16 +282,88 @@ Tên người trong ngoặc là người phụ trách tính năng, chạy test c
 | TC-84 | — | feedback-service trong docker compose (Tường) | `--profile core up -d --build` | `docker compose ps`; `GET :8086/actuator/health`; `GET :8086/actuator/prometheus` | — | Container `smart_heritage_feedback` chạy bằng user `feedback_user`; health UP; có số liệu `http_server_requests_*` | TB |
 | TC-85 | — | Smoke test toàn hệ thống (Bảo) | main mới nhất, đủ service | Chạy `scripts/smoke-test.ps1` (hoặc `.sh`) | — | Đăng nhập và 1 API chính của mỗi service qua Gateway đều đạt; chạy lại sau mỗi lần merge và tối Chủ nhật | C |
 
-### 8.7 Đặt trước cho tuần 6
+### 8.7 Tuần 6 – Xuất báo cáo
 
 | Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
 |---|---|---|---|---|---|---|---|
-| TC-86 | US17 | Xuất báo cáo thống kê PDF/Excel (Tuấn, tuần 6) | Đăng nhập `admin`; Dashboard có số liệu thật (TC-72) | Trên Dashboard chọn khoảng ngày, bấm Xuất PDF rồi Xuất Excel; mở 2 file | Khoảng ngày có dữ liệu mẫu | Tải về 2 file mở được; số liệu khớp Dashboard cùng bộ lọc; tiếng Việt hiển thị đúng; visitor gọi API xuất → 403 | TB |
+| TC-86 | US17 | Xuất báo cáo thống kê PDF/Excel (Tuấn, tuần 6) | Đăng nhập `admin`; Dashboard có số liệu thật (TC-72) | Trên Dashboard chọn khoảng ngày, bấm Xuất PDF rồi Xuất Excel; mở 2 file | Khoảng ngày có dữ liệu mẫu | Tải về 2 file mở được; số liệu khớp Dashboard cùng bộ lọc; tiếng Việt hiển thị đúng; visitor gọi API xuất → 403 | C |
+| TC-108 | US17 | File Excel đủ sheet (Tuấn) | Đăng nhập `admin` | `GET /api/statistics/export?format=xlsx&from=2026-10-01&to=2026-11-30` | Khoảng ngày có dữ liệu mẫu | Tải về file mở được bằng Excel, có 4 sheet Tổng quan, Top hiện vật, Ngôn ngữ, Đánh giá; số khớp Dashboard | C |
+| TC-109 | US17 | File PDF đúng tiếng Việt (Tuấn) | Đăng nhập `admin` | `GET /api/statistics/export?format=pdf&from=2026-10-01&to=2026-11-30&siteId=1` | Di tích 1 | Có tiêu đề, khoảng ngày, bảng số liệu; tiếng Việt có dấu hiển thị đúng | C |
+| TC-110 | US17, US24 | Phân quyền xuất báo cáo (Tuấn) | Token `visitor_an` | Gọi API như TC-108 bằng token visitor, sau đó không token; thử `format=doc` bằng token admin | — | Visitor → 403; không token → 401; `format` sai → 400 | C |
 
-**Tổng: 86 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
-Đặt trước cho tuần 6: 1 (TC-86).
-Unit test tự động đi kèm: feedback-service `mvn test` (39 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
-app `flutter test` (gồm `test/features/feedback/feedback_service_test.dart`).
+### 8.8 Tuần 6 – Sự kiện RabbitMQ
+
+Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-87 | US22 | VisitRecorded khi ghi 1 lượt (Phú) | Đăng nhập `visitor_an` | `POST /api/me/visits` | `{"artifactId":1,"source":"BEACON"}` | Có đúng 1 tin routing key `visit.recorded`; `data` có `visitId, userId, artifactId, siteId, detectedAt, durationSeconds, source` | C |
+| TC-88 | US21, US22 | VisitRecorded khi gửi theo lô (Phú) | Đăng nhập `visitor_an` | `POST /api/me/visits/batch` 2 lần cùng `clientEventId` | 2 event có `clientEventId` khác nhau | Lần 1: 2 tin `visit.recorded`; lần 2 (trùng): không có tin mới | C |
+| TC-89 | US08 | FeedbackCreated khi đánh giá mới (Tường) | Đăng nhập `visitor_mai`, chưa đánh giá hiện vật 3 | `POST /api/artifacts/3/feedbacks` | `{"rating":4,"comment":"Rất hay"}` | 201; có đúng 1 tin `feedback.created`, `type = FeedbackCreated`; `data` có `feedbackId, userId = 3, artifactId = 3, rating = 4, createdAt` | C |
+| TC-90 | US08 | Gửi lại không phát FeedbackCreated (Tường) | Sau TC-89 | Gửi lại `POST /api/artifacts/3/feedbacks` | `{"rating":2}` | 200, đánh giá về PENDING; không có tin `feedback.created` mới | C |
+| TC-91 | US15, US20 | FeedbackApproved khi Admin duyệt (Tường) | Đánh giá PENDING id 3 | `PATCH /api/admin/feedbacks/3/status` bằng token admin | `{"status":"APPROVED"}` | 200; có đúng 1 tin `feedback.approved`; `data` có `feedbackId = 3, userId = 3, artifactId = 1`, `artifactName` là tên hiện vật 1 | C |
+| TC-92 | US15 | Không báo lặp khi duyệt lại hoặc ẩn (Tường) | Sau TC-91 | Gửi lại APPROVED cho id 3; gửi REJECTED cho id 5 | — | Cả 2 trả 200; không có tin `feedback.approved` mới | C |
+| TC-93 | — | RabbitMQ tắt không ảnh hưởng đánh giá (Tường) | `docker stop smart_heritage_rabbitmq` | Gửi đánh giá, duyệt đánh giá; xem `:8086/actuator/health` và log | — | API vẫn 200/201 trong khoảng 2 giây; dữ liệu đã lưu; health UP; log ghi "Không gửi được sự kiện" kèm `eventId` | C |
+| TC-94 | US10, US11, US14 | ArtifactUpdated khi đổi hiện vật (Xuân Anh) | Đăng nhập `admin` | Tạo, sửa, xóa hiện vật; sửa nội dung đa ngôn ngữ; thêm media trên CMS | — | Mỗi thao tác có 1 tin `artifact.updated`; `data` có `artifactId, siteId, changedFields, updatedAt`; `changedFields` đúng phần vừa sửa | C |
+| TC-95 | US07 | Sửa hiện vật thì xóa cache (Phú, Xuân Anh) | Đã mở Yêu thích có hiện vật 2 | Sửa tên hiện vật 2 trên CMS; `GET /api/me/favorites`; xem log 2 service | Tên mới | Log personalization có xóa key `artifact:summary:2`; Yêu thích hiện tên mới ngay | C |
+| TC-96 | US12, US18 | Đổi beacon thì registry mới (Xuân Anh, Khoa) | Beacon 4 chưa gán | Gán beacon 4 cho hiện vật 2; `GET /api/ibeacons/registry` | `{"artifactId":2}` | Có sự kiện tương ứng; registry trả beacon 4 trỏ hiện vật 2 | C |
+| TC-97 | — | Không gửi sự kiện khi lưu DB thất bại (Tường, các bên gửi) | Dữ liệu sạch | Gửi đồng thời 2 lần đầu cùng user, cùng hiện vật (như TC-83); gửi đánh giá với `rating` sai | — | Lần bị 409 hoặc 400 không có tin; tổng số tin `feedback.created` đúng bằng số dòng mới | TB |
+| TC-98 | — | Sự kiện đúng khung chung (Bảo) | Đã có tin của cả 5 loại | Đọc tin trong `qa.events` | — | Mọi tin có `eventId` (UUID), `type`, `version`, `occurredAt`, `data` | C |
+| TC-99 | — | Bên nhận chống xử lý trùng (Tuấn, Khoa, Phú) | Có tin đã xử lý | Trên RabbitMQ UI publish lại đúng tin đó vào queue của bên nhận | Cùng `eventId` | Không đếm thêm, không gửi FCM lần 2, log ghi bỏ qua | C |
+| TC-100 | — | Lỗi quá 3 lần vào DLQ (Bảo, các bên nhận) | Tạo lỗi xử lý ở bên nhận (ví dụ publish tin sai `data`) | Publish tin vào queue của bên nhận; xem DLQ và Grafana | Tin sai | Sau tối đa 3 lần xử lý lỗi, tin nằm trong DLQ; Grafana hiện số tin DLQ tăng | TB |
+
+### 8.9 Tuần 6 – Thông báo, pin beacon, thống kê thời gian thực
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-101 | US15, US20 | Du khách nhận thông báo khi được duyệt (Tường, Khoa) | Điện thoại Android đăng nhập `visitor_mai`, đã có FCM token | Admin duyệt đánh giá PENDING của `visitor_mai` trên Web | Id 3, hiện vật 1 | Trong ≤ 1 phút điện thoại nhận "Đánh giá của bạn về <tên hiện vật> đã được duyệt" | C |
+| TC-102 | US20 | Admin được báo có đánh giá mới (Khoa, P1) | Điện thoại đăng nhập `admin` | Du khách gửi đánh giá mới | — | Admin nhận thông báo; gửi lại (ghi đè) thì không báo | T |
+| TC-103 | US13 | Pin thấp phát BeaconBatteryLow (Khoa) | Đăng nhập `admin`, profile mq | `PUT /api/ibeacons/{id}/battery` đặt 15%; chờ tác vụ 15 phút hoặc chạy ngay bằng API của Khoa | Mức pin 15 (đối chiếu Swagger) | Có tin `beacon.battery.low` với `beaconId, siteId, batteryLevel, checkedAt`; đặt 50% thì không có tin | C |
+| TC-104 | US13, US20 | Admin nhận cảnh báo pin (Khoa) | Sau TC-103 | Xem điện thoại trong topic `admins`; mở Web iBeacon | Beacon pin 15% | Điện thoại nhận thông báo; Web hiện biểu tượng cảnh báo cạnh beacon | C |
+| TC-105 | US16, US22 | Dashboard đổi khi có lượt tham quan mới (Tuấn) | Mở `dashboard.html`, tắt NiFi | Ghi 1 lượt như TC-87, không tải lại trang | — | "Lượt xem hôm nay" tăng 1 và top hiện vật hôm nay cập nhật trong ≤ 30 giây | C |
+| TC-106 | US16 | Dashboard đếm đánh giá mới (Tuấn) | Như TC-105 | Gửi 1 đánh giá mới (TC-89) | — | Số đánh giá thời gian thực tăng 1; gửi lại không tăng | TB |
+| TC-107 | US16, US22 | NiFi tính bảng tổng hợp theo ngày (Tuấn) | `--profile nifi` | Chạy flow định kỳ bằng tay; chạy lại lần 2 | Dữ liệu mẫu | Bảng tổng hợp có số đúng theo ngày; chạy lại không nhân đôi | TB |
+
+### 8.10 Tuần 6 – Hoàn thiện Mobile và Web
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-111 | US07 | Màn Lịch sử (Phú) | Đăng nhập `visitor_an` | Mở Lịch sử; kéo xuống; bấm 1 dòng | — | Nhóm theo ngày, có thời gian dừng; tải lại được; mở đúng chi tiết hiện vật | C |
+| TC-112 | US07 | Màn Yêu thích (Phú) | Đăng nhập `visitor_an` | Bỏ yêu thích ngay trên danh sách đến khi hết | — | Dòng biến mất ngay; danh sách trống có hướng dẫn | C |
+| TC-113 | US21 | Báo đang ngoại tuyến (Phú) | Bật chế độ máy bay, có lượt trong hàng đợi | Mở Lịch sử | — | Hiện "Đang ngoại tuyến – sẽ đồng bộ sau"; có mạng lại thì đồng bộ và mất dòng này | TB |
+| TC-114 | US08 | Sau khi gửi hiện chờ duyệt (Tường) | Đăng nhập `visitor1`, chưa đánh giá hiện vật 2 | Chi tiết hiện vật 2 → Đánh giá → 5 sao → Gửi | 5★ | Hiện "Đã gửi đánh giá", trạng thái "Đánh giá đang chờ duyệt", có nút "Xem đánh giá của tôi" | C |
+| TC-115 | US08 | Màn "Đánh giá của tôi" (Tường) | Đăng nhập `visitor_mai`; có đánh giá đủ trạng thái | Menu bên → "Đánh giá của tôi"; Admin đổi trạng thái; kéo xuống; bấm 1 dòng | Id 3 PENDING, id 5 REJECTED | Hiện tên hiện vật, số sao, bình luận, ngày và nhãn Chờ duyệt/Đã duyệt/Không được duyệt; nhãn đổi sau khi tải lại; bấm mở đúng màn đánh giá; tài khoản mới thấy hướng dẫn trống | C |
+| TC-116 | US08, US24 | API đánh giá của tôi (Tường) | Token `visitor_mai` | `GET /api/feedbacks/me` có token; không token; thêm header `X-User-Id: 2` giả | — | Có token: 200, chỉ đánh giá của user 3; không token: 401; header giả bị bỏ qua | C |
+| TC-117 | US15 | Số chờ duyệt trên menu Web (Tường) | Đăng nhập `admin`, có đánh giá PENDING | Mở `admin.html` và `heritage-sites.html`; duyệt hết trên `feedback.html`; tải lại | — | Nút "Phản hồi" hiện đúng số PENDING; hết chờ duyệt thì không hiện số; tắt feedback-service thì menu vẫn dùng được | C |
+| TC-118 | US15, US24 | Phân quyền số chờ duyệt (Tường) | — | `GET /api/admin/feedbacks/pending-count` bằng token admin, visitor, không token | — | Lần lượt 200 `{"pending":n}`, 403, 401 | C |
+| TC-119 | US05 | Chi tiết hiện vật không vỡ giao diện (Xuân Anh) | Hiện vật mô tả rất dài; hiện vật không có media | Mở trên màn hình nhỏ | — | Không tràn chữ, không lỗi layout; không có media vẫn hiển thị gọn | C |
+
+### 8.11 Tuần 6 – Giám sát và kiểm thử tải
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-120 | — | RabbitMQ trong Prometheus (Bảo) | `--profile monitoring --profile mq` | Mở Prometheus → Status → Targets | — | Target RabbitMQ UP | TB |
+| TC-121 | — | Tắt service thì cảnh báo bật (Bảo) | Grafana đang mở | Tắt content-service; chờ; bật lại | — | Cảnh báo bật trong ≤ 2 phút; bật lại thì cảnh báo tắt | C |
+| TC-122 | — | Các quy tắc cảnh báo khác (Bảo) | Như TC-121 | Tạo điều kiện: 5xx > 5% trong 5 phút; p95 > 2 giây; queue tồn > 100 tin; DLQ có tin | — | Từng cảnh báo hiện trên Grafana | TB |
+| TC-123 | — | Load test 500 người dùng ảo (Bảo) | Kịch bản k6 qua Gateway | Tăng dần tới 500 VU, gọi chi tiết hiện vật, nearby, registry, đăng nhập | — | `Docs/testing/load-test.md` ghi p95, tỉ lệ lỗi đã đo thật, so với p95 ≤ 2 giây; máy không đủ thì ghi rõ mức đã đạt và giới hạn phần cứng | C |
+| TC-124 | — | Demo Monitoring 5 phút (Bảo) | Theo kịch bản demo | Grafana → tắt content-service → cảnh báo bật → bật lại → cảnh báo tắt; bấm giờ | — | Chạy trọn trong 5 phút, không phải sửa gì lúc demo | C |
+
+### 8.12 Tuần 6 – Trường hợp đặc biệt, phân quyền, bản chốt (Ân)
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-125 | US21 | Mất mạng giữa luồng | App đang mở hiện vật | Bật chế độ máy bay; thao tác Yêu thích, Đánh giá, Lịch sử, Đánh giá của tôi | — | Có thông báo rõ, không crash; có mạng lại dùng được ngay | C |
+| TC-126 | US04 | Tắt Bluetooth khi đang quét | Đang ở màn quét | Tắt Bluetooth; bật lại | — | Hiện hướng dẫn, không crash; bật lại thì quét tiếp | C |
+| TC-127 | US04 | Từ chối quyền | Cài mới app | Từ chối quyền Bluetooth/Vị trí/Thông báo | — | Có hướng dẫn mở Cài đặt, các màn khác vẫn dùng được | C |
+| TC-128 | US20 | 2 beacon gần nhau | 2 thiết bị phát 1/1 và 1/2 đặt gần nhau | Đứng giữa 2 beacon 1 phút | — | Không nhảy qua lại liên tục; chỉ mở 1 hiện vật tại một thời điểm | TB |
+| TC-129 | — | Tắt 1 service | Hệ thống đang chạy | Lần lượt tắt content, feedback, personalization; dùng Web và app | — | Chức năng liên quan báo lỗi rõ (503), không treo; chức năng khác vẫn chạy; bật lại dùng được | C |
+| TC-130 | US24 | VISITOR vào trang quản trị | Token `visitor_an` | Mở `admin.html`, `feedback.html`; gọi API ghi `POST /api/heritage-sites`, `PATCH /api/admin/feedbacks/3/status` | — | Trang chuyển về đăng nhập hoặc báo không đủ quyền; API trả 403 | C |
+| TC-131 | — | Smoke test bản chốt code (Ân, Bảo) | Bản main lúc 18:00 Thứ 6 13/11 | Chạy `scripts/smoke-test.ps1` và lại luồng chính du khách, Admin | — | Đăng nhập, quét/giả lập beacon mở hiện vật, gửi và duyệt đánh giá đều đạt | C |
+
+**Tổng: 131 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
+Tuần 6: 46 (TC-86 → TC-131).
+Unit test tự động đi kèm: feedback-service `mvn test` (59 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
+app `flutter test` (gồm thư mục `test/features/feedback`, 26 test).
 
 ## 9. Truy vết yêu cầu
 
@@ -272,37 +375,37 @@ app `flutter test` (gồm `test/features/feedback/feedback_service_test.dart`).
 | US04 | TC-10, TC-11, TC-58, TC-61 | |
 | US05 | TC-12, TC-13, TC-54, TC-55 | |
 | US06 | TC-14, TC-56, TC-57 | |
-| US07 | TC-15, TC-16, TC-64 | |
-| US08 | TC-17 → TC-21, TC-36, TC-65 → TC-68 | |
+| US07 | TC-15, TC-16, TC-64, TC-95, TC-111, TC-112 | |
+| US08 | TC-17 → TC-21, TC-36, TC-65 → TC-68, TC-89, TC-90, TC-114 → TC-116 | |
 | US09 | TC-22, TC-23 | |
 | US10 | TC-24 → TC-27 | |
 | US11 | TC-28, TC-74 | TC-74 là việc P2 |
 | US12 | TC-30 → TC-32 | |
-| US13 | TC-33, TC-71 | |
+| US13 | TC-33, TC-71, TC-103, TC-104 | |
 | US14 | TC-29, TC-73 | TC-73 là việc P1 |
-| US15 | TC-34, TC-35, TC-68, TC-70 | |
-| US16 | TC-36, TC-37, TC-72, TC-81 | |
-| US17 | TC-86 | Xuất PDF/Excel: chạy ở tuần 6 |
+| US15 | TC-34, TC-35, TC-68, TC-70, TC-91, TC-92, TC-101, TC-117, TC-118 | |
+| US16 | TC-36, TC-37, TC-72, TC-81, TC-105 → TC-107 | |
+| US17 | TC-86, TC-108 → TC-110 | Xuất PDF/Excel |
 | US18 | TC-10, TC-58 | |
 | US19 | TC-50, TC-59 | |
-| US20 | TC-50, TC-60, TC-69 | |
-| US21 | TC-43, TC-45, TC-57, TC-63, TC-75, TC-79 | |
-| US22 | TC-43, TC-49, TC-62, TC-63, TC-79 → TC-81 | |
+| US20 | TC-50, TC-60, TC-69, TC-101, TC-102, TC-104, TC-128 | |
+| US21 | TC-43, TC-45, TC-57, TC-63, TC-75, TC-79, TC-88, TC-113, TC-125 | |
+| US22 | TC-43, TC-49, TC-62, TC-63, TC-79 → TC-81, TC-87, TC-88, TC-105, TC-107 | |
 | US23 | TC-12, TC-42, TC-54 | |
-| US24 | TC-38 → TC-41, TC-44, TC-75, TC-76, TC-80, TC-83 | |
-| Phi chức năng | TC-46 → TC-48, TC-77, TC-78, TC-82, TC-84, TC-85 | Định tuyến, giám sát, Swagger, cache, triển khai |
+| US24 | TC-38 → TC-41, TC-44, TC-75, TC-76, TC-80, TC-83, TC-110, TC-116, TC-118, TC-130 | |
+| Phi chức năng | TC-46 → TC-48, TC-77, TC-78, TC-82, TC-84, TC-85, TC-93, TC-97 → TC-100, TC-120 → TC-124, TC-129, TC-131 | Định tuyến, giám sát, Swagger, cache, triển khai, sự kiện, cảnh báo, kiểm thử tải |
 
-Phủ 24/24 user story (US17 có test case TC-86, chạy ở tuần 6 khi có chức năng xuất báo cáo).
+Phủ 24/24 user story.
 
-## 10. Test case phụ thuộc việc chưa xong (tình trạng 01/11/2026)
+## 10. Test case phụ thuộc việc chưa xong (tình trạng 09/11/2026)
 
 | Việc chưa xong | Người | Test case bị chặn | Cách chạy tạm |
 |---|---|---|---|
-| Route Gateway `/api/artifacts/*/rating-summary`, `/api/admin/feedbacks/**` | Tường (Bảo review) | TC-34 → TC-36, TC-47, TC-70, TC-75 (phần feedback) | Đã thêm trên nhánh `feature/tuong-w5-feedback-web-mobile` (có `GatewayRoutesConfigTest`), chờ merge. Trước khi merge, Web/8080 duyệt vào Backend cũ (`smart_heritage_db`), KHÔNG tính là đạt |
-| Xuất báo cáo PDF/Excel | Tuấn | TC-86 | Tuần 6 |
-| personalization-service 8085 | Phú | TC-62 → TC-64, TC-76 (phần visits), TC-82 | Chạy trên Backend cũ |
-| analytics-service 8087 + flow NiFi feedbacks, danh mục | Tuấn | TC-72, TC-79 → TC-81 | — |
-| Luồng quét W5, nút giả lập, FCM, `PUT /api/ibeacons/{id}/position` | Khoa | TC-58 → TC-61, TC-69, TC-71 | — |
-| Swagger gom, monitoring, smoke test | Bảo | TC-77, TC-78, TC-85 | Swagger từng cổng riêng |
+| Thư viện sự kiện dùng chung (EventEnvelope, gửi sau commit) | Bảo | TC-98 (phần khung chung của module common) | feedback-service đang dùng khung tạm cùng định dạng JSON; đổi sang thư viện chung khi có trên main |
+| VisitRecorded, xóa cache, Lịch sử/Yêu thích | Phú | TC-87, TC-88, TC-95, TC-111 → TC-113 | Theo PR của Phú |
+| ArtifactUpdated, hoàn thiện chi tiết | Xuân Anh | TC-94 → TC-96, TC-119 | Theo PR của Xuân Anh |
+| Nhận sự kiện gửi FCM, pin beacon, registry | Khoa | TC-96, TC-99 → TC-104 | TC-91 kiểm tra được phần gửi sự kiện, chưa có thông báo tới điện thoại |
+| Đếm thời gian thực, NiFi định kỳ, xuất báo cáo | Tuấn | TC-86, TC-99, TC-100, TC-105 → TC-110 | Theo PR của Tuấn |
+| Prometheus RabbitMQ, cảnh báo, k6, demo | Bảo | TC-100, TC-120 → TC-124 | Theo PR của Bảo |
 
-Test case bản đồ (Ân) và đa ngôn ngữ/media (Xuân Anh) sẽ được bổ sung chi tiết khi hai bạn gửi vào Chủ nhật 08/11 (task tuần 5).
+Bản build Mobile chưa ổn định đầu tuần thì test Web và API trước, Mobile từ Thứ 4 (`task_w6_chi_tiet`, mục 7).

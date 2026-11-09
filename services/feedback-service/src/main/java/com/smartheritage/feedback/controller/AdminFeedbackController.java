@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ADMIN kiểm duyệt đánh giá (US15).
@@ -20,6 +21,7 @@ import java.util.List;
  *            (bỏ trống = tất cả)
  *  PUT/PATCH /api/admin/feedbacks/{id}/status – Duyệt (APPROVED) hoặc từ chối (REJECTED).
  *            PUT theo task tuần 4; giữ PATCH để tương thích với Backend cũ (tuần 3).
+ *  GET       /api/admin/feedbacks/pending-count – Số đánh giá chờ duyệt cho menu Web Admin (tuần 6)
  *
  * Quyền chỉ ADMIN do Gateway kiểm tra (/api/admin/** → ADMIN).
  * Tuần 5: Gateway phải chuyển /api/admin/feedbacks/** sang feedback-service.
@@ -46,6 +48,13 @@ public class AdminFeedbackController {
             @Parameter(description = "ID hiện vật; bỏ trống = mọi hiện vật", example = "1")
             @RequestParam(required = false) Long artifactId) {
         return ResponseEntity.ok(ApiResponse.ok("Thành công", feedbackService.getFeedbacksForAdmin(status, artifactId)));
+    }
+
+    @Operation(summary = "Số đánh giá đang chờ duyệt (hiện trên menu Web Admin)",
+            description = "Ví dụ data: {\"pending\": 2}")
+    @GetMapping("/pending-count")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> pendingCount() {
+        return ResponseEntity.ok(ApiResponse.ok("Thành công", Map.of("pending", feedbackService.countPending())));
     }
 
     @Operation(summary = "ADMIN duyệt hoặc từ chối một đánh giá (APPROVED / REJECTED)",

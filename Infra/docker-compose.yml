@@ -125,6 +125,13 @@ services:
       # Kiểm tra hiện vật tồn tại + ACTIVE; lấy tên người gửi qua /api/auth/me
       CONTENT_SERVICE_URL: http://content-service:8083
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Tuần 6: feedback-service LUÔN gửi sự kiện đánh giá lên RabbitMQ (exchange sh.events).
+      # Container rabbitmq nằm ở profile compose "mq": chạy kèm --profile mq. Không có RabbitMQ thì
+      # chỉ ghi log, API vẫn chạy, nhưng mỗi lần gửi/duyệt có thể chậm thêm tối đa ~2s (connection-timeout).
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
     ports:
       - "8086:8086"
     depends_on:

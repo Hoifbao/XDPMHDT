@@ -16,6 +16,32 @@ mặc định `FEEDBACK_SERVICE_URL` của Gateway là `http://localhost:8086`. 
 | GET | `/api/artifacts/{id}/rating-summary` | Công khai | Mới: điểm trung bình, chỉ tính APPROVED |
 | GET | `/api/admin/feedbacks?status=&artifactId=` | ADMIN | Lọc PENDING/APPROVED/REJECTED và/hoặc theo hiện vật, bỏ trống = tất cả |
 | PUT, PATCH | `/api/admin/feedbacks/{id}/status` | ADMIN | `{"status":"APPROVED"}` hoặc `REJECTED` |
+| GET | `/api/admin/feedbacks/pending-count` | ADMIN | Tuần 6: số chờ duyệt trên menu Web, `{"pending": n}` |
+| GET | `/api/feedbacks/me` | Đăng nhập | Tuần 6: đánh giá của tôi, mọi trạng thái. Thiếu `X-User-Id` trả 401 |
+
+## Sự kiện RabbitMQ (tuần 6)
+
+Gửi lên exchange topic `sh.events`, chỉ sau khi giao dịch DB đã commit. RabbitMQ lỗi thì ghi log kèm `eventId`, API vẫn thành công.
+
+| Sự kiện | Routing key | Khi nào | `data` |
+|---|---|---|---|
+| FeedbackCreated | `feedback.created` | Du khách tạo đánh giá mới (gửi lại để ghi đè thì không gửi, tránh đếm trùng) | `feedbackId, userId, artifactId, rating, createdAt` |
+| FeedbackApproved | `feedback.approved` | Đánh giá chuyển sang APPROVED (duyệt lại đánh giá đã duyệt thì không gửi) | `feedbackId, userId, artifactId, artifactName` |
+
+- Không lấy được tên hiện vật từ content-service thì `artifactName` là `Hiện vật #<id>`.
+- Queue và dead-letter queue do bên nhận tự tạo. Bên nhận bỏ qua sự kiện trùng theo `eventId`.
+- Bên nhận nên dùng `@RabbitListener` với tham số là record của service mình (cùng cấu trúc `eventId, type, version, occurredAt, data`):
+  header `__TypeId__` hiện là lớp `FeedbackEventEnvelope` của feedback-service, không có ở service khác.
+- `artifactName` của FeedbackApproved được lấy **sau khi commit**, giao dịch DB không phải chờ content-service.
+- Metric Prometheus: `feedback_events_published_total{type, result}` với `result` = `success` | `failed`.
+
+**Rủi ro đã biết**
+
+- Không có publisher confirm hay outbox: RabbitMQ chết đúng lúc gửi thì sự kiện bị mất (đánh giá vẫn lưu). Xem số lần lỗi qua metric `result="failed"`.
+- `management.health.rabbit.enabled: false`: `/actuator/health` không báo RabbitMQ DOWN. Trạng thái RabbitMQ cần theo dõi riêng trên Prometheus/Grafana.
+- Không chạy `--profile mq` thì mỗi lần gửi/duyệt có thể chậm thêm tối đa ~2 giây (connection-timeout).
+- **Việc tạm:** thư viện chung của module common chưa có trên main nên service dùng `event/FeedbackEventEnvelope`, cùng định dạng JSON.
+  Khi thư viện có trên main: giữ 2 hàm public của `FeedbackEventPublisher`, thay phần envelope và phần gửi bằng hàm của thư viện, rồi xóa `FeedbackEventEnvelope`.
 
 ## Khác Backend cũ
 
@@ -58,6 +84,8 @@ Chạy cùng cả hệ thống:
 |---|---|
 | `DB_URL` | `jdbc:mysql://localhost:3307/feedback_db?...` |
 | `DB_USERNAME` / `DB_PASSWORD` | `root` / `rootpassword123` (user riêng: `feedback_user` / `feedback_pass_dev`) |
+| `SPRING_RABBITMQ_HOST` / `SPRING_RABBITMQ_PORT` | `localhost` / `5672` |
+| `SPRING_RABBITMQ_USERNAME` / `SPRING_RABBITMQ_PASSWORD` | `smartheritage` / `change-me-rabbit` |
 | `CONTENT_SERVICE_URL` | `http://localhost:8083` (content-service; trong docker-compose: `http://content-service:8083`) |
 | `AUTH_SERVICE_URL` | `http://localhost:8081` |
 

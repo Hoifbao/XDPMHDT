@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../auth/login_screen.dart';
 import 'feedback_service.dart';
+import 'my_feedbacks_screen.dart';
 
 // Màu lấy từ HomePage trong main.dart
 const Color _sage = Color(0xFF718B78);
@@ -114,6 +115,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       _result = null;
       _submitError = null;
     });
+  }
+
+  void _openMyFeedbacks() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyFeedbacksScreen()),
+    );
   }
 
   Future<void> _openLogin() async {
@@ -498,7 +506,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 'Bình luận',
                 Text(comment.isEmpty ? 'Không có bình luận' : comment, style: _valueStyle),
               ),
-              _summaryItem('Trạng thái', _pill('Chờ duyệt')),
+              _summaryItem('Trạng thái', _pill('Đánh giá đang chờ duyệt')),
             ],
           ),
         ),
@@ -516,6 +524,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           child: OutlinedButton(
             onPressed: _editAgain,
             child: const Text('Sửa đánh giá'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 50,
+          child: OutlinedButton(
+            onPressed: _openMyFeedbacks,
+            child: const Text('Xem đánh giá của tôi'),
           ),
         ),
       ],

@@ -5,6 +5,7 @@ import '../features/auth/login_screen.dart';
 import '../features/auth/profile_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/favorites/favorites_screen.dart';
+import '../features/feedback/my_feedbacks_screen.dart';
 import '../features/heritage_sites/map_screen.dart'; // Ân W5
 import '../features/visit_history/visit_history_screen.dart';
 
@@ -79,6 +80,11 @@ class AppSidebar extends StatelessWidget {
                   leading: const Icon(Icons.history),
                   title: const Text('Lịch sử tham quan'),
                   onTap: () => _open(context, const VisitHistoryScreen()),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.rate_review_outlined),
+                  title: const Text('Đánh giá của tôi'),
+                  onTap: () => _open(context, const MyFeedbacksScreen()),
                 ),
                 ListTile(
                   leading: const Icon(Icons.logout),

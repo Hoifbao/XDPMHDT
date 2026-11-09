@@ -90,7 +90,8 @@ void main() {
       await tester.tap(find.text('Gửi đánh giá'));
       await tester.pumpAndSettle();
       expect(find.text('Đã gửi đánh giá'), findsOneWidget);
-      expect(find.text('Chờ duyệt'), findsOneWidget);
+      expect(find.text('Đánh giá đang chờ duyệt'), findsOneWidget);
+      expect(find.text('Xem đánh giá của tôi'), findsOneWidget);
     }, () => _api(posts: posts));
     expect(posts, hasLength(1));
     expect(posts.single.url.path, '/api/artifacts/2/feedbacks');
