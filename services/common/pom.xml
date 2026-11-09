@@ -6,6 +6,9 @@
   - web.ApiException          : ném lỗi kèm mã HTTP (400, 401, 403, 404...)
   - web.CurrentUser           : đọc người dùng hiện tại từ header X-User-* do Gateway gắn
   - security.JwtService       : tạo/kiểm tra access token (chỉ Gateway và auth-service dùng)
+  - events.*                 : sự kiện RabbitMQ dùng chung (tuần 6): EventEnvelope, EventPublisher, EventsConfig.
+                               Thư viện AMQP/Micrometer khai báo optional: service nào dùng thì tự thêm
+                               spring-boot-starter-amqp và @Import(EventsConfig.class).
   KHÔNG thêm spring-boot-starter-web vào đây: Gateway chạy WebFlux, có Spring MVC sẽ không khởi động được.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -63,6 +66,28 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Tuần 6: sự kiện RabbitMQ. optional = không lan sang service import common (Gateway, auth...) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

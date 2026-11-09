@@ -123,3 +123,78 @@ và `http://localhost:8082/actuator/prometheus` (phải ra số liệu).
 | Gọi API qua Gateway bị 401 dù đã login | Gateway, auth-service, Backend cũ phải cùng `JWT_SECRET` |
 | API cần đăng nhập trả 401 khi gọi thẳng cổng riêng | Bình thường: header `X-User-*` chỉ có khi đi qua Gateway. Test qua 8080 |
 | Trình duyệt báo lỗi CORS "multiple values" | Xóa `@CrossOrigin` / cấu hình CORS trong service của mình |
+
+---
+
+## Sự kiện RabbitMQ dùng chung (tuần 6, `common/events`)
+
+Mọi sự kiện đi qua exchange topic `sh.events`, cùng một khung JSON:
+
+```json
+{ "eventId": "uuid", "type": "FeedbackApproved", "version": 1, "occurredAt": "2026-11-10T01:00:00Z", "data": { } }
+```
+
+### Cài vào service
+
+1. `pom.xml` của service: thêm `spring-boot-starter-amqp` (common khai báo optional nên không tự kéo theo).
+2. Lớp Application: `@Import({GlobalExceptionHandler.class, EventsConfig.class})`.
+3. Xóa exchange / `MessageConverter` riêng của service nếu có (2 `MessageConverter` cùng lúc thì Spring Boot không gắn cái nào vào `RabbitTemplate`).
+4. `docker compose --profile core --profile mq up -d` để có RabbitMQ.
+
+### Bên gửi
+
+```java
+private final EventPublisher events;
+
+// Gửi sau commit, rollback thì không gửi. RabbitMQ lỗi chỉ ghi log + metric, API vẫn thành công.
+events.publishAfterCommit("feedback.approved", "FeedbackApproved",
+        () -> new FeedbackApprovedData(id, userId, artifactId, artifactClient.name(artifactId)));
+```
+
+Cần chắc chắn RabbitMQ đã nhận (bảng outbox của content-service): dùng `sendConfirmed`, lỗi thì ném `EventPublishException`,
+chỉ đánh dấu đã gửi khi không có lỗi, gửi lại giữ nguyên `eventId`. Bật thêm trong `application.yml`:
+
+```yaml
+spring:
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+```
+
+```java
+events.sendConfirmed("artifact.updated",
+        EventEnvelope.of(UUID.fromString(entry.getEventId()), "ArtifactUpdated", entry.getOccurredAt(), data),
+        Duration.ofSeconds(5));
+```
+
+### Bên nhận
+
+- Không import class của service khác. Tự khai báo record data, chỉ cần các trường mình dùng (trường thừa bị bỏ qua).
+- Message không có header `__TypeId__`; kiểu dữ liệu lấy từ tham số của `@RabbitListener`.
+- Tự tạo queue, dead-letter queue và binding vào `sh.events`.
+- Bỏ trùng theo `eventId` (RabbitMQ có thể giao một tin nhiều lần): lưu `eventId` đã xử lý, gặp lại thì bỏ qua.
+
+```java
+record FeedbackApprovedData(Long feedbackId, Long userId, String artifactName) {}
+
+@RabbitListener(queues = "beacon.feedback-approved")
+void onFeedbackApproved(EventEnvelope<FeedbackApprovedData> event) {
+    if (!processedEvents.markIfNew(event.eventId())) {
+        return; // đã xử lý
+    }
+    // gửi FCM cho event.data().userId()
+}
+```
+
+### Giám sát
+
+Metric `sh_events_published_total{type, result="success"|"failed"}` trên `/actuator/prometheus` (cần Micrometer, các service đã có).
+`publishAfterCommit` không có publisher confirm: `success` nghĩa là đã đưa tin vào kết nối, chưa phải RabbitMQ xác nhận.
+
+### Đổi từ bản tạm
+
+- feedback-service: thay `FeedbackEventEnvelope` + phần gửi trong `FeedbackEventPublisher` bằng `EventPublisher`, xóa `RabbitEventConfig`.
+  Metric đổi tên từ `feedback_events_published_total` sang `sh_events_published_total` (nhớ sửa alert/Grafana nếu đã dùng).
+- content-service: cài `ArtifactEventTransport` bằng `sendConfirmed`.
