@@ -33,12 +33,33 @@ Gửi lên exchange topic `sh.events`, chỉ sau khi giao dịch DB đã commit.
 - Bên nhận nên dùng `@RabbitListener` với tham số là record của service mình (cùng cấu trúc `eventId, type, version, occurredAt, data`):
   header `__TypeId__` hiện là lớp `FeedbackEventEnvelope` của feedback-service, không có ở service khác.
 - `artifactName` của FeedbackApproved được lấy **sau khi commit**, giao dịch DB không phải chờ content-service.
-- Metric Prometheus: `feedback_events_published_total{type, result}` với `result` = `success` | `failed`.
+- Metric Prometheus: `feedback_events_published_total{type, result}` với `result` = `success` | `failed`. Cả 4 tổ hợp được tạo sẵn bằng 0 lúc khởi động, nên alert dùng `increase()` bắt được cả lần lỗi đầu tiên.
+
+**Hướng dẫn cho bên nhận (Khoa, Tuấn)**
+
+1. Không import class của feedback-service: mỗi service tự khai báo record, chỉ cần các trường mình dùng.
+2. Khai báo bean `Jackson2JsonMessageConverter`; kiểu dữ liệu lấy từ tham số của `@RabbitListener`.
+3. Tự tạo queue, dead-letter queue và binding vào `sh.events` theo routing key cần nhận.
+4. Lưu `eventId` đã xử lý, gặp lại thì bỏ qua, vì RabbitMQ có thể giao một tin nhiều lần.
+
+```java
+record FeedbackEvent<T>(UUID eventId, String type, int version, Instant occurredAt, T data) {}
+record FeedbackApprovedData(Long feedbackId, Long userId, Long artifactId, String artifactName) {}
+
+@RabbitListener(queues = "notification.feedback-approved")
+void onFeedbackApproved(FeedbackEvent<FeedbackApprovedData> event) {
+    if (!processedEvents.markIfNew(event.eventId())) {
+        return; // tin đã xử lý
+    }
+    // gửi FCM cho event.data().userId()
+}
+```
 
 **Rủi ro đã biết**
 
 - Không có publisher confirm hay outbox: RabbitMQ chết đúng lúc gửi thì sự kiện bị mất (đánh giá vẫn lưu). Xem số lần lỗi qua metric `result="failed"`.
 - `management.health.rabbit.enabled: false`: `/actuator/health` không báo RabbitMQ DOWN. Trạng thái RabbitMQ cần theo dõi riêng trên Prometheus/Grafana.
+- `result="success"` chỉ có nghĩa là đã đưa tin vào kết nối, chưa phải RabbitMQ xác nhận đã nhận. Chưa có queue bind vào `sh.events` thì tin bị bỏ mà vẫn tính `success`.
 - Không chạy `--profile mq` thì mỗi lần gửi/duyệt có thể chậm thêm tối đa ~2 giây (connection-timeout).
 - **Việc tạm:** thư viện chung của module common chưa có trên main nên service dùng `event/FeedbackEventEnvelope`, cùng định dạng JSON.
   Khi thư viện có trên main: giữ 2 hàm public của `FeedbackEventPublisher`, thay phần envelope và phần gửi bằng hàm của thư viện, rồi xóa `FeedbackEventEnvelope`.
