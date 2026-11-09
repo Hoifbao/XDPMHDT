@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -207,7 +208,7 @@ class FeedbackServiceTest {
 
         feedbackService.updateStatus(3L, "APPROVED");
 
-        verify(eventPublisher).publishApproved(f, "Khuê Văn Các");
+        assertThat(approvedArtifactName(f)).isEqualTo("Khuê Văn Các");
     }
 
     @Test
@@ -218,7 +219,15 @@ class FeedbackServiceTest {
 
         assertThat(feedbackService.updateStatus(3L, "APPROVED").getStatus()).isEqualTo("APPROVED");
 
-        verify(eventPublisher).publishApproved(f, "Hiện vật #1");
+        assertThat(approvedArtifactName(f)).isEqualTo("Hiện vật #1");
+    }
+
+    /** Tên hiện vật được truyền dạng Supplier (lấy sau commit): gọi thử để kiểm tra giá trị. */
+    @SuppressWarnings("unchecked")
+    private String approvedArtifactName(Feedback f) {
+        ArgumentCaptor<Supplier<String>> name = ArgumentCaptor.forClass(Supplier.class);
+        verify(eventPublisher).publishApproved(eq(f), name.capture());
+        return name.getValue().get();
     }
 
     @Test

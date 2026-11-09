@@ -29,7 +29,17 @@ Gửi lên exchange topic `sh.events`, chỉ sau khi giao dịch DB đã commit.
 | FeedbackApproved | `feedback.approved` | Đánh giá chuyển sang APPROVED (duyệt lại đánh giá đã duyệt thì không gửi) | `feedbackId, userId, artifactId, artifactName` |
 
 - Không lấy được tên hiện vật từ content-service thì `artifactName` là `Hiện vật #<id>`.
-- Queue và dead-letter queue do bên nhận tự tạo.
+- Queue và dead-letter queue do bên nhận tự tạo. Bên nhận bỏ qua sự kiện trùng theo `eventId`.
+- Bên nhận nên dùng `@RabbitListener` với tham số là record của service mình (cùng cấu trúc `eventId, type, version, occurredAt, data`):
+  header `__TypeId__` hiện là lớp `FeedbackEventEnvelope` của feedback-service, không có ở service khác.
+- `artifactName` của FeedbackApproved được lấy **sau khi commit**, giao dịch DB không phải chờ content-service.
+- Metric Prometheus: `feedback_events_published_total{type, result}` với `result` = `success` | `failed`.
+
+**Rủi ro đã biết**
+
+- Không có publisher confirm hay outbox: RabbitMQ chết đúng lúc gửi thì sự kiện bị mất (đánh giá vẫn lưu). Xem số lần lỗi qua metric `result="failed"`.
+- `management.health.rabbit.enabled: false`: `/actuator/health` không báo RabbitMQ DOWN. Trạng thái RabbitMQ cần theo dõi riêng trên Prometheus/Grafana.
+- Không chạy `--profile mq` thì mỗi lần gửi/duyệt có thể chậm thêm tối đa ~2 giây (connection-timeout).
 - **Việc tạm:** thư viện chung của module common chưa có trên main nên service dùng `event/FeedbackEventEnvelope`, cùng định dạng JSON.
   Khi thư viện có trên main: giữ 2 hàm public của `FeedbackEventPublisher`, thay phần envelope và phần gửi bằng hàm của thư viện, rồi xóa `FeedbackEventEnvelope`.
 

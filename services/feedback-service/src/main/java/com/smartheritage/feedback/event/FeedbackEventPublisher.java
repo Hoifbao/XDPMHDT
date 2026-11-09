@@ -1,6 +1,7 @@
 package com.smartheritage.feedback.event;
 
 import com.smartheritage.feedback.entity.Feedback;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +11,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.function.Supplier;
+
 /**
  * Gửi sự kiện đánh giá lên exchange sh.events, chỉ SAU KHI giao dịch DB đã lưu thành công.
  * Giao dịch bị rollback thì không gửi gì.
  *
  * RabbitMQ lỗi chỉ ghi log kèm eventId: đánh giá đã lưu nên API vẫn báo thành công.
+ * Không có publisher confirm/outbox: RabbitMQ chết đúng lúc gửi thì sự kiện bị mất (xem README).
+ *
+ * Metric cho Prometheus: feedback_events_published_total{type, result="success"|"failed"}.
  *
  * Khi thư viện sự kiện của module common có trên main: giữ 2 hàm public, thay envelope và phần gửi
  * bằng hàm của thư viện, rồi xóa FeedbackEventEnvelope. FeedbackService không phải sửa.
@@ -30,29 +36,42 @@ public class FeedbackEventPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(FeedbackEventPublisher.class);
 
+    static final String METRIC_PUBLISHED = "feedback.events.published";
+
     private final RabbitTemplate rabbitTemplate;
+    private final MeterRegistry meterRegistry;
 
     public void publishCreated(Feedback feedback) {
         FeedbackEventData.Created data = new FeedbackEventData.Created(feedback.getId(), feedback.getUserId(),
                 feedback.getArtifactId(), feedback.getRating(), feedback.getCreatedAt());
-        sendAfterCommit(ROUTING_CREATED, FeedbackEventEnvelope.of(TYPE_CREATED, data));
+        FeedbackEventEnvelope<?> event = FeedbackEventEnvelope.of(TYPE_CREATED, data);
+        runAfterCommit(() -> send(ROUTING_CREATED, event));
     }
 
-    public void publishApproved(Feedback feedback, String artifactName) {
-        FeedbackEventData.Approved data = new FeedbackEventData.Approved(feedback.getId(), feedback.getUserId(),
-                feedback.getArtifactId(), artifactName);
-        sendAfterCommit(ROUTING_APPROVED, FeedbackEventEnvelope.of(TYPE_APPROVED, data));
+    /**
+     * Tên hiện vật được lấy SAU khi commit (artifactName.get() gọi content-service),
+     * để giao dịch DB không bị giữ trong lúc chờ service khác.
+     */
+    public void publishApproved(Feedback feedback, Supplier<String> artifactName) {
+        Long feedbackId = feedback.getId();
+        Long userId = feedback.getUserId();
+        Long artifactId = feedback.getArtifactId();
+        runAfterCommit(() -> {
+            FeedbackEventData.Approved data = new FeedbackEventData.Approved(feedbackId, userId, artifactId,
+                    artifactName.get());
+            send(ROUTING_APPROVED, FeedbackEventEnvelope.of(TYPE_APPROVED, data));
+        });
     }
 
-    private void sendAfterCommit(String routingKey, FeedbackEventEnvelope<?> event) {
+    private void runAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            send(routingKey, event);
+            action.run();
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                send(routingKey, event);
+                action.run();
             }
         });
     }
@@ -60,9 +79,15 @@ public class FeedbackEventPublisher {
     private void send(String routingKey, FeedbackEventEnvelope<?> event) {
         try {
             rabbitTemplate.convertAndSend(RabbitEventConfig.EXCHANGE, routingKey, event);
+            countPublished(event, "success");
             log.info("Đã gửi sự kiện {} eventId={}", event.type(), event.eventId());
         } catch (AmqpException e) {
+            countPublished(event, "failed");
             log.warn("Không gửi được sự kiện {} eventId={}: {}", event.type(), event.eventId(), e.getMessage());
         }
+    }
+
+    private void countPublished(FeedbackEventEnvelope<?> event, String result) {
+        meterRegistry.counter(METRIC_PUBLISHED, "type", event.type(), "result", result).increment();
     }
 }
