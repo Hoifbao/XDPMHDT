@@ -83,3 +83,25 @@ CREATE TABLE IF NOT EXISTS agg_daily_views (
     visitors INT  NOT NULL DEFAULT 0,                  -- số du khách khác nhau (COUNT DISTINCT user_id)
     PRIMARY KEY (day)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Tuần 6 (Tuấn): đếm thời gian thực từ sự kiện RabbitMQ (visit.recorded, feedback.created).
+-- Chỉ dùng cho số "hôm nay" trên Dashboard. Thống kê theo khoảng ngày và xuất PDF/Excel
+-- vẫn đọc fact_* (NiFi), KHÔNG cộng 2 nguồn với nhau để tránh đếm gấp đôi.
+
+-- eventId đã xử lý: RabbitMQ có thể giao một tin nhiều lần, gặp lại thì bỏ qua
+CREATE TABLE IF NOT EXISTS rt_processed_events (
+    event_id     CHAR(36)    NOT NULL,                 -- EventEnvelope.eventId (UUID)
+    event_type   VARCHAR(50) NOT NULL,                 -- VisitRecorded | FeedbackCreated
+    processed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (event_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Số đếm theo ngày và hiện vật: lượt xem hôm nay = SUM(views), top hiện vật hôm nay = ORDER BY views
+CREATE TABLE IF NOT EXISTS rt_daily_counters (
+    day         DATE   NOT NULL,                       -- ngày của detectedAt / createdAt
+    artifact_id BIGINT NOT NULL,
+    views       INT    NOT NULL DEFAULT 0,             -- số sự kiện visit.recorded
+    feedbacks   INT    NOT NULL DEFAULT 0,             -- số sự kiện feedback.created
+    rating_sum  INT    NOT NULL DEFAULT 0,             -- tổng điểm, điểm TB = rating_sum / feedbacks
+    PRIMARY KEY (day, artifact_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

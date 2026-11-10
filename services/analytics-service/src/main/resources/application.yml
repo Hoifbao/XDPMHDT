@@ -19,6 +19,21 @@ spring:
       ddl-auto: none
     open-in-view: false
     show-sql: false
+  # Tuần 6: nhận visit.recorded, feedback.created từ exchange sh.events (cần --profile mq)
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:smartheritage}
+    password: ${SPRING_RABBITMQ_PASSWORD:change-me-rabbit}
+    connection-timeout: 2s
+    listener:
+      simple:
+        # Xử lý lỗi 3 lần thì chuyển tin vào analytics.dlq, không requeue vô hạn
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
 
 springdoc:
   swagger-ui:
@@ -26,6 +41,10 @@ springdoc:
 
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
+  # Giống feedback-service: RabbitMQ chết không làm /actuator/health DOWN (API thống kê vẫn chạy)
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:
