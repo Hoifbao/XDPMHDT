@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 /**
  * feedback-service (Tường - Sprint 4): đánh giá và phản hồi của du khách cho hiện vật.
  * Cổng 8086, schema feedback_db. Tuần 5 mới route qua Gateway.
+ * Tuần 6: cấu hình sự kiện RabbitMQ dùng chung được nạp ở config/EventsImportConfig.
  */
 @SpringBootApplication
 @Import(GlobalExceptionHandler.class)
