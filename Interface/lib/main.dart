@@ -169,11 +169,16 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Smart Heritage',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF26352B),
+            // Cho tiêu đề co lại khi màn hình hẹp, tránh tràn ngang (OVERFLOWED BY 3)
+            const Flexible(
+              child: Text(
+                'Smart Heritage',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF26352B),
+                ),
               ),
             ),
           ],
