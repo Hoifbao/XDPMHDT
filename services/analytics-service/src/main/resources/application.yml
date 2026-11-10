@@ -34,6 +34,7 @@ spring:
           enabled: true
           max-attempts: 3
           initial-interval: 1s
+          multiplier: 2
 
 springdoc:
   swagger-ui:

@@ -240,11 +240,13 @@ function renderRealtime(data) {
     const box = document.getElementById('realtime-kpis');
     box.replaceChildren();
     const top = data.topArtifacts[0];
+    // dim_artifact chua dong bo (NiFi chua chay) thi chua co ten, hien theo id
+    const topName = top && (top.artifactName ?? ('Hiện vật #' + top.artifactId));
     const kpis = [
         { label: 'Lượt tương tác hôm nay', value: data.views.toLocaleString('vi-VN') },
         { label: 'Phản hồi mới hôm nay', value: data.feedbacks.toLocaleString('vi-VN') },
         { label: 'Điểm TB phản hồi hôm nay', value: data.averageRating ?? '—' },
-        { label: 'Hiện vật nổi bật hôm nay', value: top ? top.artifactName + ' (' + top.views + ')' : '—' }
+        { label: 'Hiện vật nổi bật hôm nay', value: top ? topName + ' (' + top.views + ')' : '—' }
     ];
     kpis.forEach(k => {
         const card = el('div', undefined, 'card stat');
