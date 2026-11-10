@@ -308,7 +308,7 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 | TC-95 | US07 | Sửa hiện vật thì xóa cache (Phú, Xuân Anh) | Đã mở Yêu thích có hiện vật 2 | Sửa tên hiện vật 2 trên CMS; `GET /api/me/favorites`; xem log 2 service | Tên mới | Log personalization có xóa key `artifact:summary:2`; Yêu thích hiện tên mới ngay | C |
 | TC-96 | US12, US18 | Đổi beacon thì registry mới (Xuân Anh, Khoa) | Beacon 4 chưa gán | Gán beacon 4 cho hiện vật 2; `GET /api/ibeacons/registry` | `{"artifactId":2}` | Có sự kiện tương ứng; registry trả beacon 4 trỏ hiện vật 2 | C |
 | TC-97 | — | Không gửi sự kiện khi lưu DB thất bại (Tường, các bên gửi) | Dữ liệu sạch | Gửi đồng thời 2 lần đầu cùng user, cùng hiện vật (như TC-83); gửi đánh giá với `rating` sai | — | Lần bị 409 hoặc 400 không có tin; tổng số tin `feedback.created` đúng bằng số dòng mới | TB |
-| TC-98 | — | Sự kiện đúng khung chung (Bảo) | Đã có tin của cả 5 loại | Đọc tin trong `qa.events` | — | Mọi tin có `eventId` (UUID), `type`, `version`, `occurredAt`, `data` | C |
+| TC-98 | — | Sự kiện đúng khung chung (Bảo) | Đã có tin của cả 5 loại | Đọc tin trong `qa.events` | — | Mọi tin có `eventId` (UUID), `type`, `version`, `occurredAt`, `data`; Properties không có header `__TypeId__`, `content_type = application/json`; ngày giờ (`occurredAt`, `createdAt`...) là chuỗi ISO, không phải dãy số | C |
 | TC-99 | — | Bên nhận chống xử lý trùng (Tuấn, Khoa, Phú) | Có tin đã xử lý | Trên RabbitMQ UI publish lại đúng tin đó vào queue của bên nhận | Cùng `eventId` | Không đếm thêm, không gửi FCM lần 2, log ghi bỏ qua | C |
 | TC-100 | — | Lỗi quá 3 lần vào DLQ (Bảo, các bên nhận) | Tạo lỗi xử lý ở bên nhận (ví dụ publish tin sai `data`) | Publish tin vào queue của bên nhận; xem DLQ và Grafana | Tin sai | Sau tối đa 3 lần xử lý lỗi, tin nằm trong DLQ; Grafana hiện số tin DLQ tăng | TB |
 
@@ -401,7 +401,7 @@ Phủ 24/24 user story.
 
 | Việc chưa xong | Người | Test case bị chặn | Cách chạy tạm |
 |---|---|---|---|
-| Thư viện sự kiện dùng chung (EventEnvelope, gửi sau commit) | Bảo | TC-98 (phần khung chung của module common) | feedback-service đang dùng khung tạm cùng định dạng JSON; đổi sang thư viện chung khi có trên main |
+| Thư viện sự kiện dùng chung (EventEnvelope, gửi sau commit) | Bảo | TC-98 | Đã xong: thư viện ở `main` (PR #57); feedback-service đã chuyển sang dùng thư viện (PR #59) |
 | VisitRecorded, xóa cache, Lịch sử/Yêu thích | Phú | TC-87, TC-88, TC-95, TC-111 → TC-113 | Theo PR của Phú |
 | ArtifactUpdated, hoàn thiện chi tiết | Xuân Anh | TC-94 → TC-96, TC-119 | Theo PR của Xuân Anh |
 | Nhận sự kiện gửi FCM, pin beacon, registry | Khoa | TC-96, TC-99 → TC-104 | TC-91 kiểm tra được phần gửi sự kiện, chưa có thông báo tới điện thoại |
