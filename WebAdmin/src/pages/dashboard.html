@@ -36,7 +36,7 @@
             <span class="pill">Dữ liệu từ API</span>
         </div>
 
-        <!-- Bo loc (tuan 5): de trong = khong loc. Nut xuat bao cao lam o tuan 6 nen van tat -->
+        <!-- Bo loc (tuan 5): de trong = khong loc. Tuan 6: 2 nut xuat bao cao theo bo loc dang chon -->
         <div class="card toolbar">
             <label>Di tích
                 <select id="site-filter"></select>
@@ -44,8 +44,8 @@
             <label>Từ ngày <input type="date" id="from-filter"></label>
             <label>Đến ngày <input type="date" id="to-filter"></label>
             <div class="toolbar-actions">
-                <button class="btn alt" type="button" disabled title="Sẽ làm ở tuần sau">Xuất PDF</button>
-                <button class="btn gold" type="button" disabled title="Sẽ làm ở tuần sau">Xuất Excel</button>
+                <button class="btn alt" type="button" id="export-pdf">Xuất PDF</button>
+                <button class="btn gold" type="button" id="export-xlsx">Xuất Excel</button>
             </div>
             <span class="muted note" id="status-note" role="status">Đang tải số liệu…</span>
         </div>
