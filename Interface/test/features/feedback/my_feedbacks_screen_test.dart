@@ -80,6 +80,37 @@ void main() {
         ]));
   });
 
+  testWidgets('kéo xuống tải lại thì nhãn trạng thái cập nhật', (tester) async {
+    AuthService.currentUser.value = _visitor;
+    var status = 'PENDING';
+    await http.runWithClient(() async {
+      await _open(tester);
+      expect(find.text('Chờ duyệt'), findsOneWidget);
+
+      status = 'APPROVED';
+      await tester.fling(find.byType(ListView), const Offset(0, 500), 1000);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đã duyệt'), findsOneWidget);
+      expect(find.text('Chờ duyệt'), findsNothing);
+    }, () => MockClient((request) async {
+          if (request.url.path == '/api/feedbacks/me') {
+            return _json(200, {
+              'success': true,
+              'data': [
+                {'id': 3, 'artifactId': 1, 'rating': 3, 'status': status},
+              ],
+            });
+          }
+          return _json(200, {
+            'success': true,
+            'data': [
+              {'id': 1, 'name': 'Khuê Văn Các'},
+            ],
+          });
+        }));
+  });
+
   testWidgets('chưa có đánh giá thì hiện hướng dẫn', (tester) async {
     AuthService.currentUser.value = _visitor;
     await http.runWithClient(() async {

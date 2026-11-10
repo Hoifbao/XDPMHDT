@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.smartheritage.common.events.EventEnvelope;
+import com.smartheritage.common.events.EventPublisher;
 import com.smartheritage.feedback.entity.Feedback;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +20,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.ConnectException;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,8 +32,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-/** Dùng TransactionTemplate thật với transaction manager giả để kiểm tra đúng thời điểm gửi. */
+/**
+ * Chạy FeedbackEventPublisher với EventPublisher THẬT của thư viện chung (chỉ giả RabbitTemplate)
+ * và TransactionTemplate thật với transaction manager giả, để kiểm tra đúng thời điểm gửi và metric.
+ */
 class FeedbackEventPublisherTest {
+
+    private static final String METRIC = "sh.events.published";
 
     private RabbitTemplate rabbitTemplate;
     private FeedbackEventPublisher publisher;
@@ -43,7 +49,7 @@ class FeedbackEventPublisherTest {
     void setUp() {
         rabbitTemplate = mock(RabbitTemplate.class);
         meterRegistry = new SimpleMeterRegistry();
-        publisher = new FeedbackEventPublisher(rabbitTemplate, meterRegistry);
+        publisher = new FeedbackEventPublisher(new EventPublisher(rabbitTemplate, meterRegistry), meterRegistry);
         transaction = new TransactionTemplate(new FakeTransactionManager());
     }
 
@@ -55,7 +61,7 @@ class FeedbackEventPublisherTest {
             verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
         });
 
-        FeedbackEventEnvelope<?> event = sentEvent("feedback.created");
+        EventEnvelope<?> event = sentEvent("feedback.created");
         assertThat(event.eventId()).isNotNull();
         assertThat(event.type()).isEqualTo("FeedbackCreated");
         assertThat(event.version()).isEqualTo(1);
@@ -67,7 +73,7 @@ class FeedbackEventPublisherTest {
     void publishApproved_sauCommit_coUserIdVaTenHienVat() {
         transaction.executeWithoutResult(status -> publisher.publishApproved(feedback(), () -> "Khuê Văn Các"));
 
-        FeedbackEventEnvelope<?> event = sentEvent("feedback.approved");
+        EventEnvelope<?> event = sentEvent("feedback.approved");
         assertThat(event.type()).isEqualTo("FeedbackApproved");
         assertThat(event.data()).isEqualTo(new FeedbackEventData.Approved(7L, 2L, 1L, "Khuê Văn Các"));
     }
@@ -143,23 +149,18 @@ class FeedbackEventPublisherTest {
 
     @Test
     void khoiTao_taoSan4CounterBang0ChoAlert() {
-        var counters = meterRegistry.find("feedback.events.published").counters();
+        var counters = meterRegistry.find(METRIC).counters();
 
         assertThat(counters).hasSize(4);
         assertThat(counters).allSatisfy(counter -> assertThat(counter.count()).isZero());
-    }
-
-    private double publishedCount(String type, String result) {
-        var counter = meterRegistry.find("feedback.events.published").tag("type", type).tag("result", result).counter();
-        return counter == null ? 0.0 : counter.count();
     }
 
     @Test
     void envelope_raJsonDu5TruongVaNgayDangChuoi() {
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        FeedbackEventEnvelope<FeedbackEventData.Created> event = FeedbackEventEnvelope.of(UUID.randomUUID(),
-                "FeedbackCreated", new FeedbackEventData.Created(7L, 2L, 1L, 4, CREATED_AT));
+        EventEnvelope<FeedbackEventData.Created> event = EventEnvelope.of("FeedbackCreated",
+                new FeedbackEventData.Created(7L, 2L, 1L, 4, CREATED_AT));
 
         JsonNode json = mapper.valueToTree(event);
 
@@ -174,11 +175,16 @@ class FeedbackEventPublisherTest {
         return Feedback.builder().id(7L).userId(2L).artifactId(1L).rating(4).createdAt(CREATED_AT).build();
     }
 
-    private FeedbackEventEnvelope<?> sentEvent(String routingKey) {
+    private double publishedCount(String type, String result) {
+        var counter = meterRegistry.find(METRIC).tag("type", type).tag("result", result).counter();
+        return counter == null ? 0.0 : counter.count();
+    }
+
+    private EventEnvelope<?> sentEvent(String routingKey) {
         ArgumentCaptor<Object> message = ArgumentCaptor.forClass(Object.class);
         verify(rabbitTemplate).convertAndSend(eq("sh.events"), eq(routingKey), message.capture());
-        assertThat(message.getValue()).isInstanceOf(FeedbackEventEnvelope.class);
-        return (FeedbackEventEnvelope<?>) message.getValue();
+        assertThat(message.getValue()).isInstanceOf(EventEnvelope.class);
+        return (EventEnvelope<?>) message.getValue();
     }
 
     /** Transaction manager không có DB: chỉ để Spring chạy đúng vòng đời commit/rollback. */

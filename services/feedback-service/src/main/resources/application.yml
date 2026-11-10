@@ -44,7 +44,7 @@ springdoc:
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
   # RabbitMQ tắt không làm service bị coi là DOWN: gửi sự kiện lỗi chỉ ghi log, API vẫn chạy.
-  # Đổi lại /actuator/health không phản ánh RabbitMQ: theo dõi qua metric feedback_events_published_total{result="failed"}.
+  # Đổi lại /actuator/health không phản ánh RabbitMQ: theo dõi qua metric sh_events_published_total{result="failed"}.
   health:
     rabbit:
       enabled: false

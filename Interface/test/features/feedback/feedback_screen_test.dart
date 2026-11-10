@@ -132,6 +132,29 @@ void main() {
     }, () => _api());
   });
 
+  testWidgets('kéo xuống tải lại thì điểm trung bình cập nhật', (tester) async {
+    var average = 4.0;
+    await http.runWithClient(() async {
+      await _open(tester);
+      expect(find.text('4.0'), findsOneWidget);
+
+      average = 4.5;
+      // Màn hình test cao 2600 px: phải kéo quá 1/4 chiều cao thì RefreshIndicator mới tải lại
+      await tester.fling(find.byType(ListView).first, const Offset(0, 1500), 1000);
+      await tester.pumpAndSettle();
+
+      expect(find.text('4.5'), findsOneWidget);
+    }, () => MockClient((request) async {
+          if (request.url.path.endsWith('/rating-summary')) {
+            return _json(200, {
+              'success': true,
+              'data': {'artifactId': 2, 'averageRating': average, 'totalRatings': 2, 'distribution': {'5': 1, '4': 1}},
+            });
+          }
+          return _json(200, {'success': true, 'data': []});
+        }));
+  });
+
   testWidgets('rating-summary lỗi (404) → vẫn hiện điểm TB tự tính từ bình luận đã duyệt', (tester) async {
     await http.runWithClient(() async {
       await _open(tester);

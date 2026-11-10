@@ -1,30 +1,21 @@
 package com.smartheritage.feedback.event;
 
+import com.smartheritage.common.events.EventPublisher;
+import com.smartheritage.common.events.Events;
 import com.smartheritage.feedback.entity.Feedback;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Gửi sự kiện đánh giá lên exchange sh.events, chỉ SAU KHI giao dịch DB đã lưu thành công.
- * Giao dịch bị rollback thì không gửi gì.
+ * Sự kiện đánh giá của feedback-service, gửi qua EventPublisher của thư viện chung (common/events):
+ * gửi SAU KHI giao dịch DB commit, rollback thì không gửi; lỗi chỉ ghi log + metric failed, API vẫn thành công.
  *
- * Gửi lỗi chỉ ghi log kèm eventId: đánh giá đã lưu nên API vẫn báo thành công.
- * Không có publisher confirm/outbox: RabbitMQ chết đúng lúc gửi thì sự kiện bị mất (xem README).
- *
- * Metric cho Prometheus: feedback_events_published_total{type, result="success"|"failed"}.
- *
- * Khi thư viện sự kiện của module common có trên main: giữ 2 hàm public, thay envelope và phần gửi
- * bằng hàm của thư viện, rồi xóa FeedbackEventEnvelope. FeedbackService không phải sửa.
+ * Metric (do thư viện đếm): sh_events_published_total{type, result="success"|"failed"}.
+ * Lớp này chỉ tạo sẵn counter = 0 cho 2 loại sự kiện của feedback, để alert dùng increase()
+ * bắt được cả lần lỗi đầu tiên.
  */
 @Component
 public class FeedbackEventPublisher {
@@ -34,22 +25,13 @@ public class FeedbackEventPublisher {
     static final String ROUTING_CREATED = "feedback.created";
     static final String ROUTING_APPROVED = "feedback.approved";
 
-    private static final Logger log = LoggerFactory.getLogger(FeedbackEventPublisher.class);
+    private final EventPublisher events;
 
-    static final String METRIC_PUBLISHED = "feedback.events.published";
-    static final String RESULT_SUCCESS = "success";
-    static final String RESULT_FAILED = "failed";
-
-    private final RabbitTemplate rabbitTemplate;
-    private final MeterRegistry meterRegistry;
-
-    public FeedbackEventPublisher(RabbitTemplate rabbitTemplate, MeterRegistry meterRegistry) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.meterRegistry = meterRegistry;
-        // Tạo sẵn counter = 0: alert dùng increase() mới bắt được cả lần lỗi đầu tiên
+    public FeedbackEventPublisher(EventPublisher events, MeterRegistry meterRegistry) {
+        this.events = events;
         for (String type : List.of(TYPE_CREATED, TYPE_APPROVED)) {
-            for (String result : List.of(RESULT_SUCCESS, RESULT_FAILED)) {
-                publishedCounter(type, result);
+            for (String result : List.of(Events.RESULT_SUCCESS, Events.RESULT_FAILED)) {
+                meterRegistry.counter(Events.METRIC_PUBLISHED, "type", type, "result", result);
             }
         }
     }
@@ -57,7 +39,7 @@ public class FeedbackEventPublisher {
     public void publishCreated(Feedback feedback) {
         FeedbackEventData.Created data = new FeedbackEventData.Created(feedback.getId(), feedback.getUserId(),
                 feedback.getArtifactId(), feedback.getRating(), feedback.getCreatedAt());
-        runAfterCommit(() -> send(ROUTING_CREATED, TYPE_CREATED, () -> data));
+        events.publishAfterCommit(ROUTING_CREATED, TYPE_CREATED, data);
     }
 
     /**
@@ -68,38 +50,7 @@ public class FeedbackEventPublisher {
         Long feedbackId = feedback.getId();
         Long userId = feedback.getUserId();
         Long artifactId = feedback.getArtifactId();
-        runAfterCommit(() -> send(ROUTING_APPROVED, TYPE_APPROVED,
-                () -> new FeedbackEventData.Approved(feedbackId, userId, artifactId, artifactName.get())));
-    }
-
-    private void runAfterCommit(Runnable action) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            action.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                action.run();
-            }
-        });
-    }
-
-    /** Bắt mọi RuntimeException: dữ liệu đã commit, lỗi lúc này không được làm API báo thất bại. */
-    private void send(String routingKey, String type, Supplier<?> data) {
-        UUID eventId = UUID.randomUUID();
-        try {
-            rabbitTemplate.convertAndSend(RabbitEventConfig.EXCHANGE, routingKey,
-                    FeedbackEventEnvelope.of(eventId, type, data.get()));
-            publishedCounter(type, RESULT_SUCCESS).increment();
-            log.info("Đã gửi sự kiện {} eventId={}", type, eventId);
-        } catch (RuntimeException e) {
-            publishedCounter(type, RESULT_FAILED).increment();
-            log.warn("Không gửi được sự kiện {} eventId={}: {}", type, eventId, e.getMessage());
-        }
-    }
-
-    private Counter publishedCounter(String type, String result) {
-        return meterRegistry.counter(METRIC_PUBLISHED, "type", type, "result", result);
+        events.publishAfterCommit(ROUTING_APPROVED, TYPE_APPROVED,
+                () -> new FeedbackEventData.Approved(feedbackId, userId, artifactId, artifactName.get()));
     }
 }

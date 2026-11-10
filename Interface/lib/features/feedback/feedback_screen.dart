@@ -68,7 +68,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Future<void> _reload() async {
     final future = FeedbackService.loadOverview(widget.artifactId);
-    setState(() => _overview = future);
+    // Dùng khối { } chứ không dùng =>: setState không được trả về Future
+    setState(() {
+      _overview = future;
+    });
     try {
       await future;
     } catch (_) {
