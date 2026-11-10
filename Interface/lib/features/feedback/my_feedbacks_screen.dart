@@ -38,7 +38,10 @@ class _MyFeedbacksScreenState extends State<MyFeedbacksScreen> {
 
   Future<void> _reload() async {
     final future = FeedbackService.loadMine();
-    setState(() => _feedbacks = future);
+    // Dùng khối { } chứ không dùng =>: setState không được trả về Future
+    setState(() {
+      _feedbacks = future;
+    });
     try {
       await future;
     } catch (_) {
