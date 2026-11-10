@@ -56,6 +56,17 @@
     grid-template-columns: repeat(5,1fr)
 }
 
+/* Tuan 6: hang so lieu hom nay co 4 the */
+@media(min-width: 851px) {
+    .kpi-grid.realtime-grid {
+        grid-template-columns: repeat(4,1fr)
+    }
+}
+
+.realtime-grid {
+    margin-bottom: 18px
+}
+
 /* Chart.js can khung co chieu cao co dinh khi responsive */
 .chart-box {
     position: relative;

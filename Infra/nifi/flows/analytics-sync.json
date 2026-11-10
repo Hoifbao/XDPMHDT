@@ -1860,6 +1860,185 @@
         "maxBackoffPeriod": "10 mins",
         "componentType": "PROCESSOR",
         "groupIdentifier": "bafc6e12-ab7c-3f3a-a776-102072fc353a"
+      },
+      {
+        "identifier": "aff80645-e8e0-38c7-b4d5-89dfc1854195",
+        "name": "Ghi agg_daily_views",
+        "comments": "Tuan W6: tinh lai luot xem, so khach theo ngay tu fact_visits",
+        "position": {
+          "x": 550.0,
+          "y": 1100.0
+        },
+        "type": "org.apache.nifi.processors.standard.PutSQL",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Support Fragmented Transactions": "true",
+          "putsql-sql-statement": "-- Tuan W6: tong hop luot xem theo ngay cho bao cao, tinh lai tu fact_visits (chay lai khong nhan doi)\nINSERT INTO agg_daily_views (day, views, visitors)\nSELECT DATE(detected_at), COUNT(*), COUNT(DISTINCT user_id)\nFROM fact_visits\nGROUP BY DATE(detected_at)\nON DUPLICATE KEY UPDATE views = VALUES(views), visitors = VALUES(visitors)",
+          "Transaction Timeout": null,
+          "Batch Size": "100",
+          "Obtain Generated Keys": "false",
+          "JDBC Connection Pool": "180c180b-1a96-59f2-aca2-89238f3c1b16",
+          "database-session-autocommit": "false",
+          "rollback-on-failure": "false"
+        },
+        "propertyDescriptors": {
+          "Support Fragmented Transactions": {
+            "name": "Support Fragmented Transactions",
+            "displayName": "Support Fragmented Transactions",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "putsql-sql-statement": {
+            "name": "putsql-sql-statement",
+            "displayName": "SQL Statement",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Transaction Timeout": {
+            "name": "Transaction Timeout",
+            "displayName": "Transaction Timeout",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Batch Size": {
+            "name": "Batch Size",
+            "displayName": "Batch Size",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Obtain Generated Keys": {
+            "name": "Obtain Generated Keys",
+            "displayName": "Obtain Generated Keys",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "JDBC Connection Pool": {
+            "name": "JDBC Connection Pool",
+            "displayName": "JDBC Connection Pool",
+            "identifiesControllerService": true,
+            "sensitive": false
+          },
+          "database-session-autocommit": {
+            "name": "database-session-autocommit",
+            "displayName": "Database Session AutoCommit",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "rollback-on-failure": {
+            "name": "rollback-on-failure",
+            "displayName": "Rollback On Failure",
+            "identifiesControllerService": false,
+            "sensitive": false
+          }
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "bafc6e12-ab7c-3f3a-a776-102072fc353a"
+      },
+      {
+        "identifier": "eb50ffc0-b93c-387c-a24b-1ec240efcbf0",
+        "name": "Hen gio 01:00 tong hop ngay",
+        "comments": "Tuan W6: moi dem 01:00 tao 1 flowfile de chay PutSQL tong hop agg_daily_views",
+        "position": {
+          "x": 0.0,
+          "y": 1100.0
+        },
+        "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "File Size": "0B",
+          "mime-type": null,
+          "generate-ff-custom-text": null,
+          "Batch Size": "1",
+          "Unique FlowFiles": "false",
+          "Data Format": "Text"
+        },
+        "propertyDescriptors": {
+          "character-set": {
+            "name": "character-set",
+            "displayName": "Character Set",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "File Size": {
+            "name": "File Size",
+            "displayName": "File Size",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "mime-type": {
+            "name": "mime-type",
+            "displayName": "Mime Type",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "generate-ff-custom-text": {
+            "name": "generate-ff-custom-text",
+            "displayName": "Custom Text",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Batch Size": {
+            "name": "Batch Size",
+            "displayName": "Batch Size",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Unique FlowFiles": {
+            "name": "Unique FlowFiles",
+            "displayName": "Unique FlowFiles",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Data Format": {
+            "name": "Data Format",
+            "displayName": "Data Format",
+            "identifiesControllerService": false,
+            "sensitive": false
+          }
+        },
+        "style": {},
+        "schedulingPeriod": "0 0 1 * * ?",
+        "schedulingStrategy": "CRON_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "bafc6e12-ab7c-3f3a-a776-102072fc353a"
       }
     ],
     "inputPorts": [],
@@ -2204,6 +2383,69 @@
           "name": "Ghi fact_visits",
           "comments": "",
           "instanceIdentifier": "2d0ee8a0-f753-3d2a-168e-070be9de141d"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "bafc6e12-ab7c-3f3a-a776-102072fc353a"
+      },
+      {
+        "identifier": "ebb191a5-7fe6-3fe8-ac80-2cecd48c9771",
+        "source": {
+          "id": "aff80645-e8e0-38c7-b4d5-89dfc1854195",
+          "type": "PROCESSOR",
+          "groupId": "bafc6e12-ab7c-3f3a-a776-102072fc353a",
+          "name": "Ghi agg_daily_views",
+          "comments": "Tuan W6: tinh lai luot xem, so khach theo ngay tu fact_visits"
+        },
+        "destination": {
+          "id": "5311f5a2-f0ab-5474-b59c-ac98eb4ce58d",
+          "type": "FUNNEL",
+          "groupId": "bafc6e12-ab7c-3f3a-a776-102072fc353a",
+          "name": "Funnel",
+          "comments": ""
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure",
+          "retry"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "bafc6e12-ab7c-3f3a-a776-102072fc353a"
+      },
+      {
+        "identifier": "cae8d401-f8af-3fd9-b15f-da1ba28c0abc",
+        "source": {
+          "id": "eb50ffc0-b93c-387c-a24b-1ec240efcbf0",
+          "type": "PROCESSOR",
+          "groupId": "bafc6e12-ab7c-3f3a-a776-102072fc353a",
+          "name": "Hen gio 01:00 tong hop ngay",
+          "comments": "Tuan W6: moi dem 01:00 tao 1 flowfile de chay PutSQL tong hop agg_daily_views"
+        },
+        "destination": {
+          "id": "aff80645-e8e0-38c7-b4d5-89dfc1854195",
+          "type": "PROCESSOR",
+          "groupId": "bafc6e12-ab7c-3f3a-a776-102072fc353a",
+          "name": "Ghi agg_daily_views",
+          "comments": "Tuan W6: tinh lai luot xem, so khach theo ngay tu fact_visits"
         },
         "labelIndex": 1,
         "zIndex": 0,
