@@ -293,7 +293,8 @@ async function exportReport(format, button) {
         const url = URL.createObjectURL(await response.blob());
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'bao-cao-thong-ke-' + new Date().toISOString().slice(0, 10) + '.' + format;
+        // Ngay theo gio may (locale sv-SE ra dang yyyy-MM-dd); toISOString la gio UTC, sau 0h-7h sang bi lui 1 ngay
+        link.download = 'bao-cao-thong-ke-' + new Date().toLocaleDateString('sv-SE') + '.' + format;
         document.body.append(link);
         link.click();
         link.remove();
