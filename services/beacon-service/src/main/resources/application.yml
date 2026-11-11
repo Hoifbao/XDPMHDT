@@ -18,6 +18,27 @@ spring:
     open-in-view: false
     show-sql: false
 
+  # Khoa W6: nhận sự kiện RabbitMQ (routing key feedback.approved từ exchange sh.events).
+  # Service không có Spring profile riêng, luôn chạy listener; container rabbitmq bật bằng
+  # docker compose --profile mq. Mặc định khớp Infra/docker-compose.yml.
+  # RabbitMQ tắt -> listener thử kết nối lại (không làm service chết); API vẫn chạy bình thường.
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:smartheritage}
+    password: ${SPRING_RABBITMQ_PASSWORD:change-me-rabbit}
+    connection-timeout: 2s
+    listener:
+      simple:
+        # Lỗi xử lý tối đa 3 lần rồi bỏ (default-requeue-rejected=false) -> vào dead-letter
+        # queue notification.feedback-approved.dlq thay vì quay lại queue vô hạn.
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2
+        default-requeue-rejected: false
+
 # Kiểm tra dữ liệu ở service khác thay cho quan hệ FK (bảng gốc nằm ở site_db, content_db):
 #  - siteId    -> site-service  (GET /api/heritage-sites/{id})
 #  - artifactId -> content-service (GET /api/artifacts/{id})
@@ -39,6 +60,11 @@ springdoc:
 
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
+  # RabbitMQ tắt không làm service bị coi là DOWN (giống feedback-service):
+  # sự kiện chưa nhận được sẽ thấy qua queue tích trên RabbitMQ UI / Grafana.
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:
