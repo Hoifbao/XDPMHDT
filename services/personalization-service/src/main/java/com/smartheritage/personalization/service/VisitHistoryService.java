@@ -8,6 +8,7 @@ import com.smartheritage.personalization.dto.SyncVisitsResponse;
 import com.smartheritage.personalization.dto.VisitHistoryResponse;
 import com.smartheritage.personalization.entity.VisitHistory;
 import com.smartheritage.personalization.repository.VisitHistoryRepository;
+import com.smartheritage.personalization.event.VisitEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -26,8 +27,10 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class VisitHistoryService {
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final VisitHistoryRepository visitHistoryRepository;
     private final ArtifactClient artifactClient;
+    private final VisitEventPublisher visitEvents;
 
     @Transactional(readOnly = true)
     public Page<VisitHistoryResponse> list(Long userId, Pageable pageable) {
@@ -41,11 +44,14 @@ public class VisitHistoryService {
             return false;
         }
         artifactClient.requireActive(request.getArtifactId());
-        visitHistoryRepository.save(toEntity(userId, request));
+        VisitHistory visit = toEntity(userId, request);
+        visitHistoryRepository.saveAndFlush(visit);
+        // VisitEventPublisher relies on common EventPublisher: no send if transaction rolls back.
+        visitEvents.publishRecorded(visit);
         return true;
     }
 
-    /** Đồng bộ offline all-or-nothing; clientEventId được giữ nguyên khi retry. */
+    /** Đồng bộ offline all-or-nothing; mỗi bản ghi mới phát một sự kiện sau commit. */
     @Transactional
     public SyncVisitsResponse sync(Long userId, List<RecordVisitRequest> events) {
         if (events == null || events.isEmpty() || events.size() > 100) {
@@ -66,14 +72,16 @@ public class VisitHistoryService {
             toCreate.add(request);
         }
 
-        // Kiểm tra mọi hiện vật trước khi ghi để batch không bị ghi dở dang.
+        // Validate all artifacts before saving to preserve all-or-nothing batch behavior.
         for (Long artifactId : toCreate.stream().map(RecordVisitRequest::getArtifactId).distinct().toList()) {
             artifactClient.requireActive(artifactId);
         }
 
         List<VisitHistory> rows = toCreate.stream().map(r -> toEntity(userId, r)).toList();
-        visitHistoryRepository.saveAll(rows);
-        visitHistoryRepository.flush();
+        visitHistoryRepository.saveAllAndFlush(rows);
+        for (VisitHistory visit : rows) {
+            visitEvents.publishRecorded(visit);
+        }
         return new SyncVisitsResponse(events.size(), rows.size(), duplicates);
     }
 
@@ -139,8 +147,8 @@ public class VisitHistoryService {
                 .clientEventId(request.getClientEventId())
                 .source(request.getSource() == null ? "MANUAL" : request.getSource().toUpperCase())
                 .detectedAt(request.getDetectedAt() == null
-                        ? LocalDateTime.now()
-                        : request.getDetectedAt().atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime())
+                        ? LocalDateTime.now(VIETNAM_ZONE)
+                        : request.getDetectedAt().atZoneSameInstant(VIETNAM_ZONE).toLocalDateTime())
                 .build();
     }
 }
