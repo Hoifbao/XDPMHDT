@@ -23,6 +23,11 @@
             <groupId>com.smartheritage</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <!-- Khoa W6: nhận sự kiện RabbitMQ (feedback.approved) qua thư viện chung common/events -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
         <!-- Khoa W5: gửi FCM bằng Firebase Admin SDK (service account đọc từ biến môi trường) -->
         <dependency>
             <groupId>com.google.firebase</groupId>

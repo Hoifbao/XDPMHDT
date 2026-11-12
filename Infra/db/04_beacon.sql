@@ -59,3 +59,19 @@ CREATE TABLE IF NOT EXISTS devices (
     UNIQUE KEY uq_devices_token (fcm_token),
     KEY idx_devices_user (user_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- =====================================================================
+--  Bảng processed_events (Khoa - Sprint 6): eventId của sự kiện RabbitMQ
+--  đã xử lý, để bỏ qua tin trùng (RabbitMQ có thể giao một tin nhiều lần).
+--  event_id KHÔNG FK (eventId do bên gửi sinh); trong docker-compose,
+--  beacon-service chạy ddl-auto: update nên bảng này cũng tự tạo khi thiếu.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS processed_events (
+    id           BIGINT      NOT NULL AUTO_INCREMENT,
+    event_id     CHAR(36)    NOT NULL,
+    event_type   VARCHAR(100) NOT NULL,             -- ví dụ feedback.approved
+    processed_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_processed_events_event_id (event_id),
+    KEY idx_processed_events_type (event_type)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
