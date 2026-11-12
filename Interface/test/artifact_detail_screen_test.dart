@@ -14,6 +14,81 @@ import 'package:smartheritage/features/feedback/feedback_screen.dart';
 import 'core/artifact_cache_test.dart' show artifactJson;
 
 void main() {
+  for (final width in [240.0, 320.0]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'long content and missing media at width $width scale $scale',
+        (tester) async {
+          tester.view.physicalSize = Size(width, 640);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          AuthService.rawClient = MockClient((_) async {
+            final data = artifactJson(1, 'vi');
+            data['name'] = List.filled(12, 'Hiện vật có tên rất dài').join(' ');
+            data['material'] = List.filled(20, 'Chất liệu lịch sử').join(' ');
+            data['dimensions'] = List.filled(
+              20,
+              'Kích thước hiện vật',
+            ).join(' ');
+            data['locationName'] = List.filled(20, 'Di tích văn hóa').join(' ');
+            final content = data['content'] as Map<String, dynamic>;
+            content['title'] = data['name'];
+            content['description'] = List.filled(
+              100,
+              'Nội dung mô tả dài.',
+            ).join(' ');
+            content['transcript'] = List.filled(30, 'Phụ đề dài.').join(' ');
+            return http.Response(
+              jsonEncode({'data': data}),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          });
+          await tester.pumpWidget(
+            MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.linear(scale)),
+                child: child!,
+              ),
+              home: const ArtifactDetailScreen(artifactId: 1),
+            ),
+          );
+          await tester.pumpAndSettle(
+            const Duration(milliseconds: 100),
+            EnginePhase.sendSemanticsUpdate,
+            const Duration(seconds: 5),
+          );
+          expect(tester.takeException(), isNull);
+          await tester.drag(
+            find.byType(NestedScrollView),
+            const Offset(0, -500),
+          );
+          await tester.pumpAndSettle(
+            const Duration(milliseconds: 100),
+            EnginePhase.sendSemanticsUpdate,
+            const Duration(seconds: 5),
+          );
+          expect(tester.takeException(), isNull);
+          for (final label in ['Hình ảnh', 'Âm thanh', 'Thông tin']) {
+            await tester.ensureVisible(find.text(label));
+            await tester.tap(find.text(label));
+            await tester.pumpAndSettle(
+              const Duration(milliseconds: 100),
+              EnginePhase.sendSemanticsUpdate,
+              const Duration(seconds: 5),
+            );
+            expect(tester.takeException(), isNull);
+          }
+          expect(find.text('Xem video'), findsNothing);
+          await tester.pumpWidget(const SizedBox());
+          await tester.pumpAndSettle();
+        },
+      );
+    }
+  }
+
   testWidgets(
     'favorites use real adapter and feedback receives the artifact ID',
     (tester) async {

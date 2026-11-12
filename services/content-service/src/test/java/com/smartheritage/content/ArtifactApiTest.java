@@ -8,6 +8,8 @@ import com.smartheritage.content.repository.ArtifactRepository;
 import com.smartheritage.content.repository.MediaResourceRepository;
 import com.smartheritage.content.repository.LanguageRepository;
 import com.smartheritage.content.entity.Language;
+import com.smartheritage.content.events.ArtifactEventOutboxRepository;
+import com.smartheritage.content.events.ArtifactEventTransport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,7 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "app.events.retry-delay-ms=3600000"
 })
 @AutoConfigureMockMvc
 class ArtifactApiTest {
@@ -51,6 +54,8 @@ class ArtifactApiTest {
     @Autowired MediaResourceRepository media;
     @MockitoBean SiteClient sites;
     @Autowired LanguageRepository languages;
+    @Autowired ArtifactEventOutboxRepository outbox;
+    @MockitoBean ArtifactEventTransport transport;
     @TempDir static Path uploads;
     @DynamicPropertySource
     static void uploadDirectory(DynamicPropertyRegistry registry) {
@@ -64,6 +69,8 @@ class ArtifactApiTest {
 
     @BeforeEach
     void clean() {
+        reset(transport);
+        outbox.deleteAll();
         languages.findAll().stream().filter(l -> !l.getCode().equals("vi") && !l.getCode().equals("en"))
                 .forEach(languages::delete);
         languages.save(new Language("en", "English", true));
@@ -73,6 +80,18 @@ class ArtifactApiTest {
         reset(sites);
         when(sites.requireSite(1L)).thenReturn(new SiteClient.Site(1L, "Museum"));
         when(sites.findName(anyLong())).thenReturn(Optional.of("Museum"));
+    }
+
+    @Test
+    void brokerFailureDoesNotFailApiAndCommittedChangesStayPending() throws Exception {
+        doThrow(new IllegalStateException("broker unavailable in API test"))
+                .when(transport).send(anyString(), any(), any());
+        long id = create(VI);
+        var entries = outbox.findAll();
+        assertEquals(1, entries.size());
+        org.junit.jupiter.api.Assertions.assertNull(entries.get(0).getPublishedAt());
+        assertEquals(id, json.readTree(entries.get(0).getPayload()).path("artifactId").asLong());
+        assertEquals(1L, artifacts.count());
     }
 
     @Test
