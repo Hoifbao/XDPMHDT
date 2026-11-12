@@ -384,7 +384,7 @@ class PersonalizationService {
       return PersonalizationListResult(
         items: merged,
         fromCache: false,
-        warning: pending.isNotEmpty ? 'Đang ngoại tuyến – sẽ đồng bộ sau.' : null,
+        warning: pending.isNotEmpty ? 'Có lượt tham quan đang chờ đồng bộ.' : null,
       );
     } catch (_) {
       return PersonalizationListResult(
