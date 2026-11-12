@@ -22,4 +22,12 @@ public interface IBeaconRepository extends JpaRepository<IBeacon, Long> {
 
     /** Beacon theo trạng thái (registry cho Mobile lấy ACTIVE) */
     List<IBeacon> findByStatus(String status);
+
+    // ─────────────── W6: cảnh báo pin beacon ───────────────
+
+    /** Beacon ACTIVE có pin dưới ngưỡng (ứng viên cảnh báo) */
+    List<IBeacon> findByStatusAndBatteryLevelLessThan(String status, Integer threshold);
+
+    /** Beacon từng bị cảnh báo mà pin đã hồi lại >= ngưỡng -> xóa cờ để cho phép cảnh báo lần sau */
+    List<IBeacon> findByBatteryLevelGreaterThanEqualAndBatteryAlertedAtNotNull(Integer threshold);
 }

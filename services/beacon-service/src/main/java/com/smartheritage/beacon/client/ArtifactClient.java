@@ -98,4 +98,16 @@ public class ArtifactClient {
             return Optional.empty();
         }
     }
+
+    /**
+     * Hủy cache của 1 hiện vật - gọi khi nhận sự kiện artifact.updated (Khoa, W6):
+     * registry cần tải lại tên hiện vật thay vì chờ hết TTL 5 phút.
+     * @return true nếu trước đó có cache bị xóa.
+     */
+    public boolean invalidate(Long artifactId) {
+        if (artifactId == null) {
+            return false;
+        }
+        return cache.remove(artifactId) != null;
+    }
 }

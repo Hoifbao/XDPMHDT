@@ -8,6 +8,9 @@ const STATUS_CLASS = {
     INACTIVE: 'fb-rejected'
 };
 
+// Khoa W6: ngưỡng pin thấp - cùng giá trị với BatteryAlertService của beacon-service
+const LOW_BATTERY = 20;
+
 // Địa chỉ Gateway (dùng chung cách cấu hình với WebAdmin/src/api/auth.js).
 // auth.js đã bọc fetch(): TỰ gắn JWT và tự refresh khi 401 -> trang không phải tự làm.
 const API_BASE = (window.SHAuth && window.SHAuth.apiBase)
@@ -179,10 +182,59 @@ function countByStatus(status) {
 function renderStats() {
     document.getElementById('stat-total').textContent = beacons.length;
     document.getElementById('stat-active').textContent = countByStatus('ACTIVE');
+    document.getElementById('stat-low-battery').textContent = lowBatteryBeacons().length;
     document.getElementById('stat-inactive').textContent = countByStatus('INACTIVE');
     document.getElementById('stat-unassigned').textContent = beacons.filter(function (item) {
         return !item.artifactId && !item.artifactName;
     }).length;
+}
+
+// Khoa W6: beacon ACTIVE pin < 20% - đối tượng cần cảnh báo (INACTIVE không báo tránh báo ảo)
+function lowBatteryBeacons() {
+    return beacons.filter(function (item) {
+        return item.status === 'ACTIVE' && item.batteryLevel != null && item.batteryLevel < LOW_BATTERY;
+    });
+}
+
+// Khoa W6: banner "biểu tượng cảnh báo" phía trên - hiện khi có beacon ACTIVE pin thấp
+function renderBatteryAlert() {
+    const alertBox = document.getElementById('battery-alert');
+    const alertText = document.getElementById('battery-alert-text');
+    const low = lowBatteryBeacons();
+    if (low.length === 0) {
+        alertBox.hidden = true;
+        return;
+    }
+    alertText.textContent = low.map(function (item) {
+        return 'Beacon #' + item.id
+            + (item.siteName ? ' tại ' + item.siteName : '')
+            + (item.artifactName ? ' (hiện vật ' + item.artifactName + ')' : '')
+            + ' còn ' + item.batteryLevel + '%';
+    }).join('; ') + ' — cần sạc hoặc thay pin.';
+    alertBox.hidden = false;
+}
+
+// Khoa W6: chạy 1 lượt quét pin ngay (POST /api/ibeacons/battery-check - ADMIN qua Gateway)
+// Demo thay vì chờ tác vụ định kỳ 15 phút; xong tự tải lại danh sách để banner hiện.
+async function checkBatteryNow() {
+    const button = document.getElementById('battery-check-btn');
+    button.disabled = true;
+    try {
+        const response = await fetch(API_BASE + '/api/ibeacons/battery-check', { method: 'POST' });
+        const body = await response.json().catch(function () { return {}; });
+        if (!response.ok) {
+            throw new Error((body && body.message) || ('HTTP ' + response.status));
+        }
+        const alerted = body.data != null ? body.data : 0;
+        alert(alerted > 0
+            ? 'Đã quét: cảnh báo ' + alerted + ' beacon pin thấp (sự kiện beacon.battery.low đã phát).'
+            : 'Đã quét: không có beacon nào pin thấp.');
+        await loadBeacons();
+    } catch (error) {
+        alert('Kiểm tra pin thất bại: ' + error.message);
+    } finally {
+        button.disabled = false;
+    }
 }
 
 function renderSiteFilter() {
@@ -239,6 +291,8 @@ function render() {
     renderSiteFilter();
     renderFilterBar();
     renderTable();
+    // Khoa W6: banner cảnh báo pin
+    renderBatteryAlert();
     // Ân W5: cập nhật select di tích cho bản đồ
     if (typeof renderMapSiteSelect === 'function') renderMapSiteSelect();
 }
@@ -596,6 +650,10 @@ async function deleteBeacon(id) {
 
 loadBeacons();
 loadSites();
+
+// Khoa W6: tự tải lại mỗi 60 giây - pin giảm giữa chừng web vẫn hiện cảnh báo
+// mà không cần F5 (tiêu chí "≤ 15 phút web hiện cảnh báo": tác vụ 15 phút + web 60 giây)
+setInterval(loadBeacons, 60000);
 
 
 // ─── Ân W5: Bản đồ vị trí beacon trên sơ đồ di tích ─────────────────────────

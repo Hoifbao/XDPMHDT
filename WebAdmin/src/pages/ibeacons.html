@@ -100,6 +100,33 @@
             background: var(--cream);
             font-size: 13px;
         }
+        /* ── Khoa W6: cảnh báo pin beacon ── */
+        .ib-battery-alert {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            border: 1px solid #e74c3c55;
+            border-left: 6px solid #e74c3c;
+            border-radius: 16px;
+            background: #e74c3c12;
+        }
+        .ib-battery-alert-icon { font-size: 26px; }
+        .ib-battery-alert strong {
+            display: block;
+            color: #e74c3c;
+            margin-bottom: 2px;
+        }
+        .ib-battery-alert span:not(.ib-battery-alert-icon) {
+            font-size: 13px;
+            color: var(--ink);
+        }
+        .ib-battery-check-btn {
+            background: var(--cream);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
         /* ── Ân W5: Bản đồ vị trí beacon trên sơ đồ ── */
         .ib-map-section { margin-bottom: 18px; }
         .ib-map-header {
@@ -163,7 +190,20 @@
                 <div class="eyebrow">Hạ tầng</div>
                 <h1 class="fb-title">Quản lý iBeacon</h1>
             </div>
-            <button type="button" class="btn" onclick="openBeaconModal('create')">+ Thêm iBeacon</button>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="btn ib-battery-check-btn" id="battery-check-btn"
+                        onclick="checkBatteryNow()" title="Quét pin beacon ngay (thay vì chờ tác vụ 15 phút)">🔋 Kiểm tra pin ngay</button>
+                <button type="button" class="btn" onclick="openBeaconModal('create')">+ Thêm iBeacon</button>
+            </div>
+        </div>
+
+        <!-- Khoa W6: banner cảnh báo pin beacon (hiện khi có beacon ACTIVE pin < 20%) -->
+        <div class="card ib-battery-alert" id="battery-alert" hidden role="alert">
+            <span class="ib-battery-alert-icon" aria-hidden="true">⚠️</span>
+            <div>
+                <strong>Cảnh báo pin beacon thấp</strong>
+                <span id="battery-alert-text"></span>
+            </div>
         </div>
 
         <div class="dashboard-grid">
@@ -174,6 +214,10 @@
             <div class="card stat">
                 <strong id="stat-active">0</strong>
                 <span class="muted">Đang hoạt động</span>
+            </div>
+            <div class="card stat">
+                <strong id="stat-low-battery" style="color:#e74c3c;">0</strong>
+                <span class="muted">Pin thấp (&lt; 20%)</span>
             </div>
             <div class="card stat">
                 <strong id="stat-unassigned">0</strong>

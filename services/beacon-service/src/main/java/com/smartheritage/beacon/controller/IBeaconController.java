@@ -1,9 +1,11 @@
 package com.smartheritage.beacon.controller;
 
 import com.smartheritage.beacon.dto.IBeaconAssignRequest;
+import com.smartheritage.beacon.dto.IBeaconBatteryRequest;
 import com.smartheritage.beacon.dto.IBeaconPositionRequest;
 import com.smartheritage.beacon.dto.IBeaconRequest;
 import com.smartheritage.beacon.dto.IBeaconResponse;
+import com.smartheritage.beacon.service.BatteryAlertService;
 import com.smartheritage.beacon.service.IBeaconService;
 import com.smartheritage.common.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,8 @@ import java.util.List;
  *  POST   /api/ibeacons/{id}/assign – Gán (artifactId) hoặc bỏ gán (artifactId = null)
  *  PUT    /api/ibeacons/{id}       – Cập nhật iBeacon
  *  PUT    /api/ibeacons/{id}/position – Cập nhật vị trí đặt beacon trên bản đồ (cho Ân, W5)
+ *  PUT    /api/ibeacons/{id}/battery  – Cập nhật mức pin (W6)
+ *  POST   /api/ibeacons/battery-check – Chạy 1 lượt quét pin ngay (W6, demo)
  *  DELETE /api/ibeacons/{id}       – Xóa iBeacon
  */
 @Tag(name = "4. iBeacon", description = "CRUD beacon, registry cho Mobile, gán hiện vật (Khoa)")
@@ -39,6 +43,7 @@ import java.util.List;
 public class IBeaconController {
 
     private final IBeaconService beaconService;
+    private final BatteryAlertService batteryAlertService;
 
     @Operation(summary = "Danh sách iBeacon", description = "?siteId=1 để lọc theo di tích")
     @GetMapping
@@ -100,5 +105,28 @@ public class IBeaconController {
             @Valid @RequestBody IBeaconPositionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Cập nhật vị trí thành công",
                 beaconService.updatePosition(id, request.getPosX(), request.getPosY())));
+    }
+
+    @Operation(summary = "W6: Cập nhật mức pin beacon",
+            description = "Body: { \"batteryLevel\": 15 } (0–100). Gói tin iBeacon thường không chứa mức pin "
+                    + "nên Admin cập nhật/giả lập bằng API này; pin hồi lại >= 20% sẽ xóa cờ cảnh báo. "
+                    + "Chỉ ADMIN (Gateway tự kiểm theo luật write)")
+    @PutMapping("/{id}/battery")
+    public ResponseEntity<ApiResponse<IBeaconResponse>> updateBattery(
+            @PathVariable Long id,
+            @Valid @RequestBody IBeaconBatteryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật pin thành công",
+                beaconService.updateBattery(id, request.getBatteryLevel())));
+    }
+
+    @Operation(summary = "W6: Chạy 1 lượt quét pin ngay (demo thay vì chờ 15 phút)",
+            description = "Quét beacon ACTIVE pin < 20% -> phát sự kiện beacon.battery.low; "
+                    + "trả về số beacon vừa cảnh báo. Chỉ ADMIN (Gateway tự kiểm theo luật write)")
+    @PostMapping("/battery-check")
+    public ResponseEntity<ApiResponse<Integer>> runBatteryCheck() {
+        int alerted = batteryAlertService.checkAndAlert();
+        return ResponseEntity.ok(ApiResponse.ok(
+                alerted > 0 ? "Đã cảnh báo " + alerted + " beacon pin thấp" : "Không có beacon nào pin thấp",
+                alerted));
     }
 }

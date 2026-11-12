@@ -1,11 +1,12 @@
 package com.smartheritage.beacon.service;
 
+import com.smartheritage.beacon.client.SiteClient;
 import com.smartheritage.beacon.config.NotificationRabbitConfig;
 import com.smartheritage.beacon.entity.Device;
+import com.smartheritage.beacon.events.BeaconBatteryLowData;
 import com.smartheritage.beacon.events.FeedbackApprovedData;
 import com.smartheritage.beacon.repository.DeviceRepository;
 import com.smartheritage.common.events.EventEnvelope;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,6 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationEventListener {
 
     static final String NOTIFICATION_TITLE = "Smart Heritage";
@@ -82,5 +82,49 @@ public class NotificationEventListener {
             return "Hiện vật #" + data.artifactId();
         }
         return data.artifactName();
+    }
+
+    // ─────────────── W6: cảnh báo pin beacon -> FCM topic Admin ───────────────
+
+    static final String ADMIN_TOPIC = "admins";
+
+    private final SiteClient siteClient;
+
+    /** Ctor đầy đủ (RequiredArgsConstructor sinh từ các field final — dùng cho test). */
+    public NotificationEventListener(ProcessedEvents processedEvents, DeviceRepository deviceRepository,
+                                     FcmService fcmService, SiteClient siteClient) {
+        this.processedEvents = processedEvents;
+        this.deviceRepository = deviceRepository;
+        this.fcmService = fcmService;
+        this.siteClient = siteClient;
+    }
+
+    /**
+     * Nhận beacon.battery.low (beacon-service tự phát từ BatteryAlertService) -> FCM tới topic "admins".
+     * Web iBeacon phía Admin tự hiện biểu tượng cảnh báo theo batteryLevel của API GET /api/ibeacons.
+     */
+    @RabbitListener(queues = NotificationRabbitConfig.QUEUE_BEACON_BATTERY_LOW)
+    public void onBeaconBatteryLow(EventEnvelope<BeaconBatteryLowData> event) {
+        BeaconBatteryLowData data = event.data();
+        log.info("[EVENTS] Nhận {}: eventId={}, beaconId={}, batteryLevel={}",
+                event.type(), event.eventId(), data == null ? null : data.beaconId(),
+                data == null ? null : data.batteryLevel());
+
+        if (data == null || data.beaconId() == null || data.siteId() == null) {
+            log.warn("[EVENTS] Sự kiện {} thiếu data.beaconId/siteId -> bỏ vào dead-letter queue",
+                    event.eventId());
+            throw new IllegalArgumentException("BeaconBatteryLow thiếu data: " + event.eventId());
+        }
+        if (!processedEvents.markIfNew(event.eventId(), event.type())) {
+            log.info("[EVENTS] eventId {} đã xử lý rồi -> bỏ qua", event.eventId());
+            return;
+        }
+
+        String siteName = siteClient.findName(data.siteId()).orElse("di tích #" + data.siteId());
+        String body = "Pin beacon #" + data.beaconId() + " tại " + siteName
+                + " còn " + data.batteryLevel() + "% — cần sạc hoặc thay pin";
+        boolean sent = fcmService.sendToTopic(ADMIN_TOPIC, NOTIFICATION_TITLE, body);
+        log.info("[EVENTS] eventId {}: FCM topic {} -> {}", event.eventId(), ADMIN_TOPIC,
+                sent ? "thành công" : "thất bại/chưa cấu hình");
     }
 }

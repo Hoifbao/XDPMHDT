@@ -254,6 +254,76 @@ class IBeaconServiceTest {
         verify(beaconRepository, never()).save(any());
     }
 
+    // ─────────────── battery (W6) ───────────────
+
+    @Test
+    void updateBatterySavesLevel() {
+        IBeacon beacon = beacon(1L, 1L, 2L, "ACTIVE");
+        when(beaconRepository.findById(1L)).thenReturn(Optional.of(beacon));
+
+        IBeaconResponse response = service.updateBattery(1L, 15);
+
+        assertThat(response.getBatteryLevel()).isEqualTo(15);
+        verify(beaconRepository).save(beacon);
+    }
+
+    @Test
+    void updateBatteryLowKeepsAlertFlag() {
+        // Pin < 20: không đụng cờ battery_alerted_at (quyết định cảnh báo thuộc BatteryAlertService)
+        IBeacon beacon = IBeacon.builder()
+                .id(4L).siteId(1L).uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0")
+                .major(1).minor(4).batteryLevel(87).status("ACTIVE")
+                .batteryAlertedAt(java.time.LocalDateTime.now())
+                .build();
+        when(beaconRepository.findById(4L)).thenReturn(Optional.of(beacon));
+
+        service.updateBattery(4L, 15);
+
+        assertThat(beacon.getBatteryAlertedAt()).isNotNull();
+        verify(beaconRepository).save(beacon);
+    }
+
+    @Test
+    void updateBatteryRecoveredClearsAlertFlag() {
+        // Pin hồi lại >= 20% (sạc/thay pin): xóa cờ ngay để lần sắp cạn tiếp theo vẫn được báo
+        IBeacon beacon = IBeacon.builder()
+                .id(4L).siteId(1L).uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0")
+                .major(1).minor(4).batteryLevel(15).status("ACTIVE")
+                .batteryAlertedAt(java.time.LocalDateTime.now())
+                .build();
+        when(beaconRepository.findById(4L)).thenReturn(Optional.of(beacon));
+
+        service.updateBattery(4L, 95);
+
+        assertThat(beacon.getBatteryLevel()).isEqualTo(95);
+        assertThat(beacon.getBatteryAlertedAt()).isNull();
+        verify(beaconRepository).save(beacon);
+    }
+
+    @Test
+    void updateBatteryRejectsOutOfRange() {
+        assertThatThrownBy(() -> service.updateBattery(1L, 101))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("0–100");
+        assertThatThrownBy(() -> service.updateBattery(1L, -1))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("0–100");
+        assertThatThrownBy(() -> service.updateBattery(1L, null))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("0–100");
+        verify(beaconRepository, never()).save(any());
+    }
+
+    @Test
+    void updateBatteryToMissingBeaconThrowsNotFound() {
+        when(beaconRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateBattery(99L, 50))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Không tìm thấy iBeacon với ID: 99");
+        verify(beaconRepository, never()).save(any());
+    }
+
     // ─────────────── cross-service check ───────────────
 
     @Test
