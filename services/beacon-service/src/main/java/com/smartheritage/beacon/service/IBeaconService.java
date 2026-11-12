@@ -123,6 +123,25 @@ public class IBeaconService {
         return toResponse(beacon);
     }
 
+    // ──────────────────────── BATTERY (W6) ───────────────────────
+
+    /**
+     * Cập nhật mức pin beacon (Admin cập nhật/giả lập - gói tin iBeacon không chứa pin).
+     * Pin >= 20% -> xóa cờ battery_alerted_at ngay: lần pin sắp cạn tiếp theo vẫn được cảnh báo.
+     */
+    public IBeaconResponse updateBattery(Long id, Integer batteryLevel) {
+        if (batteryLevel == null || batteryLevel < 0 || batteryLevel > 100) {
+            throw ApiException.badRequest("Pin (batteryLevel) phải nằm trong khoảng 0–100");
+        }
+        IBeacon beacon = findOrThrow(id);
+        beacon.setBatteryLevel(batteryLevel);
+        if (batteryLevel >= BatteryAlertService.LOW_BATTERY_THRESHOLD) {
+            beacon.setBatteryAlertedAt(null);
+        }
+        beaconRepository.save(beacon);
+        return toResponse(beacon);
+    }
+
     // ──────────────────────────── DELETE ──────────────────────────
 
     public void deleteBeacon(Long id) {

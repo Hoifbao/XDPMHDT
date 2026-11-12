@@ -53,6 +53,12 @@ app:
   # Thiếu cấu hình -> service vẫn chạy, chỉ bỏ qua gửi FCM và ghi log nhắc.
   fcm:
     service-account-file: ${FIREBASE_SERVICE_ACCOUNT:}
+  # Khoa W6: tác vụ quét pin beacon -> beacon.battery.low. Mặc định 15 phút (task_w6_chi_tiet).
+  # Demo muốn thấy ngay: gọi POST /api/ibeacons/battery-check (ADMIN). Tắt: enabled=false.
+  beacon:
+    battery-check:
+      enabled: ${BEACON_BATTERY_CHECK_ENABLED:true}
+      interval-ms: ${BEACON_BATTERY_CHECK_INTERVAL_MS:900000}
 
 springdoc:
   swagger-ui:

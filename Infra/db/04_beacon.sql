@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS ibeacons (
     x_coord       DOUBLE      NULL,
     y_coord       DOUBLE      NULL,
     battery_level INT         NULL,
+    battery_alerted_at DATETIME(6) NULL,   -- W6: lần gần nhất gửi beacon.battery.low (null = chưa cảnh báo)
     status        VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE | INACTIVE
     created_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at    DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),

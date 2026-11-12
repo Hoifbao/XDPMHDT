@@ -5,6 +5,7 @@ import com.smartheritage.beacon.dto.DeviceResponse;
 import com.smartheritage.beacon.entity.Device;
 import com.smartheritage.beacon.repository.DeviceRepository;
 import com.smartheritage.common.web.ApiException;
+import com.smartheritage.common.web.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,11 +59,24 @@ public class DeviceService {
         device = deviceRepository.save(device);
 
         boolean welcomeSent = fcmService.sendToToken(token, WELCOME_TITLE, WELCOME_BODY);
+
+        // W6: Admin nhận cảnh báo beacon.battery.low qua FCM topic "admins".
+        // Server tự đăng ký token của Admin vào topic (Admin SDK) -> app Mobile không cần tự subscribe.
+        boolean adminTopicSubscribed = false;
+        if (CurrentUser.isAdmin()) {
+            adminTopicSubscribed = fcmService.subscribeToTopic(token, NotificationEventListener.ADMIN_TOPIC);
+            if (adminTopicSubscribed) {
+                log.info("[DEVICE] Token của Admin {} đã đăng ký topic {} nhận cảnh báo pin beacon",
+                        userId, NotificationEventListener.ADMIN_TOPIC);
+            }
+        }
+
         if (isNew) {
             log.info("[DEVICE] User {} đăng ký thiết bị mới (platform={}, token {}…)", userId, platform,
                     token.substring(0, Math.min(8, token.length())));
         }
-        return new DeviceRegistrationResult(DeviceResponse.from(device), isNew, welcomeSent);
+        return new DeviceRegistrationResult(DeviceResponse.from(device), isNew, welcomeSent,
+                adminTopicSubscribed);
     }
 
     /** Gửi thử 1 thông báo tới tất cả thiết bị của user (demo "Gửi được FCM từ API"). */
@@ -97,9 +111,10 @@ public class DeviceService {
     }
 
     /**
-     * Kết quả đăng ký: thiết bị (token rút gọn) + trạng thái gửi FCM chào mừng.
-     * welcomeSent là kết quả gọi FCM: theo cấu hình FIREBASE_SERVICE_ACCOUNT (chưa cấu hình -> false).
+     * Kết quả đăng ký: thiết bị (token rút gọn) + trạng thái gửi FCM chào mừng
+     * + đã đăng ký topic "admins" hay chưa (chỉ user ADMIN; chưa cấu hình service account -> false).
      */
-    public record DeviceRegistrationResult(DeviceResponse device, boolean isNew, boolean welcomeSent) {
+    public record DeviceRegistrationResult(DeviceResponse device, boolean isNew, boolean welcomeSent,
+                                           boolean adminTopicSubscribed) {
     }
 }

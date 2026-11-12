@@ -1,7 +1,9 @@
 package com.smartheritage.beacon.service;
 
+import com.smartheritage.beacon.client.SiteClient;
 import com.smartheritage.beacon.config.NotificationRabbitConfig;
 import com.smartheritage.beacon.entity.Device;
+import com.smartheritage.beacon.events.BeaconBatteryLowData;
 import com.smartheritage.beacon.events.FeedbackApprovedData;
 import com.smartheritage.beacon.repository.DeviceRepository;
 import com.smartheritage.common.events.EventEnvelope;
@@ -39,12 +41,13 @@ class NotificationEventListenerTest {
     @Mock ProcessedEvents processedEvents;
     @Mock DeviceRepository deviceRepository;
     @Mock FcmService fcmService;
+    @Mock SiteClient siteClient;
 
     private NotificationEventListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new NotificationEventListener(processedEvents, deviceRepository, fcmService);
+        listener = new NotificationEventListener(processedEvents, deviceRepository, fcmService, siteClient);
         when(processedEvents.markIfNew(org.mockito.ArgumentMatchers.any(UUID.class), anyString())).thenReturn(true);
         when(deviceRepository.findByUserIdOrderByUpdatedAtDesc(USER_ID)).thenReturn(List.of(
                 Device.builder().id(1L).userId(USER_ID).fcmToken("token-1").platform("android").build(),
@@ -127,5 +130,53 @@ class NotificationEventListenerTest {
                 new FeedbackApprovedData(1L, 2L, 9L, ""))).isEqualTo("Hiện vật #9");
         assertThat(NotificationEventListener.resolveArtifactName(
                 new FeedbackApprovedData(1L, 2L, 9L, "Đoạn Môn"))).isEqualTo("Đoạn Môn");
+    }
+
+    // ─────────────── W6: beacon.battery.low -> FCM topic Admin ───────────────
+
+    private EventEnvelope<BeaconBatteryLowData> batteryLow(Long beaconId, Long siteId, Integer level) {
+        return EventEnvelope.of(UUID.randomUUID(), "beacon.battery.low", Instant.now(),
+                new BeaconBatteryLowData(beaconId, siteId, level, Instant.now()));
+    }
+
+    @Test
+    void batteryLowSendsFcmToAdminTopicWithSiteName() {
+        when(siteClient.findName(1L)).thenReturn(java.util.Optional.of("Khuê Văn Các"));
+
+        listener.onBeaconBatteryLow(batteryLow(4L, 1L, 15));
+
+        verify(fcmService).sendToTopic("admins", NotificationEventListener.NOTIFICATION_TITLE,
+                "Pin beacon #4 tại Khuê Văn Các còn 15% — cần sạc hoặc thay pin");
+    }
+
+    @Test
+    void batteryLowUnknownSiteFallsBackToSiteId() {
+        when(siteClient.findName(9L)).thenReturn(java.util.Optional.empty());
+
+        listener.onBeaconBatteryLow(batteryLow(7L, 9L, 8));
+
+        verify(fcmService).sendToTopic("admins", NotificationEventListener.NOTIFICATION_TITLE,
+                "Pin beacon #7 tại di tích #9 còn 8% — cần sạc hoặc thay pin");
+    }
+
+    @Test
+    void batteryLowDuplicateEventIsSkipped() {
+        when(processedEvents.markIfNew(org.mockito.ArgumentMatchers.any(UUID.class), anyString()))
+                .thenReturn(false);
+
+        listener.onBeaconBatteryLow(batteryLow(4L, 1L, 15));
+
+        verify(fcmService, never()).sendToTopic(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void batteryLowWithoutBeaconIdGoesToDlq() {
+        EventEnvelope<BeaconBatteryLowData> broken = EventEnvelope.of(UUID.randomUUID(),
+                "beacon.battery.low", Instant.now(), new BeaconBatteryLowData(null, 1L, 10, Instant.now()));
+
+        assertThatThrownBy(() -> listener.onBeaconBatteryLow(broken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("thiếu data");
+        verify(fcmService, never()).sendToTopic(anyString(), anyString(), anyString());
     }
 }

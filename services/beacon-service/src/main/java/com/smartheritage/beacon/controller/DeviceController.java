@@ -25,7 +25,8 @@ import java.util.Map;
  * service lấy userId từ header X-User-* (CurrentUser, KHÔNG tự kiểm tra JWT).
  *
  * Endpoints:
- *  POST   /api/me/devices          – Đăng ký FCM token (gửi luôn thông báo chào mừng nếu có cấu hình)
+ *  POST   /api/me/devices          – Đăng ký FCM token (gửi luôn thông báo chào mừng nếu có cấu hình;
+ *                                     ADMIN tự được đăng ký topic "admins" - W6)
  *  GET    /api/me/devices          – Danh sách thiết bị của tôi
  *  POST   /api/me/devices/test     – Gửi thử 1 thông báo tới các thiết bị của tôi (demo FCM)
  *  DELETE /api/me/devices          – Xoá toàn bộ token của tôi (dùng khi đăng xuất)
@@ -39,7 +40,8 @@ public class DeviceController {
 
     @Operation(summary = "Đăng ký thiết bị nhận thông báo",
             description = "Body: { \"token\": \"<fcm-token-500-ky-tu>\", \"platform\": \"android\" }. "
-                    + "Upsert theo token; nếu đã cấu hình service account thì gửi luôn thông báo chào mừng")
+                    + "Upsert theo token; nếu đã cấu hình service account thì gửi luôn thông báo chào mừng. "
+                    + "ADMIN sẽ được server tự đăng ký token vào topic \"admins\" nhận cảnh báo pin beacon (W6)")
     @PostMapping("/api/me/devices")
     public ResponseEntity<ApiResponse<Map<String, Object>>> registerDevice(
             @Valid @RequestBody DeviceRegisterRequest request) {
@@ -50,6 +52,7 @@ public class DeviceController {
         data.put("device", result.device());
         data.put("isNew", result.isNew());
         data.put("welcomeNotificationSent", result.welcomeSent());
+        data.put("adminTopicSubscribed", result.adminTopicSubscribed());
         return ResponseEntity.status(201)
                 .body(ApiResponse.ok("Đăng ký nhận thông báo thành công", data));
     }

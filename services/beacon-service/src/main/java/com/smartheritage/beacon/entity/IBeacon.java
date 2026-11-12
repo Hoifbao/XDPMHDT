@@ -59,6 +59,11 @@ public class IBeacon {
     @Column(name = "battery_level")
     private Integer batteryLevel;
 
+    /** Lần gần nhất đã gửi cảnh báo pin thấp (W6). null = chưa cảnh báo.
+     *  Đặt khi gửi beacon.battery.low; xóa khi pin >= 20 (sạc/thay pin) để cho phép cảnh báo lần sau. */
+    @Column(name = "battery_alerted_at")
+    private LocalDateTime batteryAlertedAt;
+
     /** ACTIVE | INACTIVE */
     @Column(nullable = false, length = 20)
     @Builder.Default
