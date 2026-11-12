@@ -48,12 +48,20 @@ Profile `monitoring` bật 4 container: Prometheus, Grafana, mysql-exporter, red
 File `alerts.yml`, Prometheus nạp qua `rule_files` trong `prometheus.yml`. Xem tại http://localhost:9090/alerts
 (trạng thái **Inactive → Pending → Firing**). Sửa `alerts.yml` xong: `docker compose -f Infra/docker-compose.yml --profile monitoring restart prometheus`.
 
+Ngưỡng cập nhật Sprint 6 (XDPMHDT-40).
+
 | Cảnh báo | Điều kiện | Chờ (`for`) | Mức |
 |---|---|---|---|
-| ServiceDown | Service **đang chạy** (UP trong 10 phút gần nhất) rồi không đọc được metric. Service chưa bật từ đầu không báo | 30 giây | critical |
+| ServiceDown | Service **đang chạy** (UP trong 10 phút gần nhất) rồi không đọc được metric. Service chưa bật từ đầu không báo | 1 phút | critical |
 | MySQLDown / RedisDown | `mysql_up == 0` / `redis_up == 0` | 30 giây | critical |
-| HighErrorRate5xx | Lỗi 5xx > 5% trong 1 phút, khi có > 0.2 request/giây | 30 giây | warning |
-| HighLatencyP95 | p95 > 500 ms trong 1 phút | 1 phút | warning |
+| HighErrorRate5xx | Lỗi 5xx > 5% tính trên 5 phút, khi có > 0.2 request/giây | 1 phút | warning |
+| HighLatencyP95 | p95 > 2 giây tính trên 5 phút (yêu cầu p95 ≤ 2 giây) | 1 phút | warning |
+| RabbitMQDown | RabbitMQ đang chạy (UP trong 10 phút) rồi không đọc được số liệu | 1 phút | critical |
+| RabbitMQQueueBacklog | Một hàng đợi thường (không phải DLQ) có > 100 tin chờ xử lý | 2 phút | warning |
+| RabbitMQDeadLetter | Một hàng đợi DLQ (tên chứa `dlq`) có tin | 30 giây | warning |
+
+Tắt 1 service → `ServiceDown` chuyển Firing sau khoảng 1 phút 15 – 1 phút 30 giây (scrape 15 giây + chờ 1 phút); bật lại → tắt ở lần scrape kế tiếp.
+`RabbitMQDeadLetter` giữ Firing tới khi xoá tin trong DLQ: RabbitMQ UI (http://localhost:15672) → Queues → `<tên>.dlq` → **Purge Messages**.
 
 Kiểm tra quy tắc (không cần chạy Prometheus):
 
@@ -61,7 +69,24 @@ Kiểm tra quy tắc (không cần chạy Prometheus):
 docker run --rm -v ${PWD}/Infra/monitoring:/m -w /m --entrypoint promtool prom/prometheus:v2.54.1 test rules alerts_test.yml
 ```
 
-Hiện chỉ hiển thị trên Prometheus (chưa gửi email/Telegram – cần Alertmanager, để W6).
+Hiện chỉ hiển thị trên Prometheus (chưa gửi email/Telegram – cần Alertmanager).
+
+## RabbitMQ (Sprint 6)
+
+Image `rabbitmq:3.13-management` đã bật sẵn plugin `rabbitmq_prometheus` (cổng 15692). Prometheus đọc
+`http://rabbitmq:15692/metrics/per-object` (job `rabbitmq`) để có số tin theo **từng hàng đợi**.
+
+```powershell
+docker compose -f Infra/docker-compose.yml --profile mq --profile monitoring up -d
+```
+
+- Kiểm tra: http://localhost:9090/targets → job `rabbitmq` là **UP**; hoặc mở http://localhost:15692/metrics/per-object, tìm `rabbitmq_queue_messages_ready`.
+- Truy vấn thử trên Prometheus: `rabbitmq_queue_messages_ready` (tin chờ theo hàng đợi), `rabbitmq_queue_messages{queue=~".*dlq.*"}` (tin trong DLQ).
+- Không bật profile `mq` thì target `rabbitmq` DOWN – bình thường, không bật cảnh báo.
+
+## Kiểm thử tải k6 (Sprint 6)
+
+Kịch bản `Infra/loadtest/k6-gateway.js`, tăng dần tới 500 người dùng ảo qua Gateway. Cách chạy và kết quả: [Docs/testing/load-test.md](../../Docs/testing/load-test.md).
 
 ## Giả lập traffic cho demo
 

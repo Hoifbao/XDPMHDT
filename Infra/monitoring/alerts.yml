@@ -1,20 +1,24 @@
-# Quy tắc cảnh báo Prometheus (Bảo - Sprint 5).
+# Quy tắc cảnh báo Prometheus (Bảo - Sprint 5, cập nhật Sprint 6 theo XDPMHDT-40).
 # Xem: http://localhost:9090/alerts  (Inactive -> Pending -> Firing)
 # Prometheus tính các quy tắc này mỗi 15 giây (evaluation_interval trong prometheus.yml).
 # Kiểm tra cú pháp: docker run --rm -v ${PWD}/Infra/monitoring:/m --entrypoint promtool prom/prometheus:v2.54.1 check rules /m/alerts.yml
+#
+# Ngưỡng Sprint 6 (XDPMHDT-40): service ngừng > 1 phút; 5xx > 5% trong 5 phút; p95 > 2 giây;
+# hàng đợi RabbitMQ tồn > 100 tin; hàng đợi DLQ có tin.
 groups:
   - name: smart-heritage-availability
     rules:
       # Chỉ báo service ĐANG CHẠY rồi bị chết (trong 10 phút gần nhất có lúc UP).
       # Service không bật từ đầu (ví dụ beacon khi demo 3 service) sẽ không báo, tránh nhiễu.
+      # Tắt 1 service -> Firing sau khoảng 1 phút 15 giây - 1 phút 30 giây (scrape 15s + for 1m).
       - alert: ServiceDown
         expr: up{job="smart-heritage"} == 0 and max_over_time(up{job="smart-heritage"}[10m]) == 1
-        for: 30s
+        for: 1m
         labels:
           severity: critical
         annotations:
           summary: "{{ $labels.service }} không phản hồi"
-          description: "Prometheus không đọc được /actuator/prometheus của {{ $labels.service }} ({{ $labels.instance }}) liên tục hơn 30 giây."
+          description: "Prometheus không đọc được /actuator/prometheus của {{ $labels.service }} ({{ $labels.instance }}) liên tục hơn 1 phút."
 
       - alert: MySQLDown
         expr: mysql_up == 0
@@ -36,32 +40,67 @@ groups:
 
   - name: smart-heritage-http
     rules:
-      # Tỷ lệ lỗi 5xx > 5% trong 1 phút, chỉ tính khi có traffic (> 0.2 request/giây).
+      # Tỷ lệ lỗi 5xx > 5% tính trên 5 phút gần nhất, chỉ tính khi có traffic (> 0.2 request/giây).
       - alert: HighErrorRate5xx
         expr: |
           (
-            sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*", status=~"5.."}[1m]))
+            sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*", status=~"5.."}[5m]))
             /
-            clamp_min(sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*"}[1m])), 1e-9)
+            clamp_min(sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*"}[5m])), 1e-9)
           ) > 0.05
           and
-          sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*"}[1m])) > 0.2
-        for: 30s
+          sum by (service) (rate(http_server_requests_seconds_count{job="smart-heritage", uri!~"/actuator.*"}[5m])) > 0.2
+        for: 1m
         labels:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} lỗi 5xx {{ $value | humanizePercentage }}"
-          description: "Hơn 5% request của {{ $labels.service }} trả lỗi 5xx trong 1 phút gần nhất."
+          description: "Hơn 5% request của {{ $labels.service }} trả lỗi 5xx trong 5 phút gần nhất."
 
-      # Độ trễ p95 > 500 ms trong 1 phút (yêu cầu phi chức năng của nhóm là < 2 giây; 500 ms là ngưỡng cảnh báo sớm).
+      # Độ trễ p95 > 2 giây trên 5 phút gần nhất (yêu cầu phi chức năng của nhóm: p95 <= 2 giây).
       - alert: HighLatencyP95
         expr: |
           histogram_quantile(0.95,
-            sum by (service, le) (rate(http_server_requests_seconds_bucket{job="smart-heritage", uri!~"/actuator.*"}[1m]))
-          ) > 0.5
+            sum by (service, le) (rate(http_server_requests_seconds_bucket{job="smart-heritage", uri!~"/actuator.*"}[5m]))
+          ) > 2
         for: 1m
         labels:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} chậm: p95 = {{ $value | humanizeDuration }}"
-          description: "95% request của {{ $labels.service }} mất hơn 500 ms trong 1 phút gần nhất."
+          description: "95% request của {{ $labels.service }} mất hơn 2 giây trong 5 phút gần nhất (vượt yêu cầu p95 <= 2 giây)."
+
+  # Sprint 6: RabbitMQ (plugin rabbitmq_prometheus, job "rabbitmq" trong prometheus.yml).
+  # Số liệu theo từng hàng đợi lấy từ /metrics/per-object (nhãn queue, vhost).
+  - name: smart-heritage-rabbitmq
+    rules:
+      # Giống ServiceDown: chỉ báo khi RabbitMQ đã chạy rồi bị tắt (không bật profile mq thì không báo).
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0 and max_over_time(up{job="rabbitmq"}[10m]) == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ không phản hồi"
+          description: "Prometheus không đọc được số liệu RabbitMQ ({{ $labels.instance }}) liên tục hơn 1 phút. Sự kiện giữa các service đang không được gửi."
+
+      # Hàng đợi thường (không phải DLQ) tồn > 100 tin chờ xử lý: bên nhận chậm hoặc đang tắt.
+      - alert: RabbitMQQueueBacklog
+        expr: sum by (vhost, queue) (rabbitmq_queue_messages_ready{job="rabbitmq", queue!~".*dlq.*"}) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hàng đợi {{ $labels.queue }} tồn {{ $value }} tin"
+          description: "Hàng đợi {{ $labels.queue }} có hơn 100 tin chờ xử lý trong 2 phút: service nhận đang tắt hoặc xử lý chậm."
+
+      # DLQ có tin = có sự kiện xử lý lỗi hết số lần thử. Cảnh báo giữ nguyên tới khi xử lý xong
+      # và xoá tin trong DLQ (RabbitMQ UI -> Queues -> <tên>.dlq -> Purge Messages).
+      - alert: RabbitMQDeadLetter
+        expr: sum by (vhost, queue) (rabbitmq_queue_messages{job="rabbitmq", queue=~".*dlq.*"}) > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "DLQ {{ $labels.queue }} có {{ $value }} tin"
+          description: "Có sự kiện bị đưa vào {{ $labels.queue }} sau khi xử lý lỗi. Xem log service nhận, sửa xong thì Purge DLQ."

@@ -5,6 +5,7 @@
 #   docker compose -f Infra/docker-compose.yml --profile core up -d --build -> + Backend cũ, Gateway, auth/site/content/feedback-service
 #   docker compose -f Infra/docker-compose.yml --profile mq up -d          -> + RabbitMQ
 #   docker compose -f Infra/docker-compose.yml --profile monitoring up -d  -> + Prometheus, Grafana, exporter MySQL/Redis
+#     Giám sát RabbitMQ + cảnh báo hàng đợi (Sprint 6): bật thêm --profile mq
 #     Kiểm tra nhanh: powershell -ExecutionPolicy Bypass -File Infra/monitoring/smoke-test.ps1 (Bảo - Sprint 5)
 #   docker compose -f Infra/docker-compose.yml --profile nifi up -d        -> + Apache NiFi (Tuấn)
 # Bật nhiều profile: --profile core --profile monitoring
@@ -176,6 +177,7 @@ services:
     ports:
       - "5672:5672"     # AMQP cho service
       - "15672:15672"   # giao diện quản trị
+      - "15692:15692"   # số liệu Prometheus (plugin rabbitmq_prometheus, Bảo - Sprint 6): /metrics/per-object
 
   # ---------- profile: monitoring ----------
   prometheus:
