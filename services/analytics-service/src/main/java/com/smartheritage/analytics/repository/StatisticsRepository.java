@@ -182,6 +182,12 @@ public class StatisticsRepository {
         return sql.toString();
     }
 
+    /** Tên di tích cho tiêu đề báo cáo; null nếu dim_site chưa có (NiFi chưa đồng bộ) */
+    public String findSiteName(long siteId) {
+        return jdbcTemplate.query("SELECT name FROM dim_site WHERE site_id = ?",
+                rs -> rs.next() ? rs.getString("name") : null, siteId);
+    }
+
     // FROM + WHERE dùng chung cho mọi query lượt xem; tham số được thêm vào args theo đúng thứ tự dấu ?
     private static String visitsFrom(Filter filter, List<Object> args) {
         return """

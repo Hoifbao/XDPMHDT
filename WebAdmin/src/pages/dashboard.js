@@ -215,8 +215,8 @@ async function refresh() {
     if (requestId !== latestRequest) return;
     const filtered = params.has('siteId') || params.has('from') || params.has('to');
     note.textContent = filtered
-        ? 'Số liệu theo bộ lọc đang chọn. Xuất báo cáo sẽ hoạt động ở tuần sau.'
-        : 'Số liệu toàn bộ (chưa lọc). Xuất báo cáo sẽ hoạt động ở tuần sau.';
+        ? 'Số liệu theo bộ lọc đang chọn. Xuất PDF/Excel dùng đúng bộ lọc này.'
+        : 'Số liệu toàn bộ (chưa lọc). Xuất PDF/Excel dùng đúng bộ lọc này.';
     document.getElementById('daily-pill').textContent = (params.has('from') || params.has('to'))
         ? 'Tối đa 31 ngày có dữ liệu trong khoảng'
         : 'Tối đa 7 ngày có dữ liệu';
@@ -274,7 +274,47 @@ async function refreshRealtime() {
     }
 }
 
+// ---------- Tuan 6: xuat bao cao PDF/Excel theo bo loc dang chon ----------
+async function exportReport(format, button) {
+    const note = document.getElementById('status-note');
+    const params = readFilters();
+    params.delete('top');
+    params.set('format', format);
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Đang xuất…';
+    try {
+        // fetch (khong dung <a href>) de auth.js gan token ADMIN vao request
+        const response = await fetch(API_BASE + '/api/statistics/export?' + params);
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            throw new Error((body && body.message) || ('Máy chủ trả lỗi HTTP ' + response.status));
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = url;
+        // Ngay theo gio may (locale sv-SE ra dang yyyy-MM-dd); toISOString la gio UTC, sau 0h-7h sang bi lui 1 ngay
+        link.download = 'bao-cao-thong-ke-' + new Date().toLocaleDateString('sv-SE') + '.' + format;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        note.textContent = 'Đã tải file ' + format.toUpperCase() + ' theo bộ lọc đang chọn.';
+    } catch (e) {
+        note.textContent = e instanceof TypeError
+            ? 'Không gọi được ' + API_BASE + '. Hãy chạy Backend rồi thử lại.'
+            : 'Không xuất được báo cáo: ' + e.message;
+    } finally {
+        button.disabled = false;
+        button.textContent = label;
+    }
+}
+
 async function init() {
+    ['pdf', 'xlsx'].forEach(format => {
+        const button = document.getElementById('export-' + format);
+        button.addEventListener('click', () => exportReport(format, button));
+    });
     await renderFilters();
     refresh();
     refreshRealtime();
