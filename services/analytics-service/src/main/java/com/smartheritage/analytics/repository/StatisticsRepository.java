@@ -16,6 +16,7 @@ import java.util.Map;
 /**
  * Các câu query thống kê (Tuấn), SQL native bằng JdbcTemplate, chỉ đọc analytics_db:
  *   fact_visits, fact_feedbacks (NiFi chép mỗi 1 phút), dim_artifact, dim_site, dim_user_lang (mỗi 5 phút).
+ *   Tuần 6: rt_daily_counters (sự kiện RabbitMQ) cho số "hôm nay".
  * Không JOIN sang DB của service khác.
  */
 @Repository
@@ -131,6 +132,54 @@ public class StatisticsRepository {
                         .status(rs.getString("status"))
                         .build(),
                 args.toArray());
+    }
+
+    /** Tổng số đếm thời gian thực của 1 ngày: views, feedbacks, rating_sum (0 khi chưa có) */
+    public Map<String, Object> sumRealtime(LocalDate day, Long siteId) {
+        List<Object> args = new ArrayList<>();
+        return jdbcTemplate.queryForMap("""
+                SELECT COALESCE(SUM(c.views), 0)      AS views,
+                       COALESCE(SUM(c.feedbacks), 0)  AS feedbacks,
+                       COALESCE(SUM(c.rating_sum), 0) AS rating_sum
+                """ + realtimeFrom(day, siteId, args), args.toArray());
+    }
+
+    public List<TopArtifact> findTopRealtime(LocalDate day, Long siteId, int limit) {
+        List<Object> args = new ArrayList<>();
+        String from = realtimeFrom(day, siteId, args);
+        args.add(limit);
+        return jdbcTemplate.query("""
+                SELECT c.artifact_id, a.code, a.name, a.site_id, s.name AS site_name, c.views
+                """ + from + """
+                AND c.views > 0
+                ORDER BY c.views DESC, c.artifact_id ASC
+                LIMIT ?
+                """,
+                (rs, i) -> TopArtifact.builder()
+                        .artifactId(rs.getLong("artifact_id"))
+                        .artifactCode(rs.getString("code"))
+                        .artifactName(rs.getString("name"))
+                        .siteId(rs.getObject("site_id", Long.class))
+                        .siteName(rs.getString("site_name"))
+                        .views(rs.getLong("views"))
+                        .build(),
+                args.toArray());
+    }
+
+    // Bảng rt_daily_counters (sự kiện RabbitMQ), không JOIN fact_* để không cộng chồng với số NiFi
+    private static String realtimeFrom(LocalDate day, Long siteId, List<Object> args) {
+        StringBuilder sql = new StringBuilder("""
+                FROM rt_daily_counters c
+                LEFT JOIN dim_artifact a ON a.artifact_id = c.artifact_id
+                LEFT JOIN dim_site     s ON s.site_id = a.site_id
+                WHERE c.day = ?
+                """);
+        args.add(day);
+        if (siteId != null) {
+            sql.append("AND a.site_id = ?\n");
+            args.add(siteId);
+        }
+        return sql.toString();
     }
 
     // FROM + WHERE dùng chung cho mọi query lượt xem; tham số được thêm vào args theo đúng thứ tự dấu ?

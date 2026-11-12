@@ -1,7 +1,8 @@
 // =====================================================================
 // Dashboard thong ke: lay so lieu that tu GET /api/statistics/overview qua Gateway 8080
 // (tuan 5: analytics-service 8087, doc analytics_db do NiFi dong bo).
-// Loc theo di tich va khoang ngay (tuan 5). Xuat bao cao lam o tuan 6.
+// Loc theo di tich va khoang ngay (tuan 5). Tuan 6: hang "Hom nay" lay GET /api/statistics/realtime
+// (so lieu tu su kien RabbitMQ) va tu tai lai moi 15 giay.
 // =====================================================================
 const API_BASE = (function () {
     try { return (localStorage.getItem('sh_api_base') || 'http://localhost:8080').replace(/\/+$/, ''); }
@@ -64,6 +65,8 @@ async function renderFilters() {
     }
     ['site-filter', 'from-filter', 'to-filter']
         .forEach(id => document.getElementById(id).addEventListener('change', refresh));
+    // So lieu hom nay chi loc theo di tich, khong theo khoang ngay
+    document.getElementById('site-filter').addEventListener('change', refreshRealtime);
 }
 
 function renderKpis(data) {
@@ -230,9 +233,52 @@ async function refresh() {
     }
 }
 
+// ---------- Tuan 6: so lieu hom nay (thoi gian thuc) ----------
+const REALTIME_INTERVAL_MS = 15000;
+
+function renderRealtime(data) {
+    const box = document.getElementById('realtime-kpis');
+    box.replaceChildren();
+    const top = data.topArtifacts[0];
+    // dim_artifact chua dong bo (NiFi chua chay) thi chua co ten, hien theo id
+    const topName = top && (top.artifactName ?? ('Hiện vật #' + top.artifactId));
+    const kpis = [
+        { label: 'Lượt tương tác hôm nay', value: data.views.toLocaleString('vi-VN') },
+        { label: 'Phản hồi mới hôm nay', value: data.feedbacks.toLocaleString('vi-VN') },
+        { label: 'Điểm TB phản hồi hôm nay', value: data.averageRating ?? '—' },
+        { label: 'Hiện vật nổi bật hôm nay', value: top ? topName + ' (' + top.views + ')' : '—' }
+    ];
+    kpis.forEach(k => {
+        const card = el('div', undefined, 'card stat');
+        card.append(el('strong', String(k.value)), el('span', k.label, 'muted'));
+        box.append(card);
+    });
+}
+
+async function refreshRealtime() {
+    const pill = document.getElementById('realtime-pill');
+    const params = new URLSearchParams();
+    const siteId = document.getElementById('site-filter').value;
+    if (siteId) params.set('siteId', siteId);
+    try {
+        const response = await fetch(API_BASE + '/api/statistics/realtime?' + params);
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body || !body.success) {
+            throw new Error((body && body.message) || ('HTTP ' + response.status));
+        }
+        renderRealtime(body.data);
+        pill.textContent = 'Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN');
+    } catch (e) {
+        // Giu so lieu lan truoc, chi bao loi o nhan
+        pill.textContent = 'Không cập nhật được: ' + e.message;
+    }
+}
+
 async function init() {
     await renderFilters();
     refresh();
+    refreshRealtime();
+    setInterval(refreshRealtime, REALTIME_INTERVAL_MS);
 }
 
 init();

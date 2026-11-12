@@ -96,4 +96,33 @@ class StatisticsServiceTest {
         verify(repository).countDailyViews(filter, 31);
         verify(repository).findRecentFeedbacks(eq(filter), anyInt());
     }
+
+    @Test
+    void realtime_diemTrungBinhLamTron2ChuSo() {
+        Map<String, Object> sums = new HashMap<>();
+        sums.put("views", new BigDecimal("12"));
+        sums.put("feedbacks", new BigDecimal("3"));
+        sums.put("rating_sum", new BigDecimal("13"));
+        when(repository.sumRealtime(any(LocalDate.class), eq(1L))).thenReturn(sums);
+        when(repository.findTopRealtime(any(LocalDate.class), eq(1L), anyInt())).thenReturn(List.of());
+
+        var result = service.getRealtime(1L);
+
+        assertEquals(LocalDate.now(), result.getDate());
+        assertEquals(12, result.getViews());
+        assertEquals(3, result.getFeedbacks());
+        assertEquals(4.33, result.getAverageRating());
+    }
+
+    @Test
+    void realtime_chuaCoDanhGia_diemNull() {
+        Map<String, Object> sums = new HashMap<>();
+        sums.put("views", 0L);
+        sums.put("feedbacks", 0L);
+        sums.put("rating_sum", 0L);
+        when(repository.sumRealtime(any(LocalDate.class), any())).thenReturn(sums);
+        when(repository.findTopRealtime(any(LocalDate.class), any(), anyInt())).thenReturn(List.of());
+
+        assertNull(service.getRealtime(null).getAverageRating());
+    }
 }

@@ -1,5 +1,6 @@
 package com.smartheritage.analytics.service;
 
+import com.smartheritage.analytics.dto.RealtimeResponse;
 import com.smartheritage.analytics.dto.StatisticsResponse;
 import com.smartheritage.analytics.repository.StatisticsRepository;
 import com.smartheritage.analytics.repository.StatisticsRepository.Filter;
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -25,6 +28,7 @@ public class StatisticsService {
     // Có chọn khoảng ngày thì vẽ tối đa 31 ngày có dữ liệu trong khoảng đó
     private static final int DAILY_DAYS_IN_RANGE = 31;
     private static final int RECENT_FEEDBACKS = 6;
+    private static final int REALTIME_TOP = 5;
 
     private final StatisticsRepository statisticsRepository;
 
@@ -54,6 +58,23 @@ public class StatisticsService {
                 .averageDurationSeconds(toDouble(visits.get("avg_duration")))
                 .dailyViews(statisticsRepository.countDailyViews(filter, days))
                 .recentFeedbacks(statisticsRepository.findRecentFeedbacks(filter, RECENT_FEEDBACKS))
+                .build();
+    }
+
+    /** Số liệu hôm nay từ sự kiện RabbitMQ (rt_daily_counters), Dashboard gọi lại mỗi 15 giây. */
+    @Transactional(readOnly = true)
+    public RealtimeResponse getRealtime(Long siteId) {
+        LocalDate today = LocalDate.now();
+        Map<String, Object> sums = statisticsRepository.sumRealtime(today, siteId);
+        long feedbacks = toLong(sums.get("feedbacks"));
+        Double averageRating = feedbacks == 0 ? null : BigDecimal.valueOf(toLong(sums.get("rating_sum")))
+                .divide(BigDecimal.valueOf(feedbacks), 2, RoundingMode.HALF_UP).doubleValue();
+        return RealtimeResponse.builder()
+                .date(today)
+                .views(toLong(sums.get("views")))
+                .feedbacks(feedbacks)
+                .averageRating(averageRating)
+                .topArtifacts(statisticsRepository.findTopRealtime(today, siteId, REALTIME_TOP))
                 .build();
     }
 

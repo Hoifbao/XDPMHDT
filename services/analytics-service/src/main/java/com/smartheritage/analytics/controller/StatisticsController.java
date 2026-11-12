@@ -1,5 +1,6 @@
 package com.smartheritage.analytics.controller;
 
+import com.smartheritage.analytics.dto.RealtimeResponse;
 import com.smartheritage.analytics.dto.StatisticsResponse;
 import com.smartheritage.analytics.service.StatisticsService;
 import com.smartheritage.common.api.ApiResponse;
@@ -25,6 +26,9 @@ import java.time.LocalDate;
  *      Tổng lượt xem, số khách, top hiện vật, phân bố ngôn ngữ, điểm đánh giá TB,
  *      thời gian dừng TB, lượt theo ngày, phản hồi gần đây.
  *
+ *  GET /api/statistics/realtime?siteId=   (Tuần 6)
+ *      Số liệu hôm nay từ sự kiện RabbitMQ, cập nhật ngay không chờ NiFi.
+ *
  * Chỉ ADMIN: Gateway kiểm tra quyền trước khi chuyển request tới đây.
  */
 @Tag(name = "7. Thống kê", description = "Số liệu Dashboard, chỉ ADMIN (Tuấn)")
@@ -46,6 +50,15 @@ public class StatisticsController {
             @Parameter(description = "Đến ngày (yyyy-MM-dd), tính cả ngày này")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return ResponseEntity.ok(ApiResponse.ok("Thành công", statisticsService.getOverview(top, siteId, from, to)));
+    }
+
+    @Operation(summary = "Số liệu hôm nay (thời gian thực): lượt xem, đánh giá mới, điểm TB, top hiện vật",
+            description = "Đọc rt_daily_counters do sự kiện visit.recorded, feedback.created cập nhật ngay. "
+                    + "Chỉ tính hôm nay, không cộng với số liệu /overview (NiFi).")
+    @GetMapping("/realtime")
+    public ResponseEntity<ApiResponse<RealtimeResponse>> getRealtime(
+            @Parameter(description = "Chỉ tính hiện vật của di tích này") @RequestParam(required = false) Long siteId) {
+        return ResponseEntity.ok(ApiResponse.ok("Thành công", statisticsService.getRealtime(siteId)));
     }
 
     // GlobalExceptionHandler dùng chung không bắt lỗi sai kiểu tham số (vd from=abc) nên sẽ thành 500

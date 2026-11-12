@@ -50,6 +50,13 @@
             <span class="muted note" id="status-note" role="status">Đang tải số liệu…</span>
         </div>
 
+        <!-- Tuan 6: so lieu hom nay tu su kien RabbitMQ, tu tai lai moi 15 giay (khong cong voi so NiFi ben duoi) -->
+        <div class="panel-title">
+            <h2>Hôm nay (thời gian thực)</h2>
+            <span class="pill" id="realtime-pill">Tự cập nhật mỗi 15 giây</span>
+        </div>
+        <div class="dashboard-grid kpi-grid realtime-grid" id="realtime-kpis" aria-live="polite"></div>
+
         <div class="dashboard-grid kpi-grid" id="kpis"></div>
 
         <div class="grid">
