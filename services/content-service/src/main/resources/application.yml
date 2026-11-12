@@ -11,6 +11,16 @@ spring:
       max-request-size: 101MB
   application:
     name: content-service
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:smartheritage}
+    password: ${SPRING_RABBITMQ_PASSWORD:change-me-rabbit}
+    connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
   datasource:
     # Bảng tạo bởi Infra/db/03_content.sql (Tường); ddl-auto update để chạy thử khi chưa có script
     url: "${DB_URL:jdbc:mysql://localhost:3307/content_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
@@ -26,6 +36,8 @@ spring:
 # Gọi site-service để kiểm tra siteId và lấy tên di tích.
 # Chưa có site-service (Ân) thì mặc định gọi Backend cũ 8090 (cùng API GET /api/heritage-sites/{id}).
 app:
+  events:
+    confirm-timeout-ms: 5000
   media:
     directory: ${MEDIA_DIRECTORY:./uploads}
   clients:
@@ -38,6 +50,11 @@ springdoc:
 
 # Giám sát (Prometheus đọc /actuator/prometheus) - giữ nguyên
 management:
+  # Broker outages leave durable outbox entries pending; the content API can still serve requests.
+  # Monitor sh_events_published_total{result="failed"} for delivery failures.
+  health:
+    rabbit:
+      enabled: false
   endpoints:
     web:
       exposure:

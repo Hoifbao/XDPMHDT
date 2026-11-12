@@ -4,6 +4,8 @@ import com.smartheritage.common.web.ApiException;
 import com.smartheritage.content.dto.MediaResourceRequest;
 import com.smartheritage.content.dto.MediaResourceResponse;
 import com.smartheritage.content.entity.MediaResource;
+import com.smartheritage.content.entity.Artifact;
+import com.smartheritage.content.events.ArtifactChanges;
 import com.smartheritage.content.repository.ArtifactRepository;
 import com.smartheritage.content.repository.MediaResourceRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class MediaResourceService {
 
     private final MediaResourceRepository mediaResourceRepository;
     private final ArtifactRepository artifactRepository;
+    private final ArtifactChanges changes;
 
     @Transactional(readOnly = true)
     public List<MediaResourceResponse> getByArtifact(Long artifactId) {
@@ -32,7 +35,7 @@ public class MediaResourceService {
 
     @Transactional
     public MediaResourceResponse create(Long artifactId, MediaResourceRequest request) {
-        requireArtifact(artifactId);
+        Artifact artifact = requireArtifact(artifactId);
         String type = request.getMediaType() == null ? "" : request.getMediaType().trim().toUpperCase(Locale.ROOT);
         if (!MEDIA_TYPES.contains(type)) {
             throw new IllegalArgumentException("mediaType phải là IMAGE, AUDIO hoặc VIDEO");
@@ -46,21 +49,25 @@ public class MediaResourceService {
                 .fileUrl(request.getFileUrl().trim())
                 .caption(request.getCaption() == null || request.getCaption().isBlank() ? null : request.getCaption().trim())
                 .build());
+        changes.record(artifact, List.of("media"));
         return toResponse(saved);
     }
 
     @Transactional
     public void delete(Long mediaId) {
-        if (!mediaResourceRepository.existsById(mediaId)) {
-            throw ApiException.notFound("Không tìm thấy tài nguyên với ID: " + mediaId);
-        }
-        mediaResourceRepository.deleteById(mediaId);
+        MediaResource resource = mediaResourceRepository.findById(mediaId)
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy tài nguyên với ID: " + mediaId));
+        Artifact artifact = requireArtifact(resource.getArtifactId());
+        mediaResourceRepository.delete(resource);
+        changes.record(artifact, List.of("media"));
     }
 
-    private void requireArtifact(Long artifactId) {
-        if (artifactId == null || !artifactRepository.existsById(artifactId)) {
+    private Artifact requireArtifact(Long artifactId) {
+        if (artifactId == null) {
             throw ApiException.notFound("Không tìm thấy hiện vật với ID: " + artifactId);
         }
+        return artifactRepository.findById(artifactId)
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy hiện vật với ID: " + artifactId));
     }
 
     private MediaResourceResponse toResponse(MediaResource media) {

@@ -7,6 +7,7 @@ import com.smartheritage.content.dto.*;
 import com.smartheritage.content.entity.Artifact;
 import com.smartheritage.content.entity.ArtifactContent;
 import com.smartheritage.content.entity.MediaResource;
+import com.smartheritage.content.events.ArtifactChanges;
 import com.smartheritage.content.repository.ArtifactContentRepository;
 import com.smartheritage.content.repository.ArtifactRepository;
 import com.smartheritage.content.repository.MediaResourceRepository;
@@ -39,6 +40,7 @@ public class ArtifactService {
     private final MediaResourceRepository mediaRepository;
     private final SiteClient siteClient;
     private final LanguageService languageService;
+    private final ArtifactChanges changes;
 
     // ──────────────────────────── READ ────────────────────────────
 
@@ -123,6 +125,8 @@ public class ArtifactService {
             contentRepository.saveAll(contents);
             artifact.getContents().addAll(contents);
         }
+        changes.record(artifact, List.of("created", "siteId", "name", "artifactCode", "description",
+                "thumbnailUrl", "period", "material", "dimensions", "beaconUuid", "status", "contents", "media"));
         return toFullResponse(artifact);
     }
 
@@ -131,6 +135,7 @@ public class ArtifactService {
     public ArtifactResponse updateArtifact(Long id, ArtifactRequest request) {
         validate(request, false);
         Artifact artifact = findOrThrow(id);
+        var before = changes.snapshot(artifact);
 
         if (siteId(request) != null && !siteId(request).equals(artifact.getSiteId())) {
             artifact.setSiteId(siteClient.requireSite(siteId(request)).id());
@@ -161,9 +166,10 @@ public class ArtifactService {
             var languages = request.getContents().stream().map(ArtifactContentRequest::getLanguageCode).toList();
             contentRepository.deleteAll(contentRepository.findByArtifactId(id).stream()
                     .filter(c -> !languages.contains(c.getLanguageCode())).toList());
-            for (ArtifactContentRequest c : request.getContents()) upsertContent(id, c);
+            for (ArtifactContentRequest c : request.getContents()) saveContent(artifact, c);
         }
         saveMedia(artifact.getId(), request.getMedia());
+        changes.updated(artifact, before);
         return toFullResponse(artifact);
     }
 
@@ -174,6 +180,7 @@ public class ArtifactService {
         mediaRepository.deleteAll(mediaRepository.findByArtifactId(id));
         contentRepository.deleteByArtifactId(id);
         artifactRepository.delete(artifact);
+        changes.record(artifact, List.of("deleted", "contents", "media"));
     }
 
     // ──────────── ARTIFACT CONTENT (đa ngôn ngữ) ───────────────────
@@ -181,9 +188,15 @@ public class ArtifactService {
     public ArtifactContentResponse upsertContent(Long artifactId, ArtifactContentRequest request) {
         validateContent(request);
         Artifact artifact = findOrThrow(artifactId);
+        var before = changes.snapshot(artifact);
+        var response = saveContent(artifact, request);
+        changes.updated(artifact, before);
+        return response;
+    }
 
+    private ArtifactContentResponse saveContent(Artifact artifact, ArtifactContentRequest request) {
         ArtifactContent content = contentRepository
-                .findByArtifactIdAndLanguageCode(artifactId, request.getLanguageCode())
+                .findByArtifactIdAndLanguageCode(artifact.getId(), request.getLanguageCode())
                 .orElse(ArtifactContent.builder().artifact(artifact).languageCode(request.getLanguageCode()).build());
 
         if (request.getTitle() != null) content.setTitle(request.getTitle());
@@ -222,7 +235,9 @@ public class ArtifactService {
         if ("vi".equals(content.getLanguageCode())) {
             throw new IllegalArgumentException("Không được xóa bản tiếng Việt (bắt buộc)");
         }
+        Artifact artifact = content.getArtifact();
         contentRepository.delete(content);
+        changes.record(artifact, List.of("contents"));
     }
 
     /** Gắn nội dung theo ngôn ngữ vào response chi tiết: requestedLanguage, languageCode, fallback, content. */

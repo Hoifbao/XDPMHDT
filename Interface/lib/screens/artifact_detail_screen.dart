@@ -223,7 +223,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     ArtifactContentItem? content,
   ) {
     return SliverAppBar(
-      expandedHeight: 280,
+      expandedHeight: MediaQuery.sizeOf(context).height < 600 ? 180 : 280,
       pinned: true,
       backgroundColor: _primaryBrown,
       foregroundColor: Colors.white,
@@ -238,6 +238,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.fromLTRB(56, 0, 56, 16),
         title: Text(
           content?.title ?? artifact.name,
           maxLines: 2,
@@ -277,6 +278,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   // ── Language Selector ─────────────────────────────────────────────────────
 
   SliverPersistentHeader _buildLangSelector(ArtifactDetail artifact) {
+    final height = 44 + (MediaQuery.textScalerOf(context).scale(12) - 12);
     final langs = [
       ('vi', '🇻🇳 Tiếng Việt'),
       ('en', '🇬🇧 English'),
@@ -285,10 +287,10 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     return SliverPersistentHeader(
       pinned: true,
       delegate: _StickyHeaderDelegate(
-        height: 44,
+        height: height,
         child: Container(
           color: const Color(0xFF8B4A26),
-          height: 44,
+          height: height,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -333,10 +335,11 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   // ── Media Tab Bar ─────────────────────────────────────────────────────────
 
   SliverPersistentHeader _buildMediaTabBar() {
+    final height = 72 + (MediaQuery.textScalerOf(context).scale(12) - 12);
     return SliverPersistentHeader(
       pinned: true,
       delegate: _StickyHeaderDelegate(
-        height: 46,
+        height: height,
         child: Container(
           color: Colors.white,
           child: TabBar(
@@ -345,6 +348,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
             unselectedLabelColor: Colors.grey.shade500,
             indicatorColor: _primaryBrown,
             indicatorWeight: 2.5,
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
             labelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -527,12 +532,14 @@ class _DescriptionTab extends StatelessWidget {
                         color: Color(0xFF6B3A1F),
                       ),
                       SizedBox(width: 6),
-                      Text(
-                        'Phụ đề thuyết minh',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Color(0xFF6B3A1F),
+                      Expanded(
+                        child: Text(
+                          'Phụ đề thuyết minh',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Color(0xFF6B3A1F),
+                          ),
                         ),
                       ),
                     ],
@@ -1446,12 +1453,14 @@ class _InfoCard extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: const Color(0xFF6B3A1F)),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Color(0xFF6B3A1F),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Color(0xFF6B3A1F),
+                  ),
                 ),
               ),
             ],
@@ -1474,28 +1483,39 @@ class _InfoRow extends StatelessWidget {
     if (value == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 13, color: Colors.brown.shade500),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final labelWidget = Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.brown.shade500),
+          );
+          final valueWidget = Text(
+            value!,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF3E2000),
             ),
-          ),
-          const Text(' : ', style: TextStyle(fontSize: 13, color: Colors.grey)),
-          Expanded(
-            child: Text(
-              value!,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF3E2000),
+          );
+          if (constraints.maxWidth < 250 ||
+              MediaQuery.textScalerOf(context).scale(13) > 18) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [labelWidget, const SizedBox(height: 4), valueWidget],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 110, child: labelWidget),
+              const Text(
+                ' : ',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
-            ),
-          ),
-        ],
+              Expanded(child: valueWidget),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1613,7 +1633,7 @@ class _EmptyContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1646,7 +1666,7 @@ class _ErrorScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Chi tiết hiện vật')),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1682,7 +1702,8 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _StickyHeaderDelegate({required this.child, required this.height});
 
   @override
-  Widget build(_, double shrink, bool overlaps) => child;
+  Widget build(_, double shrink, bool overlaps) =>
+      SizedBox(height: height, child: child);
   @override
   double get maxExtent => height;
   @override
