@@ -1,51 +1,113 @@
-# Unit test cho alerts.yml (Bao - Sprint 5). Chay: promtool test rules Infra/monitoring/alerts_test.yml
+# Unit test cho alerts.yml (Bao - Sprint 5, cap nhat Sprint 6 XDPMHDT-40). Chay: promtool test rules Infra/monitoring/alerts_test.yml
 # Docker: docker run --rm -v ${PWD}/Infra/monitoring:/m -w /m --entrypoint promtool prom/prometheus:v2.54.1 test rules alerts_test.yml
 rule_files: [alerts.yml]
 evaluation_interval: 15s
 tests:
+  # ---------- Service, 5xx, p95 ----------
   - interval: 15s
     input_series:
+      # content: UP 5 phut (0s-300s) roi chet tu 315s
       - series: 'up{job="smart-heritage",service="content-service",instance="h:8083"}'
-        values: '1x20 0x8'
+        values: '1x20 0x20'
+      # beacon: chua bat tu dau -> khong bao
       - series: 'up{job="smart-heritage",service="beacon-service",instance="h:8084"}'
-        values: '0x28'
-      # gateway: 10 req/15s, cua so cuoi 6/10 la 5xx
+        values: '0x40'
+      # gateway: 10 req/15s; tu 4m tro di them 6 loi 5xx/15s
       - series: 'http_server_requests_seconds_count{job="smart-heritage",service="api-gateway",uri="/x",status="200"}'
-        values: '0+10x28'
+        values: '0+10x40'
       - series: 'http_server_requests_seconds_count{job="smart-heritage",service="api-gateway",uri="/y",status="500"}'
-        values: '0x16 0+6x12'
+        values: '0x16 0+6x24'
+      # content: 10 req/15s, chi 1 request <= 0.5s, 1 request <= 2s, con lai 2s-5s -> p95 > 2s
       - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="0.5"}'
-        values: '0+1x28'
+        values: '0+1x40'
       - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="2"}'
-        values: '0+10x28'
+        values: '0+2x40'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="5"}'
+        values: '0+10x40'
       - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="content-service",uri="/a",le="+Inf"}'
-        values: '0+10x28'
+        values: '0+10x40'
+      # feedback: p95 khoang 1.9s (duoi 2s) -> khong bao
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="feedback-service",uri="/b",le="0.5"}'
+        values: '0+1x40'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="feedback-service",uri="/b",le="2"}'
+        values: '0+10x40'
+      - series: 'http_server_requests_seconds_bucket{job="smart-heritage",service="feedback-service",uri="/b",le="+Inf"}'
+        values: '0+10x40'
     alert_rule_test:
-      - eval_time: 7m      # content chet tu 315s
+      # chet tu 315s: 6m (45s) van Pending, 7m (105s > 1m) Firing
+      - eval_time: 6m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 7m
         alertname: ServiceDown
         exp_alerts:
           - exp_labels: {severity: critical, job: smart-heritage, service: content-service, instance: "h:8083"}
             exp_annotations:
               summary: "content-service không phản hồi"
-              description: "Prometheus không đọc được /actuator/prometheus của content-service (h:8083) liên tục hơn 30 giây."
+              description: "Prometheus không đọc được /actuator/prometheus của content-service (h:8083) liên tục hơn 1 phút."
       - eval_time: 3m
-        alertname: ServiceDown
+        alertname: HighErrorRate5xx
         exp_alerts: []
-      - eval_time: 6m
+      # 8m: cua so 5 phut (3m-8m), loi bat dau tu 4m15s -> khoang 31% la 5xx
+      - eval_time: 8m
         alertname: HighErrorRate5xx
         exp_alerts:
           - exp_labels: {severity: warning, service: api-gateway}
             exp_annotations:
-              summary: "api-gateway lỗi 5xx 37.5%"
-              description: "Hơn 5% request của api-gateway trả lỗi 5xx trong 1 phút gần nhất."
-
-      - eval_time: 3m
-        alertname: HighErrorRate5xx
-        exp_alerts: []
-      - eval_time: 6m
+              summary: "api-gateway lỗi 5xx 31.03%"
+              description: "Hơn 5% request của api-gateway trả lỗi 5xx trong 5 phút gần nhất."
+      - eval_time: 8m
         alertname: HighLatencyP95
         exp_alerts:
           - exp_labels: {severity: warning, service: content-service}
             exp_annotations:
-              summary: "content-service chậm: p95 = 1.917s"
-              description: "95% request của content-service mất hơn 500 ms trong 1 phút gần nhất."
+              summary: "content-service chậm: p95 = 4.812s"
+              description: "95% request của content-service mất hơn 2 giây trong 5 phút gần nhất (vượt yêu cầu p95 <= 2 giây)."
+
+  # ---------- RabbitMQ ----------
+  - interval: 15s
+    input_series:
+      # RabbitMQ chay 5 phut roi tat
+      - series: 'up{job="rabbitmq",instance="rabbitmq:15692"}'
+        values: '1x20 0x20'
+      # hang doi thuong tang dan tu 0 len 200 tin
+      - series: 'rabbitmq_queue_messages_ready{job="rabbitmq",vhost="/",queue="analytics.visit-recorded"}'
+        values: '0+5x40'
+      # hang doi khac luon it tin -> khong bao
+      - series: 'rabbitmq_queue_messages_ready{job="rabbitmq",vhost="/",queue="personalization.artifact-updated"}'
+        values: '3x40'
+      # DLQ: rong, tu 2m co 2 tin
+      - series: 'rabbitmq_queue_messages{job="rabbitmq",vhost="/",queue="personalization.artifact-updated.dlq"}'
+        values: '0x8 2x32'
+      # DLQ cung co messages_ready nhieu -> KHONG tinh vao Backlog
+      - series: 'rabbitmq_queue_messages_ready{job="rabbitmq",vhost="/",queue="analytics.dlq"}'
+        values: '500x40'
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: RabbitMQDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: rabbitmq, instance: "rabbitmq:15692"}
+            exp_annotations:
+              summary: "RabbitMQ không phản hồi"
+              description: "Prometheus không đọc được số liệu RabbitMQ (rabbitmq:15692) liên tục hơn 1 phút. Sự kiện giữa các service đang không được gửi."
+      # vuot 100 tin tu 5m15s; 6m (45s) chua du 2 phut, 8m Firing
+      - eval_time: 6m
+        alertname: RabbitMQQueueBacklog
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: RabbitMQQueueBacklog
+        exp_alerts:
+          - exp_labels: {severity: warning, vhost: "/", queue: analytics.visit-recorded}
+            exp_annotations:
+              summary: "Hàng đợi analytics.visit-recorded tồn 160 tin"
+              description: "Hàng đợi analytics.visit-recorded có hơn 100 tin chờ xử lý trong 2 phút: service nhận đang tắt hoặc xử lý chậm."
+      - eval_time: 1m
+        alertname: RabbitMQDeadLetter
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: RabbitMQDeadLetter
+        exp_alerts:
+          - exp_labels: {severity: warning, vhost: "/", queue: personalization.artifact-updated.dlq}
+            exp_annotations:
+              summary: "DLQ personalization.artifact-updated.dlq có 2 tin"
+              description: "Có sự kiện bị đưa vào personalization.artifact-updated.dlq sau khi xử lý lỗi. Xem log service nhận, sửa xong thì Purge DLQ."

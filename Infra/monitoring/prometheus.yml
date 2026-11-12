@@ -3,6 +3,7 @@
 # lẫn service chạy trong Docker (vì Docker mở cổng ra máy).
 # Service chưa chạy sẽ hiện DOWN - bình thường.
 # Job mysql/redis chỉ UP khi bật profile monitoring (có mysql-exporter, redis-exporter).
+# Job rabbitmq (Sprint 6) chỉ UP khi bật thêm profile mq.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -42,3 +43,12 @@ scrape_configs:
     static_configs:
       - targets: ['redis-exporter:9121']
         labels: { service: redis }
+
+  # RabbitMQ (Bảo - Sprint 6, XDPMHDT-40): plugin rabbitmq_prometheus có sẵn trong image rabbitmq:3.13-management.
+  # /metrics/per-object trả số tin theo TỪNG hàng đợi (nhãn queue, vhost) -> cảnh báo tồn tin / DLQ trong alerts.yml.
+  # Chỉ UP khi chạy kèm --profile mq. Kiểm tra tay: http://localhost:15692/metrics/per-object
+  - job_name: rabbitmq
+    metrics_path: /metrics/per-object
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels: { service: rabbitmq }
