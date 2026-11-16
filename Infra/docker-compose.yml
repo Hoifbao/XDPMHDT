@@ -8,9 +8,12 @@
 #     Giám sát RabbitMQ + cảnh báo hàng đợi (Sprint 6): bật thêm --profile mq
 #     Kiểm tra nhanh: powershell -ExecutionPolicy Bypass -File Infra/monitoring/smoke-test.ps1 (Bảo - Sprint 5)
 #   docker compose -f Infra/docker-compose.yml --profile nifi up -d        -> + Apache NiFi (Tuấn)
+#   docker compose -f Infra/docker-compose.yml --profile all up -d --build  -> TOÀN BỘ hệ thống (Bảo - Sprint 7):
+#     MySQL, Redis, RabbitMQ, Backend cũ, 7 service, Gateway, Prometheus, Grafana, exporter (không gồm NiFi).
+#     Lần đầu build khoảng 5-10 phút. Kiểm tra: docker compose -f Infra/docker-compose.yml ps (cột STATUS "healthy").
 # Bật nhiều profile: --profile core --profile monitoring
 #
-# Lưu ý: profile core chiếm cổng 8080/8081/8082/8083/8086/8090. Nếu đang chạy Gateway/service/Backend bằng
+# Lưu ý: profile core/all chiếm cổng 8080-8087 và 8090. Nếu đang chạy Gateway/service/Backend bằng
 # mvn spring-boot:run thì KHÔNG bật profile core (trùng cổng).
 # Mật khẩu, khóa JWT: copy Infra/.env.example thành Infra/.env rồi sửa.
 # Database (Tường - Sprint 4): MySQL chạy mọi script trong Infra/db theo thứ tự tên file
@@ -46,7 +49,7 @@ services:
 
   # ---------- profile: core ----------
   backend:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ../Backend
     container_name: smart_heritage_backend
@@ -58,12 +61,19 @@ services:
       JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
     ports:
       - "8090:8090"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8090' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
     depends_on:
       mysql-db:
         condition: service_healthy
 
   auth-service:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ..
       dockerfile: services/auth-service/Dockerfile
@@ -74,12 +84,19 @@ services:
       JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
     ports:
       - "8081:8081"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8081' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
     depends_on:
       mysql-db:
         condition: service_healthy
 
   content-service:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ..
       dockerfile: services/content-service/Dockerfile
@@ -91,14 +108,27 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       # Chưa có site-service thì kiểm tra siteId qua Backend cũ
       LEGACY_BACKEND_URL: http://backend:8090
+      # Bảo W7: kiểm siteId qua site-service; gửi ArtifactUpdated lên RabbitMQ (trước đây thiếu host -> lỗi kết nối)
+      SITE_SERVICE_URL: http://site-service:8082
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
     ports:
       - "8083:8083"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8083' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
     depends_on:
       mysql-db:
         condition: service_healthy
 
   site-service:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ..
       dockerfile: services/site-service/Dockerfile
@@ -108,13 +138,20 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
     ports:
       - "8082:8082"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8082' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
     depends_on:
       mysql-db:
         condition: service_healthy
 
   # Tường - Task 5: đánh giá hiện vật, dùng user riêng feedback_user (Infra/db/00_create_schemas.sql)
   feedback-service:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ..
       dockerfile: services/feedback-service/Dockerfile
@@ -135,6 +172,13 @@ services:
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
     ports:
       - "8086:8086"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8086' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
     depends_on:
       mysql-db:
         condition: service_healthy
@@ -143,8 +187,98 @@ services:
       auth-service:
         condition: service_started
 
+  # ---------- Bảo W7: 3 service còn thiếu trong compose ----------
+  # Phú - yêu thích, lịch sử tham quan, đồng bộ offline; gửi VisitRecorded, nhận ArtifactUpdated
+  personalization-service:
+    profiles: ["core", "all"]
+    build:
+      context: ..
+      dockerfile: services/personalization-service/Dockerfile
+    container_name: smart_heritage_personalization
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/personalization_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      REDIS_HOST: redis-cache
+      CONTENT_SERVICE_URL: http://content-service:8083
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
+    ports:
+      - "8085:8085"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8085' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+
+  # Khoa - beacon, cảnh báo pin, thông báo FCM. FCM cần file service account Firebase (không commit):
+  # đặt FIREBASE_SERVICE_ACCOUNT trong Infra/.env và mount file vào container nếu muốn gửi thông báo thật.
+  beacon-service:
+    profiles: ["core", "all"]
+    build:
+      context: ..
+      dockerfile: services/beacon-service/Dockerfile
+    container_name: smart_heritage_beacon
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/beacon_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      CONTENT_SERVICE_URL: http://content-service:8083
+      SITE_SERVICE_URL: http://site-service:8082
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
+    ports:
+      - "8084:8084"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8084' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  # Tuấn - thống kê, Dashboard, xuất PDF/Excel; nhận VisitRecorded, FeedbackCreated/Approved
+  analytics-service:
+    profiles: ["core", "all"]
+    build:
+      context: ..
+      dockerfile: services/analytics-service/Dockerfile
+    container_name: smart_heritage_analytics
+    environment:
+      DB_URL: jdbc:mysql://mysql-db:3306/analytics_db?useSSL=false&allowPublicKeyRetrieval=true
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me-rabbit}
+    ports:
+      - "8087:8087"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8087' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
   api-gateway:
-    profiles: ["core"]
+    profiles: ["core", "all"]
     build:
       context: ..
       dockerfile: services/api-gateway/Dockerfile
@@ -156,19 +290,42 @@ services:
       CONTENT_SERVICE_URL: http://content-service:8083
       SITE_SERVICE_URL: http://site-service:8082
       FEEDBACK_SERVICE_URL: http://feedback-service:8086
+      # Bảo W7: thiếu 3 dòng này thì Gateway trong container gọi localhost:808x (chính nó) hoặc Backend cũ
+      PERSONALIZATION_SERVICE_URL: http://personalization-service:8085
+      BEACON_SERVICE_URL: http://beacon-service:8084
+      ANALYTICS_SERVICE_URL: http://analytics-service:8087
       # Tách xong service nào thì thêm 1 dòng ở trên
     ports:
       - "8080:8080"
+    # Bảo W7: kiểm cổng đã mở (image JRE không có curl). start_period cho Spring Boot khởi động.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+    # Bảo W7: chỉ bật Gateway khi các service đã mở cổng (healthy)
     depends_on:
-      - auth-service
-      - content-service
-      - site-service
-      - feedback-service
-      - backend
+      auth-service:
+        condition: service_healthy
+      site-service:
+        condition: service_healthy
+      content-service:
+        condition: service_healthy
+      beacon-service:
+        condition: service_healthy
+      personalization-service:
+        condition: service_healthy
+      feedback-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
 
   # ---------- profile: mq ----------
   rabbitmq:
-    profiles: ["mq"]
+    profiles: ["mq", "all"]
     image: rabbitmq:3.13-management
     container_name: smart_heritage_rabbitmq
     environment:
@@ -178,10 +335,15 @@ services:
       - "5672:5672"     # AMQP cho service
       - "15672:15672"   # giao diện quản trị
       - "15692:15692"   # số liệu Prometheus (plugin rabbitmq_prometheus, Bảo - Sprint 6): /metrics/per-object
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   # ---------- profile: monitoring ----------
   prometheus:
-    profiles: ["monitoring"]
+    profiles: ["monitoring", "all"]
     image: prom/prometheus:v2.54.1
     container_name: smart_heritage_prometheus
     volumes:
@@ -193,7 +355,7 @@ services:
       - "9090:9090"
 
   grafana:
-    profiles: ["monitoring"]
+    profiles: ["monitoring", "all"]
     image: grafana/grafana:11.2.0
     container_name: smart_heritage_grafana
     environment:
@@ -209,7 +371,7 @@ services:
   # Exporter (Bảo - Sprint 5): đổi chỉ số MySQL/Redis sang dạng Prometheus đọc được.
   # Dev dùng tài khoản root của MySQL (chỉ đọc chỉ số); môi trường thật nên tạo user riêng quyền PROCESS, REPLICATION CLIENT, SELECT.
   mysql-exporter:
-    profiles: ["monitoring"]
+    profiles: ["monitoring", "all"]
     image: prom/mysqld-exporter:v0.15.1
     container_name: smart_heritage_mysql_exporter
     command:
@@ -224,7 +386,7 @@ services:
         condition: service_healthy
 
   redis-exporter:
-    profiles: ["monitoring"]
+    profiles: ["monitoring", "all"]
     image: oliver006/redis_exporter:v1.62.0
     container_name: smart_heritage_redis_exporter
     environment:

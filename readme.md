@@ -179,12 +179,14 @@ Hệ thống bao gồm 6 module cốt lõi[cite: 1]:
 | 8082–8087 | site / content / beacon / personalization / feedback / analytics | Dần thay Backend cũ từ W4–W5 |
 | 3307, 6379 | MySQL, Redis (Docker) | |
 
-Chạy đủ bằng 1 lệnh (thư mục gốc repo): `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1`.
+Chạy đủ bằng 1 lệnh (thư mục gốc repo): `powershell -ExecutionPolicy Bypass -File Infra\dev\start-local.ps1`. Từ W7 script bật đủ 7 service + Backend cũ + Gateway (không cần chạy thêm script khác); bật RabbitMQ và giám sát trước: `docker compose -f Infra/docker-compose.yml --profile mq --profile monitoring up -d`.
+
+Chạy toàn bộ trong Docker (W7, máy chỉ cần Docker): `docker compose -f Infra/docker-compose.yml --profile all up -d --build`, đợi `docker compose -f Infra/docker-compose.yml ps` báo *healthy* (lần đầu build 5–10 phút).
 Chi tiết: [services/README.md](services/README.md).
 
 **Swagger chung (W5):** http://localhost:8080/swagger-ui.html, ô *Select a definition* (góc trên bên phải) chọn auth / site / content / beacon / personalization / feedback / analytics / backend-cu.
 - "Try it out" đi qua Gateway (kiểm JWT, phân quyền như Web/Mobile). Đăng nhập `POST /api/auth/login` ở mục auth-service, copy `accessToken`, bấm **Authorize** rồi dán (không gõ chữ `Bearer`); token giữ nguyên khi đổi service.
-- Mỗi mục lấy tài liệu từ đúng địa chỉ Gateway đang chuyển request tới. content mặc định trỏ content-service 8083 (`start-local.ps1` bật sẵn); beacon / analytics mặc định vẫn trỏ Backend cũ 8090: muốn xem tài liệu service mới thì đặt `BEACON_SERVICE_URL`, `ANALYTICS_SERVICE_URL` trước khi chạy Gateway.
+- Mỗi mục lấy tài liệu từ đúng địa chỉ Gateway đang chuyển request tới. content mặc định trỏ content-service 8083 (`start-local.ps1` bật sẵn); beacon / analytics: `start-local.ps1` và Docker profile `all` đã trỏ sẵn service mới 8084 / 8087 (W7); chạy Gateway tay mà không đặt `BEACON_SERVICE_URL`, `ANALYTICS_SERVICE_URL` thì vẫn trỏ Backend cũ 8090.
 - Service đang tắt → mục đó báo *Failed to load API definition*, các mục khác vẫn dùng được.
 
 ## 4. Cấu Trúc Repository / Repository Structure
