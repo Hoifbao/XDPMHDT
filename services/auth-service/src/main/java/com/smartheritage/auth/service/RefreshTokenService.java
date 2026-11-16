@@ -73,6 +73,14 @@ public class RefreshTokenService {
         repository.findByTokenHash(hash(raw.trim())).ifPresent(t -> t.setRevoked(true));
     }
 
+    /** Bảo W7: khoá tài khoản thì thu hồi mọi phiên (refresh token) của người đó. */
+    @Transactional
+    public void revokeAllOf(Long userId) {
+        if (userId != null) {
+            repository.revokeAllByUserId(userId);
+        }
+    }
+
     public long getRefreshTtlSeconds() {
         return props.getRefreshTokenTtlSeconds();
     }

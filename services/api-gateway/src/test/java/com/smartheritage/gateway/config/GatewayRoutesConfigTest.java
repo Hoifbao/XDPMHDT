@@ -39,6 +39,16 @@ class GatewayRoutesConfigTest {
     private RouteLocator routeLocator;
 
     @Test
+    void quanLyNguoiDung_toiAuthService8081() {
+        for (String path : List.of("/api/admin/users", "/api/admin/users/2/role", "/api/admin/users/2/status")) {
+            Route route = routeFor(HttpMethod.GET, path);
+            assertEquals("auth-service", route.getId(), path);
+            assertEquals("http://localhost:8081", route.getUri().toString(), path);
+        }
+        assertEquals("auth-service", routeFor(HttpMethod.PATCH, "/api/admin/users/2/status").getId());
+    }
+
+    @Test
     void feedback_rating_admin_toi_feedbackService8086() {
         for (String path : List.of("/api/artifacts/1/feedbacks", "/api/artifacts/1/rating-summary",
                 "/api/admin/feedbacks", "/api/admin/feedbacks/3/status")) {

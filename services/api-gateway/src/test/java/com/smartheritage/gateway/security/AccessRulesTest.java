@@ -65,6 +65,15 @@ class AccessRulesTest {
     }
 
     @Test
+    void quanLyNguoiDung_chiAdmin() {
+        assertEquals(UNAUTHORIZED, rules.check(HttpMethod.GET, "/api/admin/users", null));
+        assertEquals(FORBIDDEN, rules.check(HttpMethod.GET, "/api/admin/users", visitor));
+        assertEquals(FORBIDDEN, rules.check(HttpMethod.PATCH, "/api/admin/users/2/status", visitor));
+        assertEquals(ALLOW, rules.check(HttpMethod.GET, "/api/admin/users", admin));
+        assertEquals(ALLOW, rules.check(HttpMethod.PATCH, "/api/admin/users/2/role", admin));
+    }
+
+    @Test
     void me_admin_thongKe() {
         assertEquals(UNAUTHORIZED, rules.check(HttpMethod.GET, "/api/me/favorites", null));
         assertEquals(ALLOW, rules.check(HttpMethod.POST, "/api/me/visits/batch", visitor));

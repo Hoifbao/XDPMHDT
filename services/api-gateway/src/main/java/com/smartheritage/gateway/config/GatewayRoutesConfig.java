@@ -43,8 +43,9 @@ public class GatewayRoutesConfig {
                 .uri(uri)));
 
         return routes
+                // Bảo W7: /api/admin/users/** (quản lý người dùng) cũng thuộc auth-service; quyền ADMIN do AccessRules kiểm.
                 .route("auth-service", r -> r.order(1)
-                        .path("/api/auth/**")
+                        .path("/api/auth/**", "/api/admin/users", "/api/admin/users/**")
                         .filters(GatewayRoutesConfig::common).uri(t.auth()))
                 .route("site-service", r -> r.order(2)
                         .path("/api/heritage-sites/**")
