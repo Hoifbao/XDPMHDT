@@ -40,6 +40,8 @@
     </div>
 
     <script src="../api/auth.js" data-guard="login"></script>
+    <!-- Bảo W7: menu chung cho mọi trang quản trị (phải nạp trước số chờ duyệt) -->
+    <script src="../components/admin-nav.js" defer></script>
     <script>
         (function () {
             const user = SHAuth.currentUser();

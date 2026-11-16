@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="../../theme.css">
     <!-- Bảo W3: chưa đăng nhập hoặc không phải ADMIN thì chuyển về login.html; tự gắn JWT cho fetch() -->
     <script src="../api/auth.js" data-guard="admin"></script>
+    <!-- Bảo W7: menu chung cho mọi trang quản trị (phải nạp trước số chờ duyệt) -->
+    <script src="../components/admin-nav.js" defer></script>
     <script src="./feedback-pending-badge.js" defer></script>
 </head>
 <body>
