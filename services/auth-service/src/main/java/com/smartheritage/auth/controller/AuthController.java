@@ -48,6 +48,7 @@ public class AuthController {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final String NOT_LOGGED_IN = "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!";
+    static final String ACCOUNT_LOCKED = "Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên!";
 
     // ---------- Ví dụ JSON cho Swagger (chỉ để hiển thị tài liệu) ----------
     private static final String JSON = "application/json";
@@ -131,7 +132,10 @@ public class AuthController {
                             value = "{\"message\": \"Vui lòng nhập tên đăng nhập và mật khẩu!\"}"))),
             @ApiResponse(responseCode = "401", description = "Sai tài khoản hoặc mật khẩu",
                     content = @Content(mediaType = JSON, examples = @ExampleObject(
-                            value = "{\"message\": \"Sai tài khoản hoặc mật khẩu!\"}")))
+                            value = "{\"message\": \"Sai tài khoản hoặc mật khẩu!\"}"))),
+            @ApiResponse(responseCode = "403", description = "Tài khoản đã bị ADMIN khoá",
+                    content = @Content(mediaType = JSON, examples = @ExampleObject(
+                            value = "{\"message\": \"Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên!\"}")))
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -143,6 +147,10 @@ public class AuthController {
         return userRepository.findByUsername(username)
                 .filter(user -> passwordEncoder.matches(req.getPassword(), user.getPasswordHash()))
                 .<ResponseEntity<?>>map(user -> {
+                    // Bảo W7: đúng mật khẩu nhưng tài khoản bị khoá -> 403 (không cấp token)
+                    if (user.isLocked()) {
+                        return ResponseEntity.status(403).body(Map.of("message", ACCOUNT_LOCKED));
+                    }
                     Map<String, Object> body = toProfile(user);
                     body.putAll(issueTokens(user));
                     body.put("message", "Đăng nhập thành công!");
@@ -159,12 +167,19 @@ public class AuthController {
                     content = @Content(mediaType = JSON, examples = @ExampleObject(value = EX_TOKENS))),
             @ApiResponse(responseCode = "401", description = "refreshToken không hợp lệ, đã dùng, đã thu hồi hoặc hết hạn",
                     content = @Content(mediaType = JSON, examples = @ExampleObject(
-                            value = "{\"message\": \"Refresh token không hợp lệ hoặc đã hết hạn, vui lòng đăng nhập lại!\"}")))
+                            value = "{\"message\": \"Refresh token không hợp lệ hoặc đã hết hạn, vui lòng đăng nhập lại!\"}"))),
+            @ApiResponse(responseCode = "403", description = "Tài khoản đã bị ADMIN khoá",
+                    content = @Content(mediaType = JSON, examples = @ExampleObject(
+                            value = "{\"message\": \"Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên!\"}")))
     })
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody RefreshRequest req) {
         return refreshTokenService.consume(req.getRefreshToken())
                 .<ResponseEntity<?>>map(user -> {
+                    // Bảo W7: bị khoá sau khi đã đăng nhập -> không cho làm mới token
+                    if (user.isLocked()) {
+                        return ResponseEntity.status(403).body(Map.of("message", ACCOUNT_LOCKED));
+                    }
                     Map<String, Object> body = toProfile(user);
                     body.putAll(issueTokens(user));
                     body.put("message", "Làm mới token thành công!");

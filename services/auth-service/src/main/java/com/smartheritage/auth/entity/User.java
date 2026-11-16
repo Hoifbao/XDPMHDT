@@ -35,6 +35,14 @@ public class User {
     @Builder.Default
     private String role = "VISITOR";
 
+    /**
+     * Bảo W7 (quản lý người dùng): ADMIN khoá tài khoản thì không đăng nhập, không làm mới token được.
+     * DEFAULT 0 để khi ddl-auto=update tự thêm cột, các tài khoản có sẵn vẫn ở trạng thái mở.
+     */
+    @Column(name = "locked", nullable = false, columnDefinition = "TINYINT(1) NOT NULL DEFAULT 0")
+    @Builder.Default
+    private boolean locked = false;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
