@@ -15,6 +15,11 @@ import 'screens/artifact_detail_screen.dart';
 import 'screens/recent_artifacts_screen.dart';
 import 'core/media_lifecycle.dart';
 import 'shared/app_sidebar.dart';
+import 'features/visit_history/visit_history_screen.dart';
+
+/// Bảo W7: nút mô phỏng beacon chỉ hiện khi chạy chế độ demo (dự phòng khi beacon thật không phát):
+///   flutter run --dart-define=DEMO_MODE=true
+const bool kDemoMode = bool.fromEnvironment('DEMO_MODE');
 
 void main() {
   // Client thật tạo NGOÀI runWithClient (tránh gọi đệ quy). Bên trong zone,
@@ -133,9 +138,13 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          // Bảo W7: trước đây onPressed: null nên nút không bấm được
           TextButton(
-            onPressed: null,
-            child: Text('Xem hiện vật'),
+            onPressed: () {
+              Navigator.pop(context);
+              openArtifact(artifacts.first);
+            },
+            child: const Text('Xem hiện vật'),
           ),
         ],
       ),
@@ -279,65 +288,26 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               Expanded(
+                // Bảo W7: trước đây nút không làm gì; nay mở bản đồ di tích
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                      context, MaterialPageRoute(builder: (_) => const MapScreen())),
                   child: const Text('Khám phá di sản'),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: beaconDemo,
-                  child: const Text('Mô phỏng beacon'),
+              if (kDemoMode) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: beaconDemo,
+                    child: const Text('Mô phỏng beacon'),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              _stat('1', 'Khách'),
-              const SizedBox(width: 10),
-              _stat('2', 'Tương tác'),
-              const SizedBox(width: 10),
-              _stat('4.0', 'Điểm TB'),
-            ],
-          ),
+          // Bảo W7: bỏ 3 ô thống kê gõ cứng (1 khách / 2 tương tác / 4.0 điểm)
         ],
-      ),
-    );
-  }
-
-  Widget _stat(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: 14,
-          horizontal: 8,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -368,7 +338,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Temple of Literature',
+                    'Các di tích trong hệ thống',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -376,7 +346,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              _pill('Hanoi'),
+              _pill('OpenStreetMap'),
             ],
           ),
           const SizedBox(height: 16),
@@ -529,6 +499,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Bảo W7: trước đây gõ cứng "Khue Van Cac"; nay mở lịch sử tham quan thật (personalization-service)
   Widget _buildJourney() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -536,26 +507,32 @@ class _HomePageState extends State<HomePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Hành trình của bạn',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: Color(0xFF718B78),
+          const SizedBox(height: 6),
+          const Text(
+            'Các hiện vật bạn đã ghé thăm được lưu lại, kể cả khi mất mạng.',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VisitHistoryScreen()),
               ),
-              SizedBox(width: 8),
-              Text('Khue Van Cac'),
-            ],
+              icon: const Icon(Icons.timeline),
+              label: const Text('Xem lịch sử tham quan'),
+            ),
           ),
         ],
       ),
@@ -573,7 +550,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'MÔ PHỎNG BEACON',
+            'QUÉT IBEACON',
             style: TextStyle(
               fontSize: 11,
               letterSpacing: 1.5,
@@ -589,53 +566,24 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.bluetooth_connected,
-                  color: Color(0xFF718B78),
-                  size: 30,
-                ),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tín hiệu BLE đang hoạt động',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'UUID: SMART-HERITAGE-DEMO',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          // Bảo W7: bỏ khung "Tín hiệu BLE đang hoạt động / UUID: SMART-HERITAGE-DEMO" gõ cứng
+          const Text(
+            'Bật Bluetooth và đi lại gần hiện vật, ứng dụng sẽ tự hiện nội dung.',
+            style: TextStyle(color: Color(0xFF69716B)),
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: beaconDemo,
-              child: const Text(
-                'Phát hiện hiện vật gần bạn →',
+          if (kDemoMode) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: beaconDemo,
+                child: const Text(
+                  'Phát hiện hiện vật gần bạn (demo) →',
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
