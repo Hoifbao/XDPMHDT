@@ -22,7 +22,7 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64, columnDefinition = "CHAR(64)") // khop Infra/db: SHA-256 hex luon 64 ky tu
     private String tokenHash;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
