@@ -131,8 +131,22 @@ flutter devices
 | Grafana | `admin` | giá trị `GRAFANA_ADMIN_PASSWORD` |
 | RabbitMQ | giá trị `RABBITMQ_USER` | giá trị `RABBITMQ_PASSWORD` |
 
-- Script `Infra/db/*.sql` tự chạy **chỉ khi volume MySQL trống** (lần đầu). Dữ liệu demo bản cuối (kèm media) do Tường bổ sung vào `Infra/db` trong tuần 7; cập nhật mục này khi file seed vào `main`.
-- File media upload nằm trong volume `content_uploads` (Docker) hoặc thư mục `MEDIA_DIRECTORY` của content-service (cách 2).
+- Script `Infra/db/*.sql` tự chạy **chỉ khi volume MySQL trống** (lần đầu). Dữ liệu demo bản cuối do Tường bổ sung vào `Infra/db` trong tuần 7.
+- File media upload nằm trong volume `content_uploads` (Docker) hoặc thư mục `MEDIA_DIRECTORY` của content-service (cách 2, mặc định `services/content-service/uploads`).
+
+**Nạp media cho dữ liệu demo.** File media mẫu nằm trong `Infra/seed/media/`; trong dữ liệu seed, URL media có dạng
+`http://localhost:8080/api/media/files/<tên file>` (content-service phục vụ file trong thư mục upload qua Gateway).
+Sau khi content-service đã chạy, chép media vào thư mục upload (chạy lại nhiều lần không sao, file trùng tên bị ghi đè):
+
+```bash
+# Cach 1 (Docker), dung o thu muc goc repo
+docker cp Infra/seed/media/. smart_heritage_content:/app/uploads/
+# Cach 2 (Maven/start-local), dung o thu muc goc repo (PowerShell)
+Copy-Item Infra/seed/media/* services/content-service/uploads/ -Force
+```
+
+Kiểm tra: mở `http://localhost:8080/api/media/files/<tên một file>` trên trình duyệt phải thấy ảnh/âm thanh. Volume
+`content_uploads` giữ media qua các lần khởi động lại; chỉ mất khi chạy `down -v`.
 - **Không chạy `down -v` trên máy demo** sau khi đã nạp dữ liệu cuối: lệnh này xoá sạch MySQL và media.
 
 ## 9. Dừng, khởi động lại, làm sạch
