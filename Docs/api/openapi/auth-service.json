@@ -1,0 +1,740 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Heritage - auth-service",
+    "description": "Đăng ký, đăng nhập, làm mới token, đăng xuất, hồ sơ người dùng. Client gọi qua Gateway http://localhost:8080. API /me và /users/{id} đọc người dùng từ header X-User-* do Gateway gắn, nên test 2 API này qua Gateway (gọi thẳng cổng 8081 sẽ trả 401).",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "API Gateway (8080): kiểm tra JWT và phân quyền như Web/Mobile"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Đăng ký, đăng nhập JWT (access + refresh token), đăng xuất, hồ sơ người dùng"
+    },
+    {
+      "name": "Admin - Users",
+      "description": "Quản lý người dùng (chỉ ADMIN): danh sách, đổi vai trò, khoá/mở khoá"
+    }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Đăng ký tài khoản du khách (VISITOR)",
+        "description": "Công khai. Mật khẩu tối thiểu 6 ký tự, username tối đa 50 ký tự, email đúng định dạng. Tài khoản mới luôn có role VISITOR và ngôn ngữ mặc định vi.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng ký thành công",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Đăng ký thành công!",
+                  "userId": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu trường bắt buộc, email sai định dạng, mật khẩu < 6 ký tự, username/email đã tồn tại",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Username đã tồn tại!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Đổi refreshToken lấy accessToken + refreshToken mới (refreshToken cũ bị vô hiệu)",
+        "description": "Công khai (không cần accessToken). Mỗi refreshToken chỉ dùng được 1 lần: gọi lại bằng token cũ sẽ nhận 401.",
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cấp cặp token mới (cùng cấu trúc với /login)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "userId": 2,
+                  "username": "visitor01",
+                  "email": "visitor01@gmail.com",
+                  "fullName": "Nguyễn Văn A",
+                  "role": "VISITOR",
+                  "preferredLanguage": "vi",
+                  "createdAt": "2026-10-20T09:15:00",
+                  "tokenType": "Bearer",
+                  "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIn0.abc",
+                  "expiresIn": 900,
+                  "refreshToken": "q8Zr3vX1kP0dN4sT7wYbE2mHcJ6uLfA9gRiOeQzW5nU",
+                  "refreshExpiresIn": 604800,
+                  "message": "Đăng nhập thành công!"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "refreshToken không hợp lệ, đã dùng, đã thu hồi hoặc hết hạn",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Refresh token không hợp lệ hoặc đã hết hạn, vui lòng đăng nhập lại!"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tài khoản đã bị ADMIN khoá",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Đăng xuất: thu hồi refreshToken. Access token tự hết hạn sau tối đa 15 phút",
+        "description": "Luôn trả 200, kể cả khi body rỗng hoặc refreshToken không tồn tại (không lộ token nào hợp lệ).",
+        "operationId": "logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã thu hồi refreshToken (nếu có)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Đăng xuất thành công!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Đăng nhập, trả về hồ sơ + accessToken + refreshToken",
+        "description": "Công khai. accessToken sống 15 phút (expiresIn, giây), gửi kèm header Authorization: Bearer <accessToken>. refreshToken sống 7 ngày, dùng cho /refresh. Tài khoản mẫu: admin / Test@1234.",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "content": {
+              "application/json": {
+                "example": {
+                  "userId": 2,
+                  "username": "visitor01",
+                  "email": "visitor01@gmail.com",
+                  "fullName": "Nguyễn Văn A",
+                  "role": "VISITOR",
+                  "preferredLanguage": "vi",
+                  "createdAt": "2026-10-20T09:15:00",
+                  "tokenType": "Bearer",
+                  "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIn0.abc",
+                  "expiresIn": 900,
+                  "refreshToken": "q8Zr3vX1kP0dN4sT7wYbE2mHcJ6uLfA9gRiOeQzW5nU",
+                  "refreshExpiresIn": 604800,
+                  "message": "Đăng nhập thành công!"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu tên đăng nhập hoặc mật khẩu",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Vui lòng nhập tên đăng nhập và mật khẩu!"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sai tài khoản hoặc mật khẩu",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Sai tài khoản hoặc mật khẩu!"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tài khoản đã bị ADMIN khoá",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/status": {
+      "patch": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Khoá / mở khoá tài khoản (chỉ ADMIN)",
+        "description": "locked = true để khoá: người đó không đăng nhập, không làm mới token được và mọi phiên (refresh token) bị thu hồi. locked = false để mở khoá. Không tự khoá chính mình được.",
+        "operationId": "changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Đã cập nhật trạng thái",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Đã khoá tài khoản visitor_an!",
+                  "user": {
+                    "userId": 2,
+                    "username": "visitor_an",
+                    "role": "VISITOR",
+                    "locked": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu locked hoặc tự khoá chính mình",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bạn không thể tự khoá tài khoản của chính mình!"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy người dùng",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/role": {
+      "patch": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Đổi vai trò người dùng (chỉ ADMIN)",
+        "description": "role = VISITOR hoặc ADMIN. Không đổi được vai trò của chính mình. Vai trò mới có hiệu lực khi người đó đăng nhập lại hoặc làm mới token.",
+        "operationId": "changeRole",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Đã đổi vai trò",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Vai trò sai hoặc tự đổi vai trò của mình",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bạn không thể tự đổi vai trò của chính mình!"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy người dùng",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/users/{id}": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Hồ sơ theo id (của chính mình, hoặc ADMIN xem bất kỳ)",
+        "description": "Gọi qua Gateway kèm Bearer token. VISITOR chỉ xem được id của chính mình.",
+        "operationId": "getProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID người dùng",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hồ sơ người dùng",
+            "content": {
+              "application/json": {
+                "example": {
+                  "userId": 2,
+                  "username": "visitor01",
+                  "email": "visitor01@gmail.com",
+                  "fullName": "Nguyễn Văn A",
+                  "role": "VISITOR",
+                  "preferredLanguage": "vi",
+                  "createdAt": "2026-10-20T09:15:00"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập, token sai hoặc hết hạn",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "VISITOR xem hồ sơ của người khác",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bạn chỉ được xem hồ sơ của chính mình!"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không có người dùng với id này",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Không tìm thấy người dùng!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Hồ sơ của người đang đăng nhập (gọi qua Gateway kèm Bearer token)",
+        "description": "Gọi qua Gateway http://localhost:8080 với header Authorization: Bearer <accessToken>. Gọi thẳng cổng 8081 không có header X-User-Id nên trả 401.",
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "description": "Hồ sơ người dùng (không có passwordHash)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "userId": 2,
+                  "username": "visitor01",
+                  "email": "visitor01@gmail.com",
+                  "fullName": "Nguyễn Văn A",
+                  "role": "VISITOR",
+                  "preferredLanguage": "vi",
+                  "createdAt": "2026-10-20T09:15:00"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập, token sai hoặc hết hạn",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tài khoản đã bị xóa",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Không tìm thấy người dùng!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Danh sách người dùng (chỉ ADMIN)",
+        "description": "Sắp xếp theo id tăng dần. q tìm trong username, email, họ tên (không phân biệt hoa thường). role = VISITOR hoặc ADMIN để lọc. size tối đa 100.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Từ khoá tìm kiếm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "an"
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Lọc theo vai trò",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "VISITOR"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Trang (từ 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Số dòng mỗi trang",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách 1 trang",
+            "content": {
+              "application/json": {
+                "example": {
+                  "content": [
+                    {
+                      "userId": 2,
+                      "username": "visitor_an",
+                      "email": "an.nguyen@example.com",
+                      "fullName": "Nguyễn Văn An",
+                      "role": "VISITOR",
+                      "preferredLanguage": "vi",
+                      "locked": false,
+                      "createdAt": "2026-10-01T08:05"
+                    }
+                  ],
+                  "page": 0,
+                  "size": 20,
+                  "totalElements": 1,
+                  "totalPages": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "description": "Thông tin đăng ký tài khoản du khách",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập, tối đa 50 ký tự, không trùng",
+            "example": "visitor01"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email hợp lệ, không trùng",
+            "example": "visitor01@gmail.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mật khẩu, tối thiểu 6 ký tự",
+            "example": "Test@1234"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Họ tên hiển thị (tuỳ chọn)",
+            "example": "Nguyễn Văn A"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "username"
+        ]
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "description": "refreshToken nhận được từ /login hoặc /refresh",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "refreshToken (dùng 1 lần)",
+            "example": "q8Zr3vX1kP0dN4sT7wYbE2mHcJ6uLfA9gRiOeQzW5nU"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "description": "Thông tin đăng nhập",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mật khẩu",
+            "example": "Test@1234"
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "StatusRequest": {
+        "type": "object",
+        "properties": {
+          "locked": {
+            "type": "boolean",
+            "description": "true = khoá, false = mở khoá",
+            "example": true
+          }
+        },
+        "required": [
+          "locked"
+        ]
+      },
+      "RoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Vai trò mới",
+            "example": "ADMIN"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Dán accessToken lấy từ POST /api/auth/login (không gõ chữ Bearer)"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 -- =====================================================================
 --  content_db - content-service (Xuân Anh, cổng 8083) | Script: Tường - Sprint 4
---  Bảng: artifacts, artifact_contents, media_resources
+--  Bảng: artifacts, artifact_contents, media_resources, artifact_event_outbox (tuần 7: thêm vào script)
 --  - artifacts.site_id KHÔNG còn khóa ngoại sang heritage_sites (đã sang site_db).
 --    content-service kiểm tra siteId bằng cách gọi site-service GET /api/heritage-sites/{id}.
 --  - Khóa ngoại trong cùng schema (artifact_contents, media_resources -> artifacts) vẫn giữ.
@@ -62,6 +62,18 @@ CREATE TABLE IF NOT EXISTS media_resources (
     PRIMARY KEY (id),
     CONSTRAINT fk_media_resources_artifact
         FOREIGN KEY (artifact_id) REFERENCES artifacts (id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Entity: ArtifactEventOutbox (Xuân Anh, tuần 6). Sự kiện ArtifactUpdated được lưu cùng transaction với hiện vật,
+-- sau đó content-service gửi lên RabbitMQ và đánh dấu published_at. Không FK: sự kiện xoá hiện vật vẫn còn khi hiện vật đã xoá.
+-- Giống services/content-service/db/artifact_event_outbox.sql (migration cho DB đang chạy).
+CREATE TABLE IF NOT EXISTS artifact_event_outbox (
+    event_id     VARCHAR(36) NOT NULL,                  -- UUID của sự kiện
+    occurred_at  DATETIME(6) NOT NULL,
+    payload      TEXT        NOT NULL,                  -- JSON của sự kiện
+    published_at DATETIME(6) NULL,                      -- NULL = chưa gửi lên RabbitMQ
+    PRIMARY KEY (event_id),
+    KEY idx_artifact_outbox_pending (published_at, occurred_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 INSERT INTO artifacts (id, site_id, name, artifact_code, category, description, thumbnail_url, period, material, dimensions, beacon_uuid, status) VALUES

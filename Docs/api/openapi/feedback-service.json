@@ -1,0 +1,651 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Heritage - feedback-service",
+    "description": "Đánh giá (số sao + bình luận) của du khách, kiểm duyệt của ADMIN, điểm trung bình. Client gọi qua Gateway http://localhost:8080 (từ tuần 5). API cần đăng nhập đọc người dùng từ header X-User-Id, X-User-Role do Gateway gắn; khi test thẳng cổng 8086 thì tự thêm 2 header này.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "API Gateway (8080): kiểm tra JWT và phân quyền như Web/Mobile"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/admin/feedbacks/{id}/status": {
+      "put": {
+        "tags": [
+          "admin-feedback-controller"
+        ],
+        "summary": "ADMIN duyệt hoặc từ chối một đánh giá (APPROVED / REJECTED)",
+        "description": "REJECTED = Ẩn: đánh giá không còn hiện trên app và không tính vào điểm trung bình. Không đặt lại PENDING. Body ví dụ: {\"status\":\"APPROVED\"}",
+        "operationId": "updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID đánh giá",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 3
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật trạng thái thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "status thiếu hoặc không phải APPROVED/REJECTED",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy đánh giá",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin-feedback-controller"
+        ],
+        "summary": "ADMIN duyệt hoặc từ chối một đánh giá (APPROVED / REJECTED)",
+        "description": "REJECTED = Ẩn: đánh giá không còn hiện trên app và không tính vào điểm trung bình. Không đặt lại PENDING. Body ví dụ: {\"status\":\"APPROVED\"}",
+        "operationId": "updateStatus_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID đánh giá",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 3
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật trạng thái thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "status thiếu hoặc không phải APPROVED/REJECTED",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy đánh giá",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/{artifactId}/feedbacks": {
+      "get": {
+        "tags": [
+          "feedback-controller"
+        ],
+        "summary": "Danh sách đánh giá đã duyệt của hiện vật (mới nhất trước)",
+        "description": "Công khai, không cần token. Chỉ trả đánh giá APPROVED; không lộ userId/email, chỉ có tên hiển thị reviewerName.",
+        "operationId": "getApprovedFeedbacks",
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công (danh sách có thể rỗng)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật hoặc hiện vật không hoạt động",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "content-service không phản hồi",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "feedback-controller"
+        ],
+        "summary": "Du khách gửi hoặc sửa đánh giá (số sao + bình luận) cho hiện vật",
+        "description": "Người gửi lấy từ header X-User-Id do Gateway gắn. Mỗi người chỉ có 1 đánh giá cho 1 hiện vật (chặn spam): gửi lại thì ghi đè đánh giá cũ. Kết quả luôn ở trạng thái PENDING, chỉ hiện công khai sau khi ADMIN duyệt (sửa đánh giá đã duyệt thì phải duyệt lại).",
+        "operationId": "submitFeedback",
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Gửi đánh giá mới thành công, trạng thái PENDING",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Đã có đánh giá trước đó: ghi đè và đưa về PENDING",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ (rating, comment) hoặc hiện vật không hoạt động",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Không có header X-User-Id (chưa đăng nhập)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Hai lần gửi đầu tiên cùng lúc; gửi lại sẽ thành sửa đánh giá",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "content-service không phản hồi",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedbacks/me": {
+      "get": {
+        "tags": [
+          "my-feedback-controller"
+        ],
+        "summary": "Du khách xem các đánh giá của chính mình, kèm trạng thái",
+        "description": "Trả mọi trạng thái (PENDING, APPROVED, REJECTED), mới cập nhật lên trước. Người dùng lấy từ header X-User-Id do Gateway gắn.",
+        "operationId": "getMine",
+        "responses": {
+          "200": {
+            "description": "Thành công (danh sách có thể rỗng)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/{artifactId}/rating-summary": {
+      "get": {
+        "tags": [
+          "rating-summary-controller"
+        ],
+        "summary": "Điểm trung bình và số lượt theo từng mức sao của hiện vật",
+        "description": "Chỉ tính đánh giá đã duyệt (APPROVED). Chưa có đánh giá: averageRating = null, totalRatings = 0.",
+        "operationId": "getRatingSummary",
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRatingSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID hiện vật không hợp lệ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRatingSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/feedbacks": {
+      "get": {
+        "tags": [
+          "admin-feedback-controller"
+        ],
+        "summary": "ADMIN xem danh sách đánh giá (mới nhất trước), lọc theo trạng thái và hiện vật",
+        "description": "Trả mọi trạng thái nếu bỏ trống status. Lọc theo hiện vật không gọi content-service; Web Admin lấy tên hiện vật từ GET /api/artifacts.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "PENDING | APPROVED | REJECTED; bỏ trống = tất cả",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "PENDING"
+          },
+          {
+            "name": "artifactId",
+            "in": "query",
+            "description": "ID hiện vật; bỏ trống = mọi hiện vật",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "status không phải PENDING/APPROVED/REJECTED hoặc artifactId không hợp lệ",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/feedbacks/pending-count": {
+      "get": {
+        "tags": [
+          "admin-feedback-controller"
+        ],
+        "summary": "Số đánh giá đang chờ duyệt (hiện trên menu Web Admin)",
+        "description": "Ví dụ data: {\"pending\": 2}",
+        "operationId": "pendingCount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FeedbackStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Trạng thái mới: APPROVED hoặc REJECTED",
+            "example": "APPROVED"
+          }
+        }
+      },
+      "ApiResponseFeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FeedbackResponse"
+          }
+        }
+      },
+      "FeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 7
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID hiện vật được đánh giá",
+            "example": 1
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Số sao, từ 1 đến 5",
+            "example": 5
+          },
+          "comment": {
+            "type": "string",
+            "description": "Bình luận, có thể null",
+            "example": "Hiện vật rất đẹp và nhiều thông tin."
+          },
+          "reviewerName": {
+            "type": "string",
+            "description": "Tên hiển thị của người đánh giá; không có thì \"Khách\"",
+            "example": "Nguyễn Văn An"
+          },
+          "status": {
+            "type": "string",
+            "description": "PENDING | APPROVED | REJECTED",
+            "example": "PENDING"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-30T09:30:00"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Lần sửa cuối (du khách sửa đánh giá hoặc ADMIN đổi trạng thái)",
+            "example": "2026-10-31T08:15:00"
+          }
+        }
+      },
+      "FeedbackRequest": {
+        "type": "object",
+        "description": "Nội dung đánh giá",
+        "example": {
+          "rating": 5,
+          "comment": "Hiện vật rất đẹp và nhiều thông tin."
+        },
+        "properties": {
+          "rating": {
+            "type": "number",
+            "format": "double",
+            "description": "Số sao, chỉ nhận số nguyên từ 1 đến 5",
+            "example": 5
+          },
+          "comment": {
+            "type": "string",
+            "description": "Bình luận (tuỳ chọn, tối đa 500 ký tự). Rỗng được lưu là null.",
+            "example": "Hiện vật rất đẹp và nhiều thông tin."
+          }
+        }
+      },
+      "ApiResponseListFeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseRatingSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RatingSummaryResponse"
+          }
+        }
+      },
+      "RatingSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "averageRating": {
+            "type": "number",
+            "format": "double",
+            "description": "Điểm trung bình, làm tròn 1 chữ số thập phân; null nếu chưa có đánh giá",
+            "example": 4.5
+          },
+          "totalRatings": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tổng số đánh giá đã duyệt",
+            "example": 2
+          },
+          "distribution": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Số lượt theo từng mức sao (luôn đủ 5 khóa từ 5 xuống 1)",
+            "example": {
+              "5": 1,
+              "4": 1,
+              "3": 0,
+              "2": 0,
+              "1": 0
+            }
+          }
+        }
+      },
+      "ApiResponseMapStringLong": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

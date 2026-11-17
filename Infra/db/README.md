@@ -9,7 +9,7 @@ Từ tuần 4, mỗi microservice có **schema riêng** và **user MySQL riêng*
 | `00_create_schemas.sql` | 7 schema bên dưới | — | Tường | Tạo schema, user, GRANT |
 | `01_auth.sql` | `auth_db` | auth-service (8081) | Bảo | users, refresh_tokens |
 | `02_site.sql` | `site_db` | site-service (8082) | Ân | heritage_sites |
-| `03_content.sql` | `content_db` | content-service (8083) | Xuân Anh | artifacts, artifact_contents, media_resources |
+| `03_content.sql` | `content_db` | content-service (8083) | Xuân Anh | artifacts, artifact_contents, media_resources, artifact_event_outbox |
 | `04_beacon.sql` | `beacon_db` | beacon-service (8084) | Khoa | ibeacons |
 | `05_personalization.sql` | `personalization_db` | personalization-service (8085, tuần 5) | Phú | visits, likes |
 | `06_feedback.sql` | `feedback_db` | feedback-service (8086, tuần 5) | Tường | feedbacks |
@@ -81,3 +81,27 @@ docker exec smart_heritage_mysql mysql -usite_user -psite_pass_dev -e "SELECT CO
 
 Database đang chạy từ trước bản này mà không muốn `down -v`: xem `Infra/personalization_migration.sql`
 (chỉ thêm cột cho bảng `visits` của `smart_heritage_db`).
+
+## Tuần 7: cột `users.locked` (trạng thái tài khoản)
+
+`users.locked TINYINT(1) NOT NULL DEFAULT 0`: 0 = đang hoạt động, 1 = bị khoá. ADMIN khoá/mở trên trang quản lý
+người dùng (`PATCH /api/admin/users/{id}/status`); tài khoản bị khoá không đăng nhập, không làm mới token được.
+Cột có ở cả `01_auth.sql` (`auth_db`) và `99_init_db_legacy.sql` (`smart_heritage_db`, auth-service đang dùng).
+
+Database đã có dữ liệu mà không muốn `down -v` thì thêm cột bằng tay
+(báo `Duplicate column name 'locked'` nghĩa là cột đã có, bỏ qua):
+
+```bash
+docker exec smart_heritage_mysql mysql -uroot -prootpassword123 -e "ALTER TABLE smart_heritage_db.users ADD COLUMN locked TINYINT(1) NOT NULL DEFAULT 0 AFTER role"
+docker exec smart_heritage_mysql mysql -uroot -prootpassword123 -e "ALTER TABLE auth_db.users ADD COLUMN locked TINYINT(1) NOT NULL DEFAULT 0 AFTER role"
+```
+
+## Tuần 7: bảng `content_db.artifact_event_outbox` đưa vào script
+
+Bảng outbox của sự kiện ArtifactUpdated (Xuân Anh, tuần 6) trước đây chỉ do content-service tự tạo (`ddl-auto: update`).
+Nay có trong `03_content.sql`, giống hệt `services/content-service/db/artifact_event_outbox.sql`, nên máy mới tạo DB là có
+bảng ngay. DB đang chạy thì không cần làm gì (bảng đã được service tạo); nếu thiếu, chạy:
+
+```bash
+docker exec -i smart_heritage_mysql mysql -uroot -prootpassword123 < services/content-service/db/artifact_event_outbox.sql
+```

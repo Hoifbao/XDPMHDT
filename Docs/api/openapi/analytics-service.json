@@ -1,0 +1,391 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Heritage - analytics-service",
+    "description": "Thống kê Dashboard, đọc analytics_db do NiFi đồng bộ. Client gọi qua Gateway http://localhost:8080; Gateway chỉ cho ADMIN gọi /api/statistics/**.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "API Gateway (8080): kiểm tra JWT và phân quyền như Web/Mobile"
+    }
+  ],
+  "tags": [
+    {
+      "name": "7. Thống kê",
+      "description": "Số liệu Dashboard, chỉ ADMIN (Tuấn)"
+    }
+  ],
+  "paths": {
+    "/api/statistics/realtime": {
+      "get": {
+        "tags": [
+          "7. Thống kê"
+        ],
+        "summary": "Số liệu hôm nay (thời gian thực): lượt xem, đánh giá mới, điểm TB, top hiện vật",
+        "description": "Đọc rt_daily_counters do sự kiện visit.recorded, feedback.created cập nhật ngay. Chỉ tính hôm nay, không cộng với số liệu /overview (NiFi).",
+        "operationId": "getRealtime",
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "description": "Chỉ tính hiện vật của di tích này",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRealtimeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/statistics/overview": {
+      "get": {
+        "tags": [
+          "7. Thống kê"
+        ],
+        "summary": "Tổng quan: lượt xem, số khách, top hiện vật, ngôn ngữ, điểm đánh giá, thời gian dừng TB",
+        "description": "Đọc analytics_db (NiFi đồng bộ mỗi 1 phút). Bỏ trống siteId/from/to thì không lọc.",
+        "operationId": "getOverview",
+        "parameters": [
+          {
+            "name": "top",
+            "in": "query",
+            "description": "Số hiện vật trong top, 1 - 50",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "description": "Chỉ tính hiện vật của di tích này",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Từ ngày (yyyy-MM-dd), tính cả ngày này",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Đến ngày (yyyy-MM-dd), tính cả ngày này",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStatisticsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/statistics/export": {
+      "get": {
+        "tags": [
+          "7. Thống kê"
+        ],
+        "summary": "Xuất báo cáo thống kê ra Excel (xlsx) hoặc PDF",
+        "description": "Cùng số liệu với /overview theo bộ lọc (nguồn NiFi). Excel có 4 sheet: Tổng quan, Top hiện vật, Ngôn ngữ, Đánh giá. PDF nhúng font tiếng Việt. Chỉ ADMIN (VISITOR bị Gateway trả 403).",
+        "operationId": "export",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "description": "xlsx hoặc pdf",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "description": "Chỉ tính hiện vật của di tích này",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Từ ngày (yyyy-MM-dd), tính cả ngày này",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Đến ngày (yyyy-MM-dd), tính cả ngày này",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseRealtimeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RealtimeResponse"
+          }
+        }
+      },
+      "RealtimeResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "feedbacks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "averageRating": {
+            "type": "number",
+            "format": "double"
+          },
+          "topArtifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopArtifact"
+            }
+          }
+        }
+      },
+      "TopArtifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artifactCode": {
+            "type": "string"
+          },
+          "artifactName": {
+            "type": "string"
+          },
+          "siteId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "siteName": {
+            "type": "string"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseStatisticsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatisticsResponse"
+          }
+        }
+      },
+      "DailyViews": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "LanguageCount": {
+        "type": "object",
+        "properties": {
+          "languageCode": {
+            "type": "string"
+          },
+          "visitors": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RecentFeedback": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "artifactName": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "StatisticsResponse": {
+        "type": "object",
+        "properties": {
+          "totalViews": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalVisitors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "topArtifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopArtifact"
+            }
+          },
+          "languageDistribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageCount"
+            }
+          },
+          "averageRatingApproved": {
+            "type": "number",
+            "format": "double"
+          },
+          "approvedFeedbackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "averageRatingAll": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalFeedbackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "averageDurationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "dailyViews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyViews"
+            }
+          },
+          "recentFeedbacks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentFeedback"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Dán accessToken lấy từ POST /api/auth/login (không gõ chữ Bearer)"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
