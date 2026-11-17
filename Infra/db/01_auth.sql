@@ -1,6 +1,7 @@
 -- =====================================================================
 --  auth_db - auth-service (Bảo, cổng 8081) | Script: Tường - Sprint 4
 --  Bảng: users, refresh_tokens
+--  Tuần 7: thêm users.locked (trạng thái tài khoản) cho trang quản lý người dùng của Bảo.
 --  Mật khẩu của mọi tài khoản mẫu: Test@1234 (hash BCrypt cost 10). Chỉ để kiểm thử.
 --  Id người dùng GIỮ NGUYÊN như smart_heritage_db (1..4) để các schema khác
 --  (personalization_db, feedback_db) tham chiếu đúng user_id.
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name          VARCHAR(100) NULL,
     preferred_language VARCHAR(10)  NULL DEFAULT 'vi',
     role               VARCHAR(20)  NOT NULL DEFAULT 'VISITOR',   -- VISITOR | ADMIN
+    locked             TINYINT(1)   NOT NULL DEFAULT 0,           -- Tuần 7: 0 = đang hoạt động, 1 = bị khoá (ADMIN khoá trên Web Admin)
     created_at         DATETIME(6)  NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_username (username),

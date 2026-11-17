@@ -10,7 +10,7 @@ Script nằm trong [`Infra/db/`](../../Infra/db/README.md) và chạy theo thứ
 |---|---|---|---|---|
 | `auth_db` | auth-service | 8081 | users, refresh_tokens | `auth_user` |
 | `site_db` | site-service | 8082 | heritage_sites | `site_user` |
-| `content_db` | content-service | 8083 | artifacts, artifact_contents, media_resources | `content_user` |
+| `content_db` | content-service | 8083 | artifacts, artifact_contents, media_resources, languages, artifact_event_outbox | `content_user` |
 | `beacon_db` | beacon-service | 8084 | ibeacons | `beacon_user` |
 | `personalization_db` | personalization-service | 8085 | visits, likes | `personalization_user` |
 | `feedback_db` | feedback-service | 8086 | feedbacks | `feedback_user` |
@@ -26,3 +26,6 @@ Khác với ERD gốc (một database):
   - Cột `updated_at` đổi mỗi khi sửa đánh giá hoặc ADMIN đổi trạng thái. NiFi dùng cột này làm cột mốc để đồng bộ cả thay đổi trạng thái sang `fact_feedbacks`.
 - Bảng `visits` có thêm `client_event_id`, `source` và khóa duy nhất `(user_id, client_event_id)` để đồng bộ offline không bị ghi trùng.
   `duration_seconds` mặc định là `NULL`.
+- Tuần 7, bảng `users` có thêm `locked TINYINT(1) NOT NULL DEFAULT 0` (0 = đang hoạt động, 1 = bị khoá), dùng cho trang quản lý
+  người dùng của Web Admin. Có ở cả `auth_db` và `smart_heritage_db` (auth-service đang trỏ schema này). Cách thêm cột
+  cho DB đang chạy: xem [`Infra/db/README.md`](../../Infra/db/README.md).

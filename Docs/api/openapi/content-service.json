@@ -1,0 +1,1841 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Heritage - content-service",
+    "description": "Hiện vật, nội dung đa ngôn ngữ (?lang=vi|en có fallback) và media. Client gọi qua Gateway http://localhost:8080; Gateway kiểm tra quyền (GET công khai, thêm/sửa/xóa chỉ ADMIN).",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "API Gateway (8080): kiểm tra JWT và phân quyền như Web/Mobile"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Artifacts",
+      "description": "Hiện vật, nội dung đa ngôn ngữ ?lang=vi|en"
+    },
+    {
+      "name": "Media",
+      "description": "Ảnh, audio, video của hiện vật"
+    }
+  ],
+  "paths": {
+    "/api/artifacts/{id}": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Chi tiết hiện vật",
+        "description": "?lang=vi|en; thiếu bản dịch thì trả bản tiếng Việt, fallback = true",
+        "operationId": "getArtifactById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Ngôn ngữ: vi hoặc en",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vi"
+            },
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chi tiết hiện vật kèm nội dung theo ngôn ngữ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Thành công",
+                  "data": {
+                    "id": 1,
+                    "siteId": 1,
+                    "locationId": 1,
+                    "locationName": "Văn Miếu - Quốc Tử Giám",
+                    "name": "Khuê Văn Các",
+                    "artifactCode": "KVC-01",
+                    "period": "Năm 1805 (triều Nguyễn)",
+                    "material": "Gỗ, gạch",
+                    "status": "ACTIVE",
+                    "requestedLanguage": "en",
+                    "languageCode": "en",
+                    "fallback": false,
+                    "content": {
+                      "id": 2,
+                      "artifactId": 1,
+                      "languageCode": "en",
+                      "title": "Khue Van Cac",
+                      "description": "Khue Van Cac, the Constellation of Literature Pavilion, is a symbol of the Temple of Literature.",
+                      "audioUrl": "https://example.com/audio/kvc-en.mp3"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "lang không phải vi/en",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Sửa hiện vật",
+        "description": "Chỉ gửi trường cần đổi; gửi contents/media thì thay cả danh sách",
+        "operationId": "updateArtifact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Trùng mã hiện vật, beacon UUID hoặc ngôn ngữ (ràng buộc DB)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "site-service không phản hồi khi kiểm tra siteId",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không kết nối được dịch vụ di tích (site-service), vui lòng thử lại sau!",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Xóa hiện vật",
+        "description": "Xóa kèm bản dịch và media",
+        "operationId": "deleteArtifact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Đã xóa",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/languages/{code}": {
+      "put": {
+        "tags": [
+          "language-controller"
+        ],
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLanguage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/upload": {
+      "post": {
+        "tags": [
+          "media-upload-controller"
+        ],
+        "operationId": "upload",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUploaded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Danh sách hiện vật",
+        "description": "Lọc theo siteId (hoặc locationId) hoặc tìm theo tên (search)",
+        "operationId": "getArtifacts",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Tên cũ của siteId (giữ cho client cũ)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "description": "ID di tích",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Từ khóa tìm theo tên",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Khuê"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách (có thể rỗng)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListArtifactSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tham số sai kiểu (vd siteId=abc)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Thêm hiện vật",
+        "description": "Bắt buộc có bản tiếng Việt; siteId được kiểm tra qua site-service",
+        "operationId": "createArtifact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Tạo thành công",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ: thiếu name/siteId/bản tiếng Việt, siteId không tồn tại, URL sai, trùng mã",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Trùng mã hiện vật, beacon UUID hoặc ngôn ngữ (ràng buộc DB)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "site-service không phản hồi khi kiểm tra siteId",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không kết nối được dịch vụ di tích (site-service), vui lòng thử lại sau!",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/{id}/contents": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Các bản dịch của hiện vật",
+        "operationId": "getContents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Các bản dịch",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListArtifactContentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Thêm/sửa bản dịch",
+        "description": "Ghi đè theo languageCode",
+        "operationId": "upsertContent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactContentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Đã lưu bản dịch",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu languageCode/title/description hoặc URL sai",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactContentResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactContentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Trùng mã hiện vật, beacon UUID hoặc ngôn ngữ (ràng buộc DB)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactContentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/{artifactId}/media": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Media của hiện vật",
+        "operationId": "getMedia",
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách media",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMediaResourceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Thêm media",
+        "description": "Truyền URL dạng text (chưa upload file)",
+        "operationId": "addMedia",
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaResourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Đã thêm media",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMediaResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "mediaType không phải IMAGE/AUDIO/VIDEO hoặc thiếu fileUrl",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "mediaType phải là IMAGE, AUDIO hoặc VIDEO",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMediaResourceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMediaResourceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy hiện vật",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/languages": {
+      "get": {
+        "tags": [
+          "language-controller"
+        ],
+        "operationId": "all",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListLanguage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "language-controller"
+        ],
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLanguage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/files/{name}": {
+      "get": {
+        "tags": [
+          "media-upload-controller"
+        ],
+        "operationId": "file",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/languages": {
+      "get": {
+        "tags": [
+          "language-controller"
+        ],
+        "operationId": "active",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListLanguage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/{id}/contents/{lang}": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Bản dịch theo ngôn ngữ",
+        "description": "Không có thì trả bản tiếng Việt",
+        "operationId": "getContentByLanguage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID hiện vật",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "lang",
+            "in": "path",
+            "description": "Ngôn ngữ: vi hoặc en",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bản dịch",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "lang không phải vi/en",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không có hiện vật hoặc chưa có bản dịch",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/beacon/{uuid}": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "[Cũ] Tìm hiện vật theo beacon UUID",
+        "description": "Luồng quét beacon chuẩn: /api/ibeacons/registry rồi /api/artifacts/{id}",
+        "operationId": "getByBeaconUuid",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Beacon UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "FDA50693-A4E2-4FB1-AFCF-C6EB07647825"
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Ngôn ngữ: vi hoặc en",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vi"
+            },
+            "example": "vi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chi tiết hiện vật",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseArtifactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "lang không phải vi/en",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không có hiện vật gắn beacon UUID này",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/batch": {
+      "get": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Lấy nhiều hiện vật theo id",
+        "description": "Vd ?ids=3,1,2. Trả đúng thứ tự yêu cầu, bỏ qua id không tồn tại, tối đa 100 id",
+        "operationId": "getBatch",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Danh sách id, cách nhau bởi dấu phẩy (tối đa 100)",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "example": "3,1,2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách theo đúng thứ tự ids",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListArtifactSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu ids hoặc quá 100 id",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/{mediaId}": {
+      "delete": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Xóa media",
+        "operationId": "deleteMedia",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "description": "ID media",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Đã xóa media",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy media",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/contents/{contentId}": {
+      "delete": {
+        "tags": [
+          "Artifacts"
+        ],
+        "summary": "Xóa bản dịch",
+        "description": "Không xóa được bản tiếng Việt",
+        "operationId": "deleteContent",
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "description": "ID bản dịch",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Đã xóa bản dịch",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Không được xóa bản tiếng Việt",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Bắt buộc có bản tiếng Việt",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không phải ADMIN (Gateway chặn)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy bản dịch",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Không tìm thấy hiện vật với ID: 99",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArtifactContentRequest": {
+        "type": "object",
+        "description": "Nội dung một ngôn ngữ của hiện vật (ghi đè theo languageCode)",
+        "properties": {
+          "languageCode": {
+            "type": "string",
+            "description": "Mã ngôn ngữ: vi hoặc en",
+            "example": "en"
+          },
+          "title": {
+            "type": "string",
+            "description": "Tiêu đề, bắt buộc, tối đa 200 ký tự",
+            "example": "Khue Van Cac"
+          },
+          "description": {
+            "type": "string",
+            "description": "Mô tả, bắt buộc",
+            "example": "Khue Van Cac, the Constellation of Literature Pavilion, is a symbol of the Temple of Literature."
+          },
+          "audioUrl": {
+            "type": "string",
+            "description": "Audio thuyết minh, URL http(s)",
+            "example": "https://example.com/audio/kvc-en.mp3"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Video, URL http(s)",
+            "example": "https://example.com/media/kvc.mp4"
+          },
+          "imageUrls": {
+            "type": "string",
+            "description": "Chuỗi JSON mảng URL ảnh",
+            "example": [
+              "https://example.com/media/kvc-1.jpg"
+            ]
+          },
+          "transcript": {
+            "type": "string",
+            "description": "Lời thuyết minh dạng chữ",
+            "example": "Khue Van Cac was built in 1805..."
+          }
+        }
+      },
+      "ArtifactRequest": {
+        "type": "object",
+        "description": "Payload thêm/sửa hiện vật (sửa: chỉ gửi trường cần đổi)",
+        "properties": {
+          "siteId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID di tích (bắt buộc khi thêm), được kiểm tra qua site-service",
+            "example": 1
+          },
+          "locationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tên cũ của siteId, giữ cho client cũ; gửi cả 2 thì phải bằng nhau",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Tên hiện vật, bắt buộc, tối đa 200 ký tự",
+            "example": "Khuê Văn Các"
+          },
+          "artifactCode": {
+            "type": "string",
+            "description": "Mã hiện vật, không trùng",
+            "example": "KVC-01"
+          },
+          "description": {
+            "type": "string",
+            "description": "Mô tả ngắn",
+            "example": "Gác vuông ở trung tâm Văn Miếu, biểu tượng của Hà Nội."
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "Ảnh đại diện, URL http(s)",
+            "example": "https://example.com/media/kvc-thumb.jpg"
+          },
+          "period": {
+            "type": "string",
+            "description": "Niên đại",
+            "example": "Năm 1805 (triều Nguyễn)"
+          },
+          "material": {
+            "type": "string",
+            "description": "Chất liệu",
+            "example": "Gỗ, gạch"
+          },
+          "dimensions": {
+            "type": "string",
+            "description": "Kích thước",
+            "example": "Cao 9 m"
+          },
+          "beaconUuid": {
+            "type": "string",
+            "description": "[Cũ] Beacon UUID gắn trực tiếp, không trùng; luồng chuẩn quản lý ở beacon-service",
+            "example": "FDA50693-A4E2-4FB1-AFCF-C6EB07647825"
+          },
+          "status": {
+            "type": "string",
+            "description": "ACTIVE hoặc INACTIVE",
+            "example": "ACTIVE"
+          },
+          "contents": {
+            "type": "array",
+            "description": "Bản dịch kèm theo; khi thêm bắt buộc có bản vi. Gửi khi sửa thì thay cả danh sách",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactContentRequest"
+            }
+          },
+          "media": {
+            "type": "array",
+            "description": "Media kèm theo (mediaType, fileUrl, caption). Gửi khi sửa thì thay cả danh sách",
+            "items": {
+              "$ref": "#/components/schemas/MediaResource"
+            }
+          }
+        }
+      },
+      "MediaResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseArtifactResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ArtifactResponse"
+          }
+        }
+      },
+      "ArtifactContentResponse": {
+        "type": "object",
+        "description": "Một bản nội dung ngôn ngữ",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "languageCode": {
+            "type": "string",
+            "example": "en"
+          },
+          "title": {
+            "type": "string",
+            "example": "Khue Van Cac"
+          },
+          "description": {
+            "type": "string",
+            "example": "Khue Van Cac, the Constellation of Literature Pavilion, is a symbol of the Temple of Literature."
+          },
+          "audioUrl": {
+            "type": "string",
+            "example": "https://example.com/audio/kvc-en.mp3"
+          },
+          "videoUrl": {
+            "type": "string"
+          },
+          "imageUrls": {
+            "type": "string"
+          },
+          "transcript": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ArtifactResponse": {
+        "type": "object",
+        "description": "Chi tiết hiện vật",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "siteId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "locationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bằng siteId (giữ cho client cũ)",
+            "example": 1
+          },
+          "locationName": {
+            "type": "string",
+            "description": "Tên di tích",
+            "example": "Văn Miếu - Quốc Tử Giám"
+          },
+          "name": {
+            "type": "string",
+            "example": "Khuê Văn Các"
+          },
+          "artifactCode": {
+            "type": "string",
+            "example": "KVC-01"
+          },
+          "description": {
+            "type": "string",
+            "example": "Gác vuông ở trung tâm Văn Miếu, biểu tượng của Hà Nội."
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "example": "https://example.com/media/kvc-thumb.jpg"
+          },
+          "period": {
+            "type": "string",
+            "example": "Năm 1805 (triều Nguyễn)"
+          },
+          "material": {
+            "type": "string",
+            "example": "Gỗ, gạch"
+          },
+          "dimensions": {
+            "type": "string"
+          },
+          "beaconUuid": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contents": {
+            "type": "array",
+            "description": "Tất cả bản dịch",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactContentResponse"
+            }
+          },
+          "media": {
+            "type": "array",
+            "description": "Ảnh/audio/video",
+            "items": {
+              "$ref": "#/components/schemas/MediaResource"
+            }
+          },
+          "requestedLanguage": {
+            "type": "string",
+            "description": "Ngôn ngữ client yêu cầu (?lang)",
+            "example": "en"
+          },
+          "languageCode": {
+            "type": "string",
+            "description": "Ngôn ngữ thực tế của content",
+            "example": "en"
+          },
+          "fallback": {
+            "type": "boolean",
+            "description": "true = chưa có bản dịch yêu cầu, đang trả bản tiếng Việt",
+            "example": false
+          },
+          "content": {
+            "$ref": "#/components/schemas/ArtifactContentResponse",
+            "description": "Nội dung theo ngôn ngữ đã chọn"
+          },
+          "fallbackUsed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseLanguage": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Language"
+          }
+        }
+      },
+      "Language": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseUploaded": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Uploaded"
+          }
+        }
+      },
+      "Uploaded": {
+        "type": "object",
+        "properties": {
+          "fileUrl": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseArtifactContentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ArtifactContentResponse"
+          }
+        }
+      },
+      "MediaResourceRequest": {
+        "type": "object",
+        "description": "Payload thêm media (truyền URL, chưa upload file)",
+        "properties": {
+          "mediaType": {
+            "type": "string",
+            "description": "IMAGE, AUDIO hoặc VIDEO",
+            "example": "IMAGE"
+          },
+          "fileUrl": {
+            "type": "string",
+            "description": "URL file, bắt buộc",
+            "example": "https://example.com/media/kvc-1.jpg"
+          },
+          "caption": {
+            "type": "string",
+            "description": "Chú thích (tuỳ chọn)",
+            "example": "Toàn cảnh Khuê Văn Các"
+          }
+        }
+      },
+      "ApiResponseMediaResourceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MediaResourceResponse"
+          }
+        }
+      },
+      "MediaResourceResponse": {
+        "type": "object",
+        "description": "Một media của hiện vật",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "mediaType": {
+            "type": "string",
+            "description": "IMAGE, AUDIO hoặc VIDEO",
+            "example": "IMAGE"
+          },
+          "fileUrl": {
+            "type": "string",
+            "example": "https://example.com/media/kvc-1.jpg"
+          },
+          "caption": {
+            "type": "string",
+            "example": "Toàn cảnh Khuê Văn Các"
+          }
+        }
+      },
+      "ApiResponseListLanguage": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            }
+          }
+        }
+      },
+      "ApiResponseListArtifactSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactSummaryResponse"
+            }
+          }
+        }
+      },
+      "ArtifactSummaryResponse": {
+        "type": "object",
+        "description": "Hiện vật dạng tóm tắt (danh sách)",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "siteId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "locationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bằng siteId (giữ cho client cũ)",
+            "example": 1
+          },
+          "locationName": {
+            "type": "string",
+            "description": "Tên di tích",
+            "example": "Văn Miếu - Quốc Tử Giám"
+          },
+          "name": {
+            "type": "string",
+            "example": "Khuê Văn Các"
+          },
+          "artifactCode": {
+            "type": "string",
+            "example": "KVC-01"
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "example": "https://example.com/media/kvc-thumb.jpg"
+          },
+          "period": {
+            "type": "string",
+            "example": "Năm 1805 (triều Nguyễn)"
+          },
+          "material": {
+            "type": "string",
+            "example": "Gỗ, gạch"
+          },
+          "beaconUuid": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          }
+        }
+      },
+      "ApiResponseListArtifactContentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactContentResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListMediaResourceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaResourceResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {}
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Dán accessToken lấy từ POST /api/auth/login (không gõ chữ Bearer)"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

@@ -1,0 +1,738 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Heritage - beacon-service",
+    "description": "iBeacon CRUD, registry beacon ACTIVE cho Mobile quét BLE và gán hiện vật. Client gọi qua Gateway http://localhost:8080; Gateway kiểm tra quyền (GET công khai, thêm/sửa/xóa chỉ ADMIN). Gán hiện vật phải cùng di tích.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "API Gateway (8080): kiểm tra JWT và phân quyền như Web/Mobile"
+    }
+  ],
+  "tags": [
+    {
+      "name": "5. Thiết bị & Thông báo",
+      "description": "Đăng ký FCM token theo user, gửi thử FCM (Khoa, Sprint 5)"
+    },
+    {
+      "name": "4. iBeacon",
+      "description": "CRUD beacon, registry cho Mobile, gán hiện vật (Khoa)"
+    }
+  ],
+  "paths": {
+    "/api/ibeacons/{id}": {
+      "get": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "operationId": "getBeaconById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Cập nhật iBeacon",
+        "operationId": "updateBeacon",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBeaconRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Xóa iBeacon",
+        "operationId": "deleteBeacon",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons/{id}/position": {
+      "put": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Cập nhật vị trí đặt beacon trên bản đồ (Sprint 5 - cho Ân)",
+        "description": "Body: { \"posX\": 12.5, \"posY\": 30.0 } - đơn vị quy ước của bản đồ (x_coord/y_coord trong bảng ibeacons), KHÔNG phải kinh/vĩ độ. Chỉ ADMIN (Gateway tự kiểm theo luật write)",
+        "operationId": "updatePosition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBeaconPositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons/{id}/battery": {
+      "put": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "W6: Cập nhật mức pin beacon",
+        "description": "Body: { \"batteryLevel\": 15 } (0–100). Gói tin iBeacon thường không chứa mức pin nên Admin cập nhật/giả lập bằng API này; pin hồi lại >= 20% sẽ xóa cờ cảnh báo. Chỉ ADMIN (Gateway tự kiểm theo luật write)",
+        "operationId": "updateBattery",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBeaconBatteryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/devices": {
+      "get": {
+        "tags": [
+          "5. Thiết bị & Thông báo"
+        ],
+        "summary": "Danh sách thiết bị của tôi (token rút gọn)",
+        "operationId": "getMyDevices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "5. Thiết bị & Thông báo"
+        ],
+        "summary": "Đăng ký thiết bị nhận thông báo",
+        "description": "Body: { \"token\": \"<fcm-token-500-ky-tu>\", \"platform\": \"android\" }. Upsert theo token; nếu đã cấu hình service account thì gửi luôn thông báo chào mừng. ADMIN sẽ được server tự đăng ký token vào topic \"admins\" nhận cảnh báo pin beacon (W6)",
+        "operationId": "registerDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "5. Thiết bị & Thông báo"
+        ],
+        "summary": "Xoá toàn bộ thiết bị của tôi (đăng xuất)",
+        "operationId": "deleteMyDevices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/devices/test": {
+      "post": {
+        "tags": [
+          "5. Thiết bị & Thông báo"
+        ],
+        "summary": "Gửi thử 1 thông báo tới các thiết bị của tôi",
+        "description": "Cần đã cấu hình FIREBASE_SERVICE_ACCOUNT; dùng để demo tiêu chí \"Gửi FCM thành công lên 1 điện thoại đã đăng ký token\"",
+        "operationId": "sendTestNotification",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInteger"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons": {
+      "get": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Danh sách iBeacon",
+        "description": "?siteId=1 để lọc theo di tích",
+        "operationId": "getBeacons",
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Tạo iBeacon mới",
+        "description": "siteId bắt buộc (kiểm tra qua site-service); uuid định dạng chuẩn",
+        "operationId": "createBeacon",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBeaconRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons/{id}/assign": {
+      "post": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Gán hiện vật cho beacon (artifactId = null để bỏ gán); hiện vật phải cùng di tích",
+        "operationId": "assignArtifact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IBeaconAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons/battery-check": {
+      "post": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "W6: Chạy 1 lượt quét pin ngay (demo thay vì chờ 15 phút)",
+        "description": "Quét beacon ACTIVE pin < 20% -> phát sự kiện beacon.battery.low; trả về số beacon vừa cảnh báo. Chỉ ADMIN (Gateway tự kiểm theo luật write)",
+        "operationId": "runBatteryCheck",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInteger"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ibeacons/registry": {
+      "get": {
+        "tags": [
+          "4. iBeacon"
+        ],
+        "summary": "Danh sách beacon ACTIVE (uuid, major, minor, artifactId) để Mobile đối chiếu khi quét",
+        "operationId": "getRegistry",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListIBeaconResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "IBeaconRequest": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "major": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "siteId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "posX": {
+            "type": "number",
+            "format": "double"
+          },
+          "posY": {
+            "type": "number",
+            "format": "double"
+          },
+          "batteryLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseIBeaconResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IBeaconResponse"
+          }
+        }
+      },
+      "IBeaconResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "major": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "siteId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "siteName": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artifactName": {
+            "type": "string"
+          },
+          "posX": {
+            "type": "number",
+            "format": "double"
+          },
+          "posY": {
+            "type": "number",
+            "format": "double"
+          },
+          "batteryLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IBeaconPositionRequest": {
+        "type": "object",
+        "properties": {
+          "posX": {
+            "type": "number",
+            "format": "double",
+            "maximum": 99999999
+          },
+          "posY": {
+            "type": "number",
+            "format": "double",
+            "maximum": 99999999
+          }
+        }
+      },
+      "IBeaconBatteryRequest": {
+        "type": "object",
+        "properties": {
+          "batteryLevel": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "batteryLevel"
+        ]
+      },
+      "DeviceRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 0
+          },
+          "platform": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ApiResponseMapStringObject": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "ApiResponseInteger": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "IBeaconAssignRequest": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseListDeviceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceResponse"
+            }
+          }
+        }
+      },
+      "DeviceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tokenPreview": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListIBeaconResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IBeaconResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {}
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

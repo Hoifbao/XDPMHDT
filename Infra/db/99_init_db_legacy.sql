@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name          VARCHAR(100) NULL,
     preferred_language VARCHAR(10)  NULL DEFAULT 'vi',
     role               VARCHAR(20)  NOT NULL DEFAULT 'VISITOR',   -- VISITOR | ADMIN
+    locked             TINYINT(1)   NOT NULL DEFAULT 0,           -- Tuần 7: 0 = đang hoạt động, 1 = bị khoá (auth-service đang dùng bảng này)
     created_at         DATETIME(6)  NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_username (username),

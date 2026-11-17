@@ -8,6 +8,10 @@
 | Căn cứ | User story US01–US24 trong `readme.md`; `task_w4_chi_tiet` mục III; `task_w5_chi_tiet` mục III (route Gateway, luồng quét beacon, NiFi); `task_w6_chi_tiet` mục II, III, V (sự kiện RabbitMQ, mức độ lỗi) và tiêu chí nghiệm thu của từng thành viên |
 | Trạng thái | Đã chốt để Ân chạy System Testing lần 1; test case có việc chưa xong ghi ở mục 10 |
 
+**Bổ sung tuần 7 (17/11/2026)**
+
+- Thêm 5 test case quản lý người dùng (TC-132 → TC-136, mục 8.13), dùng cho kiểm thử lần 2 (hồi quy).
+
 **Thay đổi so với bản 0.2**
 
 - Thêm 45 test case tuần 6 (TC-87 → TC-131): 5 sự kiện RabbitMQ, FCM, pin beacon, thống kê thời gian thực,
@@ -360,8 +364,18 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 | TC-130 | US24 | VISITOR vào trang quản trị | Token `visitor_an` | Mở `admin.html`, `feedback.html`; gọi API ghi `POST /api/heritage-sites`, `PATCH /api/admin/feedbacks/3/status` | — | Trang chuyển về đăng nhập hoặc báo không đủ quyền; API trả 403 | C |
 | TC-131 | — | Smoke test bản chốt code (Ân, Bảo) | Bản main lúc 18:00 Thứ 6 13/11 | Chạy `scripts/smoke-test.ps1` và lại luồng chính du khách, Admin | — | Đăng nhập, quét/giả lập beacon mở hiện vật, gửi và duyệt đánh giá đều đạt | C |
 
-**Tổng: 131 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
-Tuần 6: 46 (TC-86 → TC-131).
+### 8.13 Tuần 7 – Quản lý người dùng (Bảo: API và `users.html`; Tường: cột `users.locked`)
+
+| Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
+|---|---|---|---|---|---|---|---|
+| TC-132 | — | Cột trạng thái có sẵn khi tạo DB mới | Volume MySQL mới (`down -v` → `up -d`) | `SHOW COLUMNS FROM auth_db.users LIKE 'locked'`; lặp lại với `smart_heritage_db.users` | — | Cả 2 có cột `locked`, `TINYINT(1)`, `NOT NULL`, mặc định `0`; 4 tài khoản mẫu đều `locked = 0` | C |
+| TC-133 | — | Danh sách và tìm kiếm người dùng | Token `admin` | `GET /api/admin/users?q=an&page=0&size=20` qua Gateway; mở `users.html` gõ "an" | `q=an` | 200; có `visitor_an`, mỗi dòng có `role`, `locked`, không có `passwordHash`; trang hiện đúng kết quả | C |
+| TC-134 | — | Khoá và mở khoá tài khoản | Token `admin`; `visitor_mai` đang hoạt động | `PATCH /api/admin/users/3/status` `{"locked":true}`; đăng nhập `visitor_mai`; làm mới token cũ; mở khoá `{"locked":false}`; đăng nhập lại | user 3 | Khoá: 200; đăng nhập 403 "Tài khoản đã bị khoá…"; refresh token cũ 401 (mọi phiên bị thu hồi khi khoá); mở khoá xong đăng nhập được | C |
+| TC-135 | — | Đổi vai trò và chặn tự đổi/tự khoá | Token `admin` | Đổi `visitor_john` sang ADMIN rồi về VISITOR; `admin` tự đổi vai trò và tự khoá chính mình | user 4, user 1 | Đổi người khác: 200; tự đổi vai trò hoặc tự khoá: 400, dữ liệu không đổi | C |
+| TC-136 | — | VISITOR không gọi được API quản lý người dùng | Token `visitor_an`; không token | `GET /api/admin/users`, `PATCH /api/admin/users/2/status` | — | Có token VISITOR: 403; không token: 401 | C |
+
+**Tổng: 136 test case.** Bản 0.1: 50 (Visitor 21, Administrator 16, System 13). Tuần 5 thêm 35 (Visitor 19, Administrator 5, System 11).
+Tuần 6: 46 (TC-86 → TC-131). Tuần 7: 5 (TC-132 → TC-136, quản lý người dùng).
 Unit test tự động đi kèm: feedback-service `mvn test` (64 test), api-gateway `mvn test` (`AccessRulesTest`, `GatewayRoutesConfigTest`),
 app `flutter test` (gồm thư mục `test/features/feedback`, 26 test).
 
@@ -393,6 +407,7 @@ app `flutter test` (gồm thư mục `test/features/feedback`, 26 test).
 | US22 | TC-43, TC-49, TC-62, TC-63, TC-79 → TC-81, TC-87, TC-88, TC-105, TC-107 | |
 | US23 | TC-12, TC-42, TC-54 | |
 | US24 | TC-38 → TC-41, TC-44, TC-75, TC-76, TC-80, TC-83, TC-110, TC-116, TC-118, TC-130 | |
+| Quản lý người dùng (Đề tài module 6, Task Package 1) | TC-132 → TC-136 | Tuần 7 |
 | Phi chức năng | TC-46 → TC-48, TC-77, TC-78, TC-82, TC-84, TC-85, TC-93, TC-97 → TC-100, TC-120 → TC-124, TC-129, TC-131 | Định tuyến, giám sát, Swagger, cache, triển khai, sự kiện, cảnh báo, kiểm thử tải |
 
 Phủ 24/24 user story.
