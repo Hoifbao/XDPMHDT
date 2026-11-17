@@ -14,6 +14,32 @@ import 'package:smartheritage/features/feedback/feedback_screen.dart';
 import 'core/artifact_cache_test.dart' show artifactJson;
 
 void main() {
+  testWidgets(
+    'refresh reports deleted artifact instead of showing cached article',
+    (tester) async {
+      var deleted = false;
+      AuthService.rawClient = MockClient(
+        (_) async => deleted
+            ? http.Response('{}', 404)
+            : http.Response(jsonEncode({'data': artifactJson(1, 'vi')}), 200),
+      );
+      await tester.pumpWidget(
+        const MaterialApp(home: ArtifactDetailScreen(artifactId: 1)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Title 1 vi'), findsWidgets);
+      deleted = true;
+      await tester.tap(find.byTooltip('Tải lại hiện vật'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Hiện vật đã bị xóa hoặc không còn được cung cấp.'),
+        findsOneWidget,
+      );
+      expect(find.text('Title 1 vi'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final width in [240.0, 320.0]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets(

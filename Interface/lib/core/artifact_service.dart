@@ -216,6 +216,13 @@ class ArtifactFetchResult {
   const ArtifactFetchResult({required this.artifact, required this.fromCache});
 }
 
+class ArtifactUnavailableException implements Exception {
+  final String message;
+  const ArtifactUnavailableException(this.message);
+  @override
+  String toString() => message;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  SERVICE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,6 +254,19 @@ class ArtifactApiService {
       final uri = Uri.parse('${AuthService.baseUrl}/api/artifacts/$id')
           .replace(queryParameters: {'lang': lang});
       final response = await AuthService.rawClient.get(uri).timeout(_timeout);
+      if (response.statusCode == 404 || response.statusCode == 410) {
+        try {
+          await _locked(() => _removeCache(id));
+        } catch (_) {}
+        throw const ArtifactUnavailableException(
+          'Hiện vật đã bị xóa hoặc không còn được cung cấp.',
+        );
+      }
+      if (response.statusCode >= 400 && response.statusCode < 500) {
+        throw const ArtifactUnavailableException(
+          'Không thể mở hiện vật với yêu cầu hiện tại. Vui lòng thử lại.',
+        );
+      }
       if (response.statusCode != 200) {
         throw HttpException(
           'Không tải được hiện vật (mã ${response.statusCode}).',
@@ -259,6 +279,8 @@ class ArtifactApiService {
         await _locked(() => _saveCache(id, lang, raw));
       } catch (_) {}
       return ArtifactFetchResult(artifact: artifact, fromCache: false);
+    } on ArtifactUnavailableException {
+      rethrow;
     } catch (_) {
       final cached = await _locked(() => _loadCache(id, lang));
       if (cached != null) {
@@ -273,6 +295,24 @@ class ArtifactApiService {
     return ArtifactDetail.fromJson(
       (body['data'] as Map<String, dynamic>?) ?? body,
     );
+  }
+
+  static Future<void> _removeCache(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key
+        in prefs
+            .getKeys()
+            .where(
+              (key) =>
+                  key == '$_cachePrefix$id' ||
+                  key.startsWith('$_cachePrefix${id}_'),
+            )
+            .toList()) {
+      await prefs.remove(key);
+    }
+    final recent = await _recent(prefs);
+    recent.remove('$id');
+    await prefs.setStringList(_cacheKeysKey, recent);
   }
 
   static Future<bool> hasCached(int id, [String lang = 'vi']) async {

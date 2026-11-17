@@ -14,6 +14,7 @@ import com.smartheritage.content.repository.MediaResourceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.net.URI;
 import java.util.*;
@@ -41,29 +42,31 @@ public class ArtifactService {
     private final SiteClient siteClient;
     private final LanguageService languageService;
     private final ArtifactChanges changes;
+    private final ArtifactReadLoader reads;
+    private final ArtifactDetailCache detailCache;
 
     // ──────────────────────────── READ ────────────────────────────
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ArtifactSummaryResponse> getAllArtifacts() {
-        return artifactRepository.findAll().stream().map(this::toSummary).collect(Collectors.toList());
+        return withSiteNames(reads.summaries(null, null));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ArtifactSummaryResponse> getArtifactsBySite(Long siteId) {
-        return artifactRepository.findBySiteId(siteId).stream().map(this::toSummary).collect(Collectors.toList());
+        return withSiteNames(reads.summaries(siteId, null));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ArtifactSummaryResponse> searchArtifacts(String keyword) {
-        return artifactRepository.searchByName(keyword).stream().map(this::toSummary).collect(Collectors.toList());
+        return withSiteNames(reads.summaries(null, keyword));
     }
 
     /**
      * Lấy nhiều hiện vật một lần (Phú dùng cho Yêu thích/Lịch sử).
      * Trả đúng thứ tự id được yêu cầu, bỏ qua id không tồn tại, bỏ id trùng; tối đa 100 id.
      */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ArtifactSummaryResponse> getBatch(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
@@ -72,22 +75,20 @@ public class ArtifactService {
         if (distinct.size() > MAX_BATCH) {
             throw new IllegalArgumentException("Tối đa " + MAX_BATCH + " id mỗi lần gọi");
         }
-        Map<Long, Artifact> byId = artifactRepository.findAllById(distinct).stream()
-                .collect(Collectors.toMap(Artifact::getId, Function.identity()));
-        return distinct.stream().map(byId::get).filter(Objects::nonNull).map(this::toSummary).toList();
+        return withSiteNames(reads.batch(distinct));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ArtifactResponse getArtifactById(Long id) {
-        return toFullResponse(findOrThrow(id));
+        ArtifactResponse response = detailCache.get(id, () -> reads.detail(id));
+        response.setLocationName(siteClient.findName(response.getSiteId()).orElse(null));
+        return response;
     }
 
     /** [Cũ] tìm theo cột beacon_uuid; luồng chuẩn là /api/ibeacons/registry -> /api/artifacts/{id} */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ArtifactResponse getArtifactByBeaconUuid(String beaconUuid) {
-        Artifact artifact = artifactRepository.findByBeaconUuid(beaconUuid)
-                .orElseThrow(() -> ApiException.notFound("Không tìm thấy hiện vật với Beacon UUID: " + beaconUuid));
-        return toFullResponse(artifact);
+        return getArtifactById(reads.idForBeacon(beaconUuid));
     }
 
     // ──────────────────────────── CREATE ───────────────────────────
@@ -210,23 +211,15 @@ public class ArtifactService {
         return toContentResponse(content);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ArtifactContentResponse> getContents(Long artifactId) {
-        findOrThrow(artifactId);
-        return contentRepository.findByArtifactId(artifactId).stream()
-                .map(this::toContentResponse).collect(Collectors.toList());
+        return getArtifactById(artifactId).getContents();
     }
 
     /** Nội dung theo ngôn ngữ; không có thì trả bản tiếng Việt. */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ArtifactContentResponse getContentByLanguage(Long artifactId, String languageCode) {
-        String normalized = language(languageCode);
-        if (!languageService.require(normalized).isActive()) normalized = "vi";
-        findOrThrow(artifactId);
-        return contentRepository.findByArtifactIdAndLanguageCode(artifactId, normalized)
-                .or(() -> contentRepository.findByArtifactIdAndLanguageCode(artifactId, "vi"))
-                .map(this::toContentResponse)
-                .orElseThrow(() -> ApiException.notFound("Chưa có nội dung cho ngôn ngữ: " + languageCode));
+        return localize(getArtifactById(artifactId), languageCode).getContent();
     }
 
     public void deleteContent(Long contentId) {
@@ -241,9 +234,15 @@ public class ArtifactService {
     }
 
     /** Gắn nội dung theo ngôn ngữ vào response chi tiết: requestedLanguage, languageCode, fallback, content. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ArtifactResponse localize(ArtifactResponse response, String lang) {
-        String requested = language(lang);
-        ArtifactContentResponse selected = getContentByLanguage(response.getId(), requested);
+        var requestedLanguage = languageService.require(lang == null ? "vi" : lang);
+        String requested = requestedLanguage.getCode();
+        String effective = requestedLanguage.isActive() ? requested : "vi";
+        ArtifactContentResponse selected = response.getContents().stream()
+                .filter(c -> effective.equals(c.getLanguageCode())).findFirst()
+                .or(() -> response.getContents().stream().filter(c -> "vi".equals(c.getLanguageCode())).findFirst())
+                .orElseThrow(() -> ApiException.notFound("Chưa có nội dung cho ngôn ngữ: " + lang));
         response.setRequestedLanguage(requested);
         response.setLanguageCode(selected.getLanguageCode());
         response.setFallback(!requested.equals(selected.getLanguageCode()));
@@ -254,6 +253,12 @@ public class ArtifactService {
     }
 
     // ─────────────────────── PRIVATE HELPERS ───────────────────────
+
+    private List<ArtifactSummaryResponse> withSiteNames(List<ArtifactSummaryResponse> rows) {
+        Map<Long, Optional<String>> names = new HashMap<>();
+        rows.forEach(row -> row.setLocationName(names.computeIfAbsent(row.getSiteId(), siteClient::findName).orElse(null)));
+        return rows;
+    }
 
     private Long siteId(ArtifactRequest r) {
         if (r.getSiteId() != null && r.getLocationId() != null && !r.getSiteId().equals(r.getLocationId())) {

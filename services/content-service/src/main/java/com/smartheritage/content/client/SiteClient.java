@@ -36,9 +36,11 @@ public class SiteClient {
 
     private final RestClient restClient;
     private final Map<Long, CachedName> nameCache = new ConcurrentHashMap<>();
+    private final Object[] nameLocks = new Object[32];
 
     public SiteClient(@Qualifier("siteRestClient") RestClient restClient) {
         this.restClient = restClient;
+        java.util.Arrays.setAll(nameLocks, i -> new Object());
     }
 
     public record Site(Long id, String name) {
@@ -80,10 +82,16 @@ public class SiteClient {
         if (cached != null && cached.expiresAt().isAfter(Instant.now())) {
             return Optional.ofNullable(cached.name());
         }
-        try {
-            return Optional.ofNullable(requireSite(siteId).name());
-        } catch (ApiException e) {
-            return Optional.empty();
+        synchronized (nameLocks[Math.floorMod(siteId.hashCode(), nameLocks.length)]) {
+            cached = nameCache.get(siteId);
+            if (cached != null && cached.expiresAt().isAfter(Instant.now())) return Optional.ofNullable(cached.name());
+            try {
+                return Optional.ofNullable(requireSite(siteId).name());
+            } catch (ApiException e) {
+                // Prevent hundreds of read requests retrying the same unavailable dependency.
+                nameCache.put(siteId, new CachedName(null, Instant.now().plusSeconds(5)));
+                return Optional.empty();
+            }
         }
     }
 }

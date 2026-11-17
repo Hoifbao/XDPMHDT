@@ -18,6 +18,7 @@ import java.util.*;
 @Component
 @RequiredArgsConstructor
 public class ArtifactChanges {
+    public record Changed(Long artifactId) {}
     private final ArtifactContentRepository contents;
     private final MediaResourceRepository media;
     private final ArtifactEventOutboxRepository outbox;
@@ -64,5 +65,6 @@ public class ArtifactChanges {
             throw new IllegalStateException("Cannot serialize ArtifactUpdated", exception);
         }
         events.publishEvent(new ArtifactEventDispatcher.Pending(id));
+        events.publishEvent(new Changed(a.getId()));
     }
 }

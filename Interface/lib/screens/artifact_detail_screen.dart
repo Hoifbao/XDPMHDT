@@ -41,7 +41,7 @@ class ArtifactDetailScreen extends StatefulWidget {
 }
 
 class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const _primaryBrown = Color(0xFF6B3A1F);
   static const _bgColor = Color(0xFFF5F0EB);
 
@@ -61,6 +61,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _lang = widget.initialLang ?? AuthService.preferredLanguage;
     _tabController = TabController(length: 4, vsync: this);
     _loadArtifact();
@@ -69,8 +70,14 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_loading) _loadArtifact();
   }
 
   // ── Load dữ liệu ──────────────────────────────────────────────────────────
@@ -93,6 +100,12 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
         _artifact = result.artifact;
         _isOffline = result.fromCache;
         _loading = false;
+      });
+    } on ArtifactUnavailableException catch (e) {
+      if (!mounted || version != _loadVersion) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
       });
     } on SocketException {
       if (!mounted || version != _loadVersion) return;
@@ -229,6 +242,11 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       foregroundColor: Colors.white,
       actions: [
         IconButton(
+          tooltip: 'Tải lại hiện vật',
+          onPressed: _loadArtifact,
+          icon: const Icon(Icons.refresh),
+        ),
+        IconButton(
           icon: Icon(
             _isFavorite ? Icons.favorite : Icons.favorite_border,
             color: _isFavorite ? Colors.red.shade300 : Colors.white,
@@ -238,7 +256,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.fromLTRB(56, 0, 56, 16),
+        titlePadding: const EdgeInsets.fromLTRB(56, 0, 104, 16),
         title: Text(
           content?.title ?? artifact.name,
           maxLines: 2,

@@ -3,6 +3,7 @@ package com.smartheritage.content.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.jackson.Jacksonized;
 import java.time.LocalDateTime;
 
 /**
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @Builder
+@Jacksonized
 @Schema(description = "Một bản nội dung ngôn ngữ")
 public class ArtifactContentResponse {
 

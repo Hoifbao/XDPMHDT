@@ -1,0 +1,44 @@
+[
+    {
+        "file":  "media/khue-van-cac.jpg",
+        "commonsFile":  "File:Khuê văn các.jpg",
+        "source":  "https://commons.wikimedia.org/wiki/File%3AKhu%C3%AA%20v%C4%83n%20c%C3%A1c.jpg",
+        "originalUrl":  "https://upload.wikimedia.org/wikipedia/commons/7/77/Khu%C3%AA_v%C4%83n_c%C3%A1c.jpg?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=original",
+        "downloadedUrl":  "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Khu%C3%AA_v%C4%83n_c%C3%A1c.jpg/960px-Khu%C3%AA_v%C4%83n_c%C3%A1c.jpg?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=thumbnail",
+        "author":  "Phuongcacanh at Vietnamese Wikipedia",
+        "license":  "Public domain",
+        "licenseUrl":  null,
+        "audio":  "media/khue-van-cac-en.wav",
+        "audioCreator":  "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail":  "media/khue-van-cac-thumb.jpg",
+        "modifications":  "Wikimedia preview; local 320px JPEG thumbnail at quality 75"
+    },
+    {
+        "file":  "media/bia-tien-si.jpg",
+        "commonsFile":  "File:Stelae of Doctors - Temple of Literature, Hanoi - DSC04566.JPG",
+        "source":  "https://commons.wikimedia.org/wiki/File%3AStelae%20of%20Doctors%20-%20Temple%20of%20Literature%2C%20Hanoi%20-%20DSC04566.JPG",
+        "originalUrl":  "https://upload.wikimedia.org/wikipedia/commons/d/dd/Stelae_of_Doctors_-_Temple_of_Literature%2C_Hanoi_-_DSC04566.JPG?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=original",
+        "downloadedUrl":  "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Stelae_of_Doctors_-_Temple_of_Literature%2C_Hanoi_-_DSC04566.JPG/960px-Stelae_of_Doctors_-_Temple_of_Literature%2C_Hanoi_-_DSC04566.JPG?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=thumbnail",
+        "author":  "Daderot",
+        "license":  "CC0",
+        "licenseUrl":  "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "audio":  "media/bia-tien-si-en.wav",
+        "audioCreator":  "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail":  "media/bia-tien-si-thumb.jpg",
+        "modifications":  "Wikimedia preview; local 320px JPEG thumbnail at quality 75"
+    },
+    {
+        "file":  "media/dai-trung-mon.jpg",
+        "commonsFile":  "File:Dai Trung gate, Temple of Literature, Hanoi, Vietnam, 20240123 0928 3065.jpg",
+        "source":  "https://commons.wikimedia.org/wiki/File%3ADai%20Trung%20gate%2C%20Temple%20of%20Literature%2C%20Hanoi%2C%20Vietnam%2C%2020240123%200928%203065.jpg",
+        "originalUrl":  "https://upload.wikimedia.org/wikipedia/commons/d/db/Dai_Trung_gate%2C_Temple_of_Literature%2C_Hanoi%2C_Vietnam%2C_20240123_0928_3065.jpg?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=original",
+        "downloadedUrl":  "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Dai_Trung_gate%2C_Temple_of_Literature%2C_Hanoi%2C_Vietnam%2C_20240123_0928_3065.jpg/960px-Dai_Trung_gate%2C_Temple_of_Literature%2C_Hanoi%2C_Vietnam%2C_20240123_0928_3065.jpg?utm_source=commons.wikimedia.org\u0026utm_campaign=imageinfo\u0026utm_content=thumbnail",
+        "author":  "Jakub Hałun",
+        "license":  "CC BY 4.0",
+        "licenseUrl":  "https://creativecommons.org/licenses/by/4.0",
+        "audio":  "media/dai-trung-mon-en.wav",
+        "audioCreator":  "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail":  "media/dai-trung-mon-thumb.jpg",
+        "modifications":  "Wikimedia preview; local 320px JPEG thumbnail at quality 75"
+    }
+]

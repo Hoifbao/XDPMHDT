@@ -12,6 +12,7 @@ RUN mvn -q -B -pl services/content-service -am -DskipTests package
 # Tầng 2: chỉ chứa JRE + jar (image nhỏ)
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+ENV SPRING_DATA_REDIS_HOST=redis-cache
 COPY --from=build /src/services/content-service/target/content-service-*.jar app.jar
 EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
