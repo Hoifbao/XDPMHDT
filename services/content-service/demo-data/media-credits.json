@@ -40,5 +40,47 @@
         "audioCreator":  "Microsoft Zira Desktop, local synthesized English demo narration",
         "thumbnail":  "media/dai-trung-mon-thumb.jpg",
         "modifications":  "Wikimedia preview; local 320px JPEG thumbnail at quality 75"
+    },
+    {
+        "file": "media/doan-mon.jpg",
+        "commonsFile": null,
+        "source": "User-provided local demo asset; original URL and reuse terms must be confirmed before public distribution",
+        "originalUrl": null,
+        "downloadedUrl": null,
+        "author": "Unknown",
+        "license": "Source confirmation pending",
+        "licenseUrl": null,
+        "audio": "media/doan-mon-en.wav",
+        "audioCreator": "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail": "media/doan-mon-thumb.jpg",
+        "modifications": "Local 320px JPEG thumbnail at quality 75"
+    },
+    {
+        "file": "media/dien-kinh-thien.jpg",
+        "commonsFile": null,
+        "source": "User-provided local demo asset; original URL and reuse terms must be confirmed before public distribution",
+        "originalUrl": null,
+        "downloadedUrl": null,
+        "author": "Unknown",
+        "license": "Source confirmation pending",
+        "licenseUrl": null,
+        "audio": "media/dien-kinh-thien-en.wav",
+        "audioCreator": "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail": "media/dien-kinh-thien-thumb.jpg",
+        "modifications": "Local 320px JPEG thumbnail at quality 75"
+    },
+    {
+        "file": "media/cot-co-ha-noi.jpg",
+        "commonsFile": null,
+        "source": "User-provided local demo asset; original URL and reuse terms must be confirmed before public distribution",
+        "originalUrl": null,
+        "downloadedUrl": null,
+        "author": "Unknown",
+        "license": "Source confirmation pending",
+        "licenseUrl": null,
+        "audio": "media/cot-co-ha-noi-en.wav",
+        "audioCreator": "Microsoft Zira Desktop, local synthesized English demo narration",
+        "thumbnail": "media/cot-co-ha-noi-thumb.jpg",
+        "modifications": "Local 320px JPEG thumbnail at quality 75"
     }
 ]
