@@ -33,7 +33,11 @@ CREATE TABLE IF NOT EXISTS fact_visits (
     PRIMARY KEY (visit_id),
     KEY idx_fact_visits_detected_at (detected_at),
     KEY idx_fact_visits_artifact (artifact_id),
-    KEY idx_fact_visits_site (site_id)
+    KEY idx_fact_visits_site (site_id),
+    -- Tuần 7 (Tuấn): DISTINCT user_id cho thống kê ngôn ngữ; lọc theo artifact khi Dashboard chọn di tích.
+    -- Không thêm index (site_id, ...) vì NiFi để site_id NULL. DB cũ: chạy Infra/analytics_w7_indexes.sql
+    KEY idx_fact_visits_user_date     (user_id, detected_at),
+    KEY idx_fact_visits_artifact_date (artifact_id, detected_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Mỗi đánh giá của du khách (nguồn: feedbacks)
@@ -45,6 +49,10 @@ CREATE TABLE IF NOT EXISTS fact_feedbacks (
     created_at  DATETIME(6) NULL,
     PRIMARY KEY (feedback_id),
     KEY idx_fact_feedbacks_artifact (artifact_id),
+    -- Tuần 7 (Tuấn): summarizeRatings + findRecentFeedbacks thường lọc theo created_at
+    KEY idx_fact_feedbacks_created_at (created_at),
+    -- lọc kết hợp artifact + ngày (khi Dashboard filter theo di tích + khoảng ngày)
+    KEY idx_fact_feedbacks_artifact_date (artifact_id, created_at),
     CONSTRAINT chk_fact_feedbacks_rating CHECK (rating BETWEEN 1 AND 5)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
