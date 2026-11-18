@@ -70,10 +70,13 @@ Kiểm tra nhanh:
 ```powershell
 Invoke-RestMethod http://localhost:8080/api/heritage-sites
 Invoke-RestMethod http://localhost:8080/api/ibeacons/registry
-powershell -ExecutionPolicy Bypass -File Infra\monitoring\smoke-test.ps1
+$gp = ((Get-Content Infra\.env | Select-String '^GRAFANA_ADMIN_PASSWORD=') -split '=',2)[1].Trim()
+powershell -ExecutionPolicy Bypass -File Infra\monitoring\smoke-test.ps1 -GrafanaPassword $gp
 ```
 
 `smoke-test.ps1` kết thúc bằng ĐẠT là được; dòng `[CANH BAO]` là lưu ý, `[LOI]` mới là chưa đạt.
+
+`-GrafanaPassword` lấy từ `GRAFANA_ADMIN_PASSWORD` trong `Infra\.env` (đã đổi ở mục 2). Bỏ tham số này thì script dùng mặc định `change-me-grafana` và báo 3 `[LOI]` Grafana dù hệ thống vẫn chạy đúng.
 
 ## 4. Cách 2 – Chạy service bằng Maven (phát triển)
 
@@ -169,12 +172,12 @@ Biên bản chạy thử máy sạch (Tuấn, 18/11, `main` 761248f, Windows 11 
 | Mục 3: build image | 8 phút | Không | – |
 | Mục 3: khởi động đến khi đủ *healthy* | 2 phút | Cổng 8080, 3000 bị project khác chiếm → phải dừng project đó trước (mục 10 đã có cách xử lý) | Không cần sửa |
 | Mục 3: `ps` | – | Đủ 16 container: 10 container có healthcheck đều *healthy*; Grafana, Prometheus, Redis, 2 exporter *Up*. DB khởi tạo từ `Infra/db` không lỗi | – |
-| Mục 3: kiểm tra nhanh | – | `/api/heritage-sites`, `/api/ibeacons/registry` trả 200. **`smoke-test.ps1` báo 3 `[LOI]` Grafana** vì đã đổi `GRAFANA_ADMIN_PASSWORD` theo mục 2 mà script mặc định dùng `change-me-grafana`; chạy `smoke-test.ps1 -GrafanaPassword <giá trị trong Infra\.env>` thì **ĐẠT** (1 cảnh báo site-service chưa có histogram, việc của Ân) | Đề nghị Bảo thêm `-GrafanaPassword` vào lệnh ở mục 3 |
+| Mục 3: kiểm tra nhanh | – | `/api/heritage-sites`, `/api/ibeacons/registry` trả 200. **`smoke-test.ps1` báo 3 `[LOI]` Grafana** vì đã đổi `GRAFANA_ADMIN_PASSWORD` theo mục 2 mà script mặc định dùng `change-me-grafana`; chạy `smoke-test.ps1 -GrafanaPassword <giá trị trong Infra\.env>` thì **ĐẠT** (1 cảnh báo site-service chưa có histogram, việc của Ân) | Đã thêm `-GrafanaPassword` vào lệnh ở mục 3 |
 | Mục 5: đăng nhập `admin`, Dashboard, xuất báo cáo qua Gateway | – | Đăng nhập được; `/api/statistics/overview` 0,45 s, Excel 1,8 s, PDF 0,3 s; `visitor_an` gọi thống kê nhận 403; CORS cho Web Admin mở bằng file đạt. Dashboard máy sạch chỉ có số "Hôm nay" vì `all` không gồm NiFi (đúng như mục 7) | – |
 | Mục 8: nạp media `docker cp Infra/seed/media/. …` | – | **Lỗi**: chưa có thư mục `Infra/seed/media/` trên `main`; dữ liệu mẫu mới có 2 di tích, 3 hiện vật (chưa có seed bản cuối) | Chờ Tường đưa seed + media lên `main`, Tuấn chạy lại |
 | **Tổng** (clone → đủ *healthy*) | **11 phút** | Đạt yêu cầu ≤ 15 phút | – |
 
-Còn lại để chạy lại sau khi sửa: tag v1.0, lệnh smoke-test có mật khẩu Grafana, seed + media.
+Còn lại để chạy lại sau khi sửa: tag v1.0, seed + media.
 
 ## 10. Lỗi thường gặp
 
