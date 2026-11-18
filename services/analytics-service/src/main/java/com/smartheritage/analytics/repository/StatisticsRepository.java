@@ -61,17 +61,23 @@ public class StatisticsRepository {
                 args.toArray());
     }
 
+    // Tuần 7: đếm theo artifact_id trước, chỉ JOIN tên cho `limit` dòng (không JOIN cho cả bảng fact_visits)
     public List<TopArtifact> findTopArtifacts(Filter filter, int limit) {
         List<Object> args = new ArrayList<>();
         String from = visitsFrom(filter, args);
         args.add(limit);
         return jdbcTemplate.query("""
-                SELECT v.artifact_id, a.code, a.name, a.site_id, s.name AS site_name,
-                       COUNT(*) AS views
+                SELECT t.artifact_id, d.code, d.name, d.site_id, s.name AS site_name, t.views
+                FROM (
+                    SELECT v.artifact_id, COUNT(*) AS views
                 """ + from + """
-                GROUP BY v.artifact_id, a.code, a.name, a.site_id, s.name
-                ORDER BY views DESC, v.artifact_id ASC
-                LIMIT ?
+                    GROUP BY v.artifact_id
+                    ORDER BY views DESC, v.artifact_id ASC
+                    LIMIT ?
+                ) t
+                LEFT JOIN dim_artifact d ON d.artifact_id = t.artifact_id
+                LEFT JOIN dim_site     s ON s.site_id = d.site_id
+                ORDER BY t.views DESC, t.artifact_id ASC
                 """,
                 (rs, i) -> TopArtifact.builder()
                         .artifactId(rs.getLong("artifact_id"))
@@ -84,13 +90,20 @@ public class StatisticsRepository {
                 args.toArray());
     }
 
-    /** Số du khách khác nhau theo ngôn ngữ (dim_user_lang); user chưa đồng bộ thì là 'unknown' */
+    /**
+     * Số du khách khác nhau theo ngôn ngữ (dim_user_lang); user chưa đồng bộ thì là 'unknown'.
+     * Tuần 7: lấy DISTINCT user_id trước rồi mới JOIN dim_user_lang (mỗi user 1 ngôn ngữ nên COUNT(*) = số khách).
+     */
     public List<LanguageCount> countVisitorsByLanguage(Filter filter) {
         List<Object> args = new ArrayList<>();
         return jdbcTemplate.query("""
                 SELECT COALESCE(u.language_code, 'unknown') AS language_code,
-                       COUNT(DISTINCT v.user_id)            AS visitors
+                       COUNT(*)                             AS visitors
+                FROM (
+                    SELECT DISTINCT v.user_id
                 """ + visitsFrom(filter, args) + """
+                ) d
+                LEFT JOIN dim_user_lang u ON u.user_id = d.user_id
                 GROUP BY language_code
                 ORDER BY visitors DESC, language_code ASC
                 """,
@@ -189,13 +202,12 @@ public class StatisticsRepository {
     }
 
     // FROM + WHERE dùng chung cho mọi query lượt xem; tham số được thêm vào args theo đúng thứ tự dấu ?
+    // Tuần 7: chỉ JOIN dim_artifact khi lọc di tích (fact_visits.site_id luôn NULL, xem nifi-setup.md).
+    // Bỏ JOIN thừa giúp Dashboard không lọc với 200.000 lượt giảm từ ~3,5 s xuống dưới 0,5 s.
     private static String visitsFrom(Filter filter, List<Object> args) {
-        return """
-                FROM fact_visits v
-                LEFT JOIN dim_artifact  a ON a.artifact_id = v.artifact_id
-                LEFT JOIN dim_site      s ON s.site_id = a.site_id
-                LEFT JOIN dim_user_lang u ON u.user_id = v.user_id
-                """ + where(filter, "v.detected_at", args);
+        String join = filter.siteId() == null ? ""
+                : "LEFT JOIN dim_artifact a ON a.artifact_id = v.artifact_id\n";
+        return "FROM fact_visits v\n" + join + where(filter, "v.detected_at", args);
     }
 
     private static String feedbacksFrom(Filter filter, List<Object> args) {

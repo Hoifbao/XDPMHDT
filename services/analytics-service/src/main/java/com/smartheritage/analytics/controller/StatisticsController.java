@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.io.UncheckedIOException;
 import java.time.LocalDate;
 
 /**
@@ -43,6 +46,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/statistics")
 @RequiredArgsConstructor
+@Slf4j
 public class StatisticsController {
 
     private static final MediaType XLSX =
@@ -108,5 +112,16 @@ public class StatisticsController {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         return ResponseEntity.badRequest().body(ApiResponse.error("Tham số " + e.getName() + " không đúng định dạng"));
+    }
+
+    /**
+     * Tuần 7 (Tuấn): xuất báo cáo thất bại do lỗi I/O (ghi file tạm SXSSF) hoặc lỗi font PDF.
+     * Trả 500 kèm thông báo rõ thay vì để stack trace lan ra ngoài.
+     */
+    @ExceptionHandler({UncheckedIOException.class, IllegalStateException.class})
+    public ResponseEntity<ApiResponse<Void>> handleExportError(RuntimeException e) {
+        log.error("Lỗi xuất báo cáo: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Không tạo được file báo cáo: " + e.getMessage()));
     }
 }

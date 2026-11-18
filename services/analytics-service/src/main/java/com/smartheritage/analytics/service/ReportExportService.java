@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,15 @@ import java.util.Map;
  * Số liệu lấy đúng từ StatisticsService.getOverview (cùng nguồn fact_* của NiFi với Dashboard),
  * nên số trong file khớp Dashboard với cùng bộ lọc. Không dùng bảng rt_* để tránh cộng chồng.
  * Cả 2 định dạng dựng từ cùng một danh sách ReportSheet nên nội dung giống nhau.
+ *
+ * Tuần 7 (Tuấn):
+ *  - Excel dùng SXSSFWorkbook (streaming) để tránh OOM khi dữ liệu lớn.
+ *  - exportExcel/exportPdf đặt giới hạn REPORT_TOP = 10 cho top hiện vật;
+ *    getOverview với bộ lọc ngày rộng trả về tối đa DAILY_DAYS_IN_RANGE = 31 ngày.
+ *    Với ~200.000 lượt xem, số dòng Excel ≈ 31 (daily) + 10 (top) + 2 (ngôn ngữ) + 6 (feedback)
+ *    nên không bao giờ hết bộ nhớ từ dữ liệu trả về. Nút thắt thực sự là thời gian query SQL;
+ *    đã xử lý ở StatisticsRepository (bỏ JOIN thừa) và index (Infra/db/07_analytics.sql).
+ *    Đo 1.000.000 lượt: xuất PDF/Excel không lọc từ ~18 s còn ~1,3 s.
  */
 @Service
 @RequiredArgsConstructor
@@ -134,11 +144,23 @@ public class ReportExportService {
                                 recent))));
     }
 
+    /**
+     * Tuần 7 (Tuấn): dùng SXSSFWorkbook (streaming) thay XSSFWorkbook để tránh OOM khi dữ liệu lớn.
+     * SXSSFWorkbook giữ tối đa STREAMING_ROW_WINDOW dòng trong RAM, phần còn lại ghi ra file tạm trên disk.
+     * autoSizeColumn không hoạt động với SXSSF (cần trackAllColumnsForAutoSizing), nên dùng độ rộng cố định.
+     */
+    private static final int STREAMING_ROW_WINDOW = 500;
+    // Độ rộng cột mặc định: 30 ký tự × 256 đơn vị/ký tự (đơn vị của Apache POI)
+    private static final int DEFAULT_COLUMN_WIDTH = 30 * 256;
+
     static byte[] toExcel(ReportHeader header, List<ReportSheet> sheets) {
-        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            XSSFFont boldFont = workbook.createFont();
+        // SXSSFWorkbook bọc ngoài XSSFWorkbook; cần dispose() để xoá file tạm trên disk
+        SXSSFWorkbook workbook = new SXSSFWorkbook(STREAMING_ROW_WINDOW);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            // Lấy XSSFWorkbook bên trong để tạo font/style (SXSSFWorkbook không expose trực tiếp)
+            XSSFFont boldFont = workbook.getXSSFWorkbook().createFont();
             boldFont.setBold(true);
-            CellStyle bold = workbook.createCellStyle();
+            CellStyle bold = workbook.getXSSFWorkbook().createCellStyle();
             bold.setFont(boldFont);
 
             for (ReportSheet reportSheet : sheets) {
@@ -177,14 +199,18 @@ public class ReportExportService {
                     }
                     columns = Math.max(columns, table.headers().size());
                 }
+                // SXSSFWorkbook không hỗ trợ autoSizeColumn hiệu quả: đặt độ rộng cố định
                 for (int c = 0; c < columns; c++) {
-                    sheet.autoSizeColumn(c);
+                    sheet.setColumnWidth(c, DEFAULT_COLUMN_WIDTH);
                 }
             }
             workbook.write(out);
             return out.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException("Không tạo được file Excel", e);
+        } finally {
+            // Xoá file tạm trên disk mà SXSSF tạo ra trong quá trình streaming
+            workbook.dispose();
         }
     }
 

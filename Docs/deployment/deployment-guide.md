@@ -161,11 +161,20 @@ docker compose -f Infra/docker-compose.yml --profile all down -v   # XOÁ CẢ D
 
 Cách 2: đóng các cửa sổ service (bấm X) rồi `docker compose -f Infra/docker-compose.yml --profile mq --profile monitoring stop`.
 
-Biên bản chạy thử máy sạch (Tuấn, T3 17/11):
+Biên bản chạy thử máy sạch (Tuấn, 18/11, `main` 761248f, Windows 11 + Docker Desktop). Clone mới vào thư mục trống, volume MySQL/Grafana mới hoàn toàn. Một số image nền (`maven`, `redis`) đã có sẵn trên máy nên máy hoàn toàn mới sẽ lâu hơn do phải tải image.
 
 | Bước | Thời gian | Vướng mắc | Đã sửa trong tài liệu |
 |---|---|---|---|
-| … | … | … | … |
+| Mục 2: `git clone`, tạo `Infra\.env`, đổi các giá trị `change-me…` | 1 phút | `git checkout v1.0` báo lỗi vì chưa gắn tag v1.0 | Chờ Bảo gắn tag |
+| Mục 3: build image | 8 phút | Không | – |
+| Mục 3: khởi động đến khi đủ *healthy* | 2 phút | Cổng 8080, 3000 bị project khác chiếm → phải dừng project đó trước (mục 10 đã có cách xử lý) | Không cần sửa |
+| Mục 3: `ps` | – | Đủ 16 container: 10 container có healthcheck đều *healthy*; Grafana, Prometheus, Redis, 2 exporter *Up*. DB khởi tạo từ `Infra/db` không lỗi | – |
+| Mục 3: kiểm tra nhanh | – | `/api/heritage-sites`, `/api/ibeacons/registry` trả 200. **`smoke-test.ps1` báo 3 `[LOI]` Grafana** vì đã đổi `GRAFANA_ADMIN_PASSWORD` theo mục 2 mà script mặc định dùng `change-me-grafana`; chạy `smoke-test.ps1 -GrafanaPassword <giá trị trong Infra\.env>` thì **ĐẠT** (1 cảnh báo site-service chưa có histogram, việc của Ân) | Đề nghị Bảo thêm `-GrafanaPassword` vào lệnh ở mục 3 |
+| Mục 5: đăng nhập `admin`, Dashboard, xuất báo cáo qua Gateway | – | Đăng nhập được; `/api/statistics/overview` 0,45 s, Excel 1,8 s, PDF 0,3 s; `visitor_an` gọi thống kê nhận 403; CORS cho Web Admin mở bằng file đạt. Dashboard máy sạch chỉ có số "Hôm nay" vì `all` không gồm NiFi (đúng như mục 7) | – |
+| Mục 8: nạp media `docker cp Infra/seed/media/. …` | – | **Lỗi**: chưa có thư mục `Infra/seed/media/` trên `main`; dữ liệu mẫu mới có 2 di tích, 3 hiện vật (chưa có seed bản cuối) | Chờ Tường đưa seed + media lên `main`, Tuấn chạy lại |
+| **Tổng** (clone → đủ *healthy*) | **11 phút** | Đạt yêu cầu ≤ 15 phút | – |
+
+Còn lại để chạy lại sau khi sửa: tag v1.0, lệnh smoke-test có mật khẩu Grafana, seed + media.
 
 ## 10. Lỗi thường gặp
 
