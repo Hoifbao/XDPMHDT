@@ -1,0 +1,60 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Làm mới token (dùng 1 lần) và khoá tài khoản
+participant "App" as C
+participant "api-gateway" as G
+participant "AuthController" as A
+participant "AdminUserController" as AD
+participant "RefreshTokenService" as RT
+database "auth_db" as DB
+actor Admin
+
+== Làm mới token ==
+C -> G : POST /api/auth/refresh {refreshToken}
+G -> A : (công khai)
+A -> RT : consume(raw)
+RT -> DB : findByTokenHash(SHA-256(raw))
+alt không tìm thấy
+  RT --> A : empty
+  A --> C : 401
+else token đã dùng / đã thu hồi (nghi bị đánh cắp)
+  RT -> DB : revokeAllByUserId(userId)
+  RT --> A : empty
+  A --> C : 401 (mọi phiên của user bị huỷ)
+else còn hiệu lực
+  RT -> DB : revoked = true
+  alt đã hết hạn
+    A --> C : 401
+  else user.locked
+    A --> C : 403
+  else
+    A -> RT : issue(user)
+    A --> C : 200 cặp token mới
+  end
+end
+
+== Admin khoá tài khoản (TC-134, TC-135) ==
+Admin -> G : PATCH /api/admin/users/{id}/status {locked:true}
+G -> G : AccessRules: /api/admin/** chỉ ADMIN
+G -> AD : chuyển tiếp + X-User-*
+AD -> AD : requireAdmin()
+alt id là chính admin đang đăng nhập
+  AD --> Admin : 400 "Bạn không thể tự khoá…"
+else
+  AD -> DB : users.locked = true
+  AD -> RT : revokeAllOf(id)
+  RT -> DB : refresh_tokens.revoked = true
+  AD --> Admin : 200 "Đã khoá tài khoản …"
+end
+note over C, DB
+  Access token cũ còn tối đa 15 phút; refresh và login sau đó đều trả 403.
+end note
+@enduml

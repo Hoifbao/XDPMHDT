@@ -1,0 +1,54 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Đăng nhập rồi gọi API có bảo vệ qua Gateway
+actor "Du khách / Admin" as U
+participant "App / Web Admin" as C
+participant "api-gateway\nJwtAuthGlobalFilter" as G
+participant "AccessRules" as R
+participant "auth-service\nAuthController" as A
+participant "RefreshTokenService" as RT
+database "auth_db" as DB
+participant "service đích\n(vd personalization)" as S
+
+U -> C : nhập username, password
+C -> G : POST /api/auth/login
+G -> R : check(POST, /api/auth/login, null)
+R --> G : ALLOW (công khai)
+G -> A : chuyển tiếp
+A -> DB : findByUsername
+alt sai tài khoản / mật khẩu (BCrypt.matches = false)
+  A --> C : 401 "Sai tài khoản hoặc mật khẩu!"
+else đúng nhưng locked = true
+  A --> C : 403 "Tài khoản đã bị khoá…"
+else hợp lệ
+  A -> A : JwtService.generateAccessToken (userId, username, role; hạn 15 phút)
+  A -> RT : issue(user)
+  RT -> DB : INSERT refresh_tokens(token_hash = SHA-256)
+  A --> C : 200 {accessToken, refreshToken, role,…}
+end
+
+== Gọi API có bảo vệ ==
+C -> G : GET /api/me/favorites\nAuthorization: Bearer <accessToken>
+G -> G : parseAccessToken (kiểm chữ ký + hạn)
+G -> R : check(GET, path, user)
+alt không có / sai token
+  R --> G : UNAUTHORIZED
+  G --> C : 401
+else không đủ quyền (vd VISITOR gọi /api/admin/**)
+  R --> G : FORBIDDEN
+  G --> C : 403
+else ALLOW
+  G -> G : xoá X-User-* client tự gửi,\ngắn X-User-Id / X-User-Name / X-User-Role
+  G -> S : chuyển tiếp request
+  S -> S : CurrentUser.get() đọc header
+  S --> C : 200 dữ liệu của đúng userId
+end
+@enduml

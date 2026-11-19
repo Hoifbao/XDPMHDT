@@ -1,0 +1,164 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD vật lý – 6 schema nghiệp vụ (database-per-service)
+hide circle
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam nodesep 30
+skinparam ranksep 40
+package "auth_db – auth-service"  {
+entity users {
+  * id : BIGINT <<PK>>
+  --
+  * username : VARCHAR(50) <<UQ>>
+  * email : VARCHAR(100) <<UQ>>
+  * password_hash : VARCHAR(255)
+  full_name : VARCHAR(100)
+  preferred_language : VARCHAR(10)
+  * role : VARCHAR(20) (VISITOR/ADMIN)
+  * locked : TINYINT(1)
+  created_at : DATETIME
+}
+entity refresh_tokens {
+  * id : BIGINT <<PK>>
+  --
+  * token_hash : CHAR(64) <<UQ>> (SHA-256)
+  * user_id : BIGINT <<FK>>
+  * expires_at : DATETIME
+  * revoked : BOOLEAN
+  created_at : DATETIME
+}
+}
+package "site_db – site-service"  {
+entity heritage_sites {
+  * id : BIGINT <<PK>>
+  --
+  * name : VARCHAR(150)
+  location : VARCHAR(255)
+  map_image_url : VARCHAR(500)
+  latitude : DECIMAL(10,7)
+  longitude : DECIMAL(10,7)
+}
+}
+package "content_db – content-service"  {
+entity artifacts {
+  * id : BIGINT <<PK>>
+  --
+  * site_id : BIGINT (logic → site_db)
+  * name
+  artifact_code <<UQ>>, category
+  description, thumbnail_url
+  period, material, dimensions
+  beacon_uuid <<UQ>>
+  * status (ACTIVE/INACTIVE)
+}
+entity artifact_contents {
+  * id : BIGINT <<PK>>
+  --
+  * artifact_id : BIGINT <<FK>>
+  * language_code
+  title, description, transcript
+  audio_url, video_url, image_urls
+  <<UQ (artifact_id, language_code)>>
+}
+entity media_resources {
+  * id : BIGINT <<PK>>
+  --
+  * artifact_id : BIGINT <<FK>>
+  * media_type (IMAGE/AUDIO/VIDEO)
+  file_url, caption
+}
+entity languages {
+  * code <<PK>>
+  --
+  name, active
+}
+entity artifact_event_outbox {
+  * event_id <<PK>>
+  --
+  occurred_at, payload (JSON)
+  published_at (NULL = chưa gửi)
+}
+}
+package "beacon_db – beacon-service"  {
+entity ibeacons {
+  * id : BIGINT <<PK>>
+  --
+  * site_id (logic), artifact_id (logic)
+  * uuid, major, minor <<UQ>>
+  x_coord, y_coord
+  battery_level, battery_alerted_at
+  * status (ACTIVE/INACTIVE)
+}
+entity devices {
+  * id : BIGINT <<PK>>
+  --
+  * user_id (logic)
+  * fcm_token <<UQ>>
+}
+entity processed_events {
+  * id : BIGINT <<PK>>
+  --
+  * event_id : UUID <<UQ>>
+  event_type
+}
+}
+package "personalization_db – personalization-service"  {
+entity visits {
+  * id : BIGINT <<PK>>
+  --
+  * user_id, artifact_id (logic)
+  * detected_at
+  duration_seconds
+  client_event_id
+  <<UQ (user_id, client_event_id)>>
+}
+entity likes {
+  * user_id <<PK>>
+  * artifact_id <<PK>>
+  --
+  saved_at
+}
+}
+package "feedback_db – feedback-service"  {
+entity feedbacks {
+  * id : BIGINT <<PK>>
+  --
+  * user_id, artifact_id (logic)
+  reviewer_name
+  * rating : 1..5
+  comment
+  * status : PENDING/APPROVED/REJECTED
+  created_at, updated_at
+  <<UQ (user_id, artifact_id)>>
+}
+}
+users ||--o{ refresh_tokens
+artifacts ||--o{ artifact_contents
+artifacts ||--o{ media_resources
+languages ||..o{ artifact_contents : language_code
+heritage_sites ||..o{ artifacts : site_id
+heritage_sites ||..o{ ibeacons : site_id
+artifacts |o..o| ibeacons : artifact_id
+users ||..o{ visits : user_id
+artifacts ||..o{ visits : artifact_id
+users ||..o{ likes
+artifacts ||..o{ feedbacks : artifact_id
+users ||..o{ feedbacks
+users ||..o{ devices : user_id
+refresh_tokens -[hidden]down- visits
+note as N1
+  Đường liền: khoá ngoại thật (cùng schema).
+  Đường chấm: tham chiếu logic giữa schema, không có FK –
+  kiểm tra bằng REST hoặc userId lấy từ JWT (header X-User-Id do Gateway gắn).
+  analytics_db (kho dữ liệu thống kê) vẽ riêng ở phần analytics-service.
+end note
+@enduml

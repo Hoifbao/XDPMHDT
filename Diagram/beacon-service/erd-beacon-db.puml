@@ -1,0 +1,34 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – beacon_db
+hide circle
+entity ibeacons {
+  * id : BIGINT <<PK>>
+  --
+  * site_id (logic), artifact_id (logic)
+  * uuid, major, minor <<UQ>>
+  x_coord, y_coord
+  battery_level, battery_alerted_at
+  * status (ACTIVE/INACTIVE)
+}
+entity devices {
+  * id : BIGINT <<PK>>
+  --
+  * user_id (logic)
+  * fcm_token <<UQ>>
+}
+entity processed_events {
+  * id : BIGINT <<PK>>
+  --
+  * event_id : UUID <<UQ>>
+  event_type
+}
+@enduml

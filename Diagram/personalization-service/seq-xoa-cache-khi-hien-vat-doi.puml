@@ -1,0 +1,37 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Xoá cache Redis khi hiện vật thay đổi (ArtifactUpdated)
+participant "content-service" as CS
+queue "sh.events" as MQ
+participant "ArtifactUpdatedListener" as L
+database "Redis" as R
+participant "FavoriteService /\nVisitHistoryService" as S
+participant "App" as A
+
+CS -> MQ : artifact.updated {eventId, artifactId, changedFields}
+MQ -> L : queue personalization.artifact-updated
+L -> L : kiểm tra type, eventId, artifactId > 0
+alt sự kiện hỏng
+  L -> MQ : ném lỗi → personalization.artifact-updated.dlq
+else
+  L -> R : EXISTS personalization:processed:artifact.updated:{eventId}
+  alt đã xử lý
+    L -> L : bỏ qua
+  else
+    L -> R : DEL artifact:summary:{artifactId}
+    L -> R : SET khoá processed (TTL 7 ngày)
+  end
+end
+... lần đọc kế tiếp ...
+A -> S : GET /api/me/favorites
+S -> R : cache trống → gọi lại content-service
+S --> A : tên / ảnh hiện vật mới nhất
+@enduml

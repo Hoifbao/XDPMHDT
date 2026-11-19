@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Du khách tìm di tích gần (bản đồ Mobile)
+actor "Du khách" as U
+participant "MapScreen\n(App)" as M
+participant "api-gateway" as G
+participant "HeritageSiteController" as C
+participant "HeritageSiteService" as S
+database "site_db" as DB
+
+U -> M : mở Bản đồ
+M -> M : xin quyền vị trí (GPS)
+alt người dùng từ chối quyền
+  M -> G : GET /api/heritage-sites
+  G -> C : (GET công khai)
+  C -> S : getAll()
+  S -> DB : findAll
+  M --> U : hiện toàn bộ di tích, không sắp theo khoảng cách
+else có vị trí
+  M -> G : GET /api/heritage-sites/nearby?lat&lng&radius (mặc định 5 km)
+  G -> C : (GET công khai)
+  C -> S : getNearby(lat, lng, radius)
+  S -> S : validateCoordinate; 0 < radius ≤ 50 km
+  alt tham số sai
+    S --> M : 400
+  else
+    S -> DB : findAll()
+    loop mỗi di tích có toạ độ
+      S -> S : haversineKm() làm tròn 2 số lẻ
+    end
+    S -> S : lọc ≤ radius, sắp tăng dần
+    S --> M : 200 [ {id, name, distanceKm,…} ]
+    M --> U : marker + khoảng cách; bấm marker → chỉ đường
+  end
+end
+@enduml

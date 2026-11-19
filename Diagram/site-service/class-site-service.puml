@@ -1,0 +1,62 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – site-service (Ân)
+class HeritageSiteController <<RestController /api/heritage-sites>> {
+  + getAll()
+  + getNearby(lat, lng, radius)
+  + getById(id)
+  + create(HeritageSiteRequest)
+  + update(id, HeritageSiteRequest)
+  + delete(id)
+}
+class HeritageSiteService {
+  - MAX_RADIUS_KM = 50
+  + getAll() : List<HeritageSiteResponse>
+  + getNearby(lat, lng, radiusKm) : List<NearbyHeritageSiteResponse>
+  + getById(id) : HeritageSiteResponse
+  + create(req) : HeritageSiteResponse
+  + update(id, req) : HeritageSiteResponse
+  + delete(id)
+  - haversineKm(lat1, lng1, lat2, lng2) : double
+  - validateCoordinate(lat, lng, label)
+}
+interface HeritageSiteRepository <<JpaRepository>>
+class HeritageSite <<Entity heritage_sites>> {
+  - id : Long
+  - name : String
+  - location : String
+  - mapImageUrl : String
+  - latitude : BigDecimal
+  - longitude : BigDecimal
+}
+class HeritageSiteRequest <<DTO>> {
+  name, location, mapImageUrl
+  latitude, longitude
+  clearCoordinates : Boolean
+}
+class HeritageSiteResponse <<DTO>> {
+  id, name, location, mapImageUrl
+  latitude, longitude
+  + from(HeritageSite) : HeritageSiteResponse
+}
+class NearbyHeritageSiteResponse <<DTO>> {
+  distanceKm : double
+}
+HeritageSiteController --> HeritageSiteService
+HeritageSiteService --> HeritageSiteRepository
+HeritageSiteRepository ..> HeritageSite
+HeritageSiteController ..> HeritageSiteRequest
+HeritageSiteService ..> HeritageSiteResponse
+HeritageSiteResponse <|-- NearbyHeritageSiteResponse
+@enduml

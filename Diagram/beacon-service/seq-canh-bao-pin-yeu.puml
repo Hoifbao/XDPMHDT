@@ -1,0 +1,49 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Cảnh báo pin beacon yếu → FCM tới Admin
+participant "BatteryAlertSchedulerConfig\n(@Scheduled 15 phút)" as T
+participant "BatteryAlertService" as BA
+database "beacon_db" as DB
+participant "EventPublisher\n(common)" as EP
+queue "sh.events" as MQ
+participant "NotificationEventListener" as L
+participant "ProcessedEvents" as PE
+participant "SiteClient" as SC
+participant "FcmService" as F
+actor "Admin (App/Web)" as A
+
+T -> BA : checkAndAlert()
+BA -> DB : findByStatusAndBatteryLevelLessThan("ACTIVE", 20)
+loop mỗi beacon pin yếu
+  alt batteryAlertedAt != null (đã cảnh báo, chưa sạc)
+    BA -> BA : bỏ qua, không gửi lặp
+  else
+    BA -> EP : publishAfterCommit("beacon.battery.low", data)
+    BA -> DB : batteryAlertedAt = now()
+  end
+end
+EP -> MQ : sau commit
+MQ -> L : queue notification.beacon-battery-low
+L -> L : thiếu beaconId/siteId → ném lỗi → DLQ
+L -> PE : markIfNew(eventId)
+alt đã xử lý
+  PE --> L : false → bỏ qua
+else
+  L -> SC : findName(siteId)
+  L -> F : sendToTopic("admins", "Pin beacon #… còn …%")
+  F --> A : push notification
+end
+note right of BA
+  Admin cập nhật pin (PUT /api/ibeacons/{id}/battery)
+  ≥ 20% thì batteryAlertedAt được xoá,
+lần sau pin yếu sẽ cảnh báo lại.
+end note
+@enduml

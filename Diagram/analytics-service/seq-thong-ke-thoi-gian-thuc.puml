@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Hai đường dữ liệu thống kê: NiFi (theo lô) và sự kiện (thời gian thực)
+participant "NiFi" as N
+database "các schema nghiệp vụ\n(personalization_db,\nfeedback_db, content_db…)" as SRC
+queue "sh.events" as MQ
+participant "AnalyticsEventListener" as L
+database "analytics_db" as DB
+participant "StatisticsService" as S
+actor Admin
+participant "dashboard.html" as W
+
+== Đường 1: NiFi đồng bộ theo lô ==
+loop theo lịch NiFi
+  N -> SRC : đọc bản ghi mới (visits, feedbacks, artifacts, heritage_sites, users)
+  N -> DB : ghi fact_visits, fact_feedbacks, dim_*, agg_daily_views
+end
+
+== Đường 2: sự kiện thời gian thực ==
+MQ -> L : visit.recorded / feedback.created
+L -> L : kiểm dữ liệu (thiếu artifactId, rating ngoài 1–5 → DLQ)
+L -> DB : rt_processed_events: markProcessed(eventId)
+alt đã xử lý
+  L -> L : bỏ qua
+else
+  L -> DB : rt_daily_counters: views + 1\nhoặc feedbacks + 1, rating_sum + rating
+end
+
+== Admin xem Dashboard ==
+Admin -> W : mở Dashboard, chọn di tích + khoảng ngày
+W -> S : GET /api/statistics/overview?siteId&from&to (chỉ ADMIN)
+S -> DB : truy vấn fact_* / dim_* (dữ liệu NiFi)
+W -> S : GET /api/statistics/realtime?siteId
+S -> DB : rt_daily_counters của hôm nay
+S --> W : KPI, biểu đồ lượt xem, top hiện vật, ngôn ngữ, đánh giá
+@enduml

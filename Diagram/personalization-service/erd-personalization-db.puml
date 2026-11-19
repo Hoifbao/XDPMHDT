@@ -1,0 +1,28 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – personalization_db
+hide circle
+entity visits {
+  * id : BIGINT <<PK>>
+  --
+  * user_id, artifact_id (logic)
+  * detected_at
+  duration_seconds
+  client_event_id
+  <<UQ (user_id, client_event_id)>>
+}
+entity likes {
+  * user_id <<PK>>
+  * artifact_id <<PK>>
+  --
+  saved_at
+}
+@enduml

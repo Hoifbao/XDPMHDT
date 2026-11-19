@@ -1,0 +1,35 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – auth_db
+hide circle
+entity users {
+  * id : BIGINT <<PK>>
+  --
+  * username : VARCHAR(50) <<UQ>>
+  * email : VARCHAR(100) <<UQ>>
+  * password_hash : VARCHAR(255)
+  full_name : VARCHAR(100)
+  preferred_language : VARCHAR(10)
+  * role : VARCHAR(20) (VISITOR/ADMIN)
+  * locked : TINYINT(1)
+  created_at : DATETIME
+}
+entity refresh_tokens {
+  * id : BIGINT <<PK>>
+  --
+  * token_hash : CHAR(64) <<UQ>> (SHA-256)
+  * user_id : BIGINT <<FK>>
+  * expires_at : DATETIME
+  * revoked : BOOLEAN
+  created_at : DATETIME
+}
+users ||--o{ refresh_tokens : user_id (ON DELETE CASCADE)
+@enduml

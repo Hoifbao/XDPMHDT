@@ -1,0 +1,118 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – api-gateway + auth-service (Bảo)
+package "api-gateway" {
+  class JwtAuthGlobalFilter <<GlobalFilter>> {
+    + filter(exchange, chain) : Mono<Void>
+    - bearerToken(request) : Optional<String>
+    - writeError(exchange, status, msg)
+  }
+  class AccessRules {
+    + check(method, path, user) : Decision
+    - loggedIn(user) : Decision
+    - adminOnly(user) : Decision
+  }
+  enum Decision {
+    ALLOW
+    UNAUTHORIZED
+    FORBIDDEN
+  }
+  class GatewayRoutesConfig {
+    + smartHeritageRoutes(builder, targets, docs) : RouteLocator
+  }
+  class OpenApiDocRewriter {
+    + rewrite(body) : String
+  }
+  JwtAuthGlobalFilter --> AccessRules
+  AccessRules ..> Decision
+  GatewayRoutesConfig --> OpenApiDocRewriter
+}
+package "common.security" {
+  class JwtService {
+    + generateAccessToken(userId, username, role) : String
+    + parseAccessToken(token) : Optional<AuthPrincipal>
+  }
+  class AuthPrincipal <<record>> {
+    userId : Long
+    username : String
+    role : String
+    + isAdmin() : boolean
+  }
+  class UserHeaders {
+    USER_ID = "X-User-Id"
+    USER_NAME
+    USER_ROLE
+  }
+  JwtService ..> AuthPrincipal
+}
+JwtAuthGlobalFilter --> JwtService
+JwtAuthGlobalFilter ..> UserHeaders
+
+package "auth-service" {
+  class AuthController <<RestController /api/auth>> {
+    + register(RegisterRequest)
+    + login(LoginRequest)
+    + refresh(RefreshRequest)
+    + logout(RefreshRequest)
+    + me()
+    + getUser(id)
+  }
+  class AdminUserController <<RestController /api/admin/users>> {
+    + list(q, role, page, size)
+    + changeRole(id, RoleRequest)
+    + changeStatus(id, StatusRequest)
+    - requireAdmin()
+    - isSelf(id) : boolean
+  }
+  class RefreshTokenService {
+    + issue(User) : String
+    + consume(raw) : Optional<User>
+    + revoke(raw)
+    + revokeAllOf(userId)
+    - hash(raw) : String  (SHA-256)
+  }
+  interface UserRepository <<JpaRepository>> {
+    + findByUsername(username)
+  }
+  interface RefreshTokenRepository <<JpaRepository>> {
+    + findByTokenHash(hash)
+    + revokeAllByUserId(userId)
+  }
+  class User <<Entity users>> {
+    - id : Long
+    - username : String
+    - email : String
+    - passwordHash : String
+    - fullName : String
+    - preferredLanguage : String
+    - role : String
+    - locked : boolean
+  }
+  class RefreshToken <<Entity refresh_tokens>> {
+    - id : Long
+    - tokenHash : String
+    - expiresAt : LocalDateTime
+    - revoked : boolean
+  }
+  AuthController --> UserRepository
+  AuthController --> RefreshTokenService
+  AuthController --> JwtService
+  AdminUserController --> UserRepository
+  AdminUserController --> RefreshTokenService
+  RefreshTokenService --> RefreshTokenRepository
+  UserRepository ..> User
+  RefreshTokenRepository ..> RefreshToken
+  RefreshToken "0..*" --> "1" User
+}
+@enduml

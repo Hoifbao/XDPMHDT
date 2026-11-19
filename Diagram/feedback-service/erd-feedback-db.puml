@@ -1,0 +1,24 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – feedback_db
+hide circle
+entity feedbacks {
+  * id : BIGINT <<PK>>
+  --
+  * user_id, artifact_id (logic)
+  reviewer_name
+  * rating : 1..5
+  comment
+  * status : PENDING/APPROVED/REJECTED
+  created_at, updated_at
+  <<UQ (user_id, artifact_id)>>
+}
+@enduml
