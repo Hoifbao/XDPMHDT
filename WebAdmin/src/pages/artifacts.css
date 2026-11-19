@@ -323,3 +323,35 @@ h2 {
         width: 100%;
     }
 }
+
+/* Danh sach hien vat: link theo theme, nut Xoa tach rieng ben phai */
+#artifact-list .artifact-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+}
+
+#artifact-list .artifact-row:last-child {
+    border-bottom: 0;
+}
+
+#artifact-list .artifact-link {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#artifact-list .artifact-link:hover,
+#artifact-list .artifact-link.active {
+    color: var(--sage);
+    text-decoration: underline;
+}
+
+#artifact-list .text-button {
+    flex: none;
+    cursor: pointer;
+}

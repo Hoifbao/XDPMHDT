@@ -97,6 +97,8 @@ async function loadList() {
         const data = await api('/api/artifacts'); list.replaceChildren();
         for (const item of data) {
             const row = document.createElement('p'), link = document.createElement('a'), remove = document.createElement('button');
+            row.className = 'artifact-row'; link.className = 'artifact-link';
+            if (String(id) === String(item.id)) link.classList.add('active');
             link.href = '?id=' + item.id; link.textContent = `${item.name} (${item.artifactCode || item.id})`;
             remove.type = 'button'; remove.className = 'text-button'; remove.textContent = 'Xóa';
             remove.onclick = async () => {

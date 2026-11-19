@@ -34,6 +34,21 @@ async function loadSites() {
     }
 }
 
+// Tong hien vat lay tu GET /api/artifacts (truoc day so 5 go cung trong HTML). Loi thi hien "–".
+async function loadArtifactCount() {
+    const el = document.getElementById('stat-artifacts');
+    if (!el) return;
+    try {
+        const response = await fetch(API_BASE + '/api/artifacts');
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body) throw new Error('HTTP ' + response.status);
+        const list = Array.isArray(body) ? body : (Array.isArray(body.data) ? body.data : null);
+        el.textContent = list ? list.length : '–';
+    } catch (error) {
+        el.textContent = '–';
+    }
+}
+
 function getFiltered() {
     if (currentFilter === 'HAS_COORD') {
         return SITES.filter(s => s.latitude != null && s.longitude != null);
@@ -346,3 +361,4 @@ function escHtml(str) {
 initializeSiteMap();
 render();
 loadSites();
+loadArtifactCount();
