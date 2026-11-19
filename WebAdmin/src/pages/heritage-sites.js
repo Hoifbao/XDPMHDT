@@ -34,6 +34,21 @@ async function loadSites() {
     }
 }
 
+// Tong hien vat lay tu GET /api/artifacts (truoc day so 5 go cung trong HTML). Loi thi hien "–".
+async function loadArtifactCount() {
+    const el = document.getElementById('stat-artifacts');
+    if (!el) return;
+    try {
+        const response = await fetch(API_BASE + '/api/artifacts');
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body) throw new Error('HTTP ' + response.status);
+        const list = Array.isArray(body) ? body : (Array.isArray(body.data) ? body.data : null);
+        el.textContent = list ? list.length : '–';
+    } catch (error) {
+        el.textContent = '–';
+    }
+}
+
 function getFiltered() {
     if (currentFilter === 'HAS_COORD') {
         return SITES.filter(s => s.latitude != null && s.longitude != null);
@@ -121,6 +136,10 @@ function renderOverviewMap() {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(overviewMap);
         overviewMarkers = L.featureGroup().addTo(overviewMap);
+        // Khung ban do doi kich thuoc (doi zoom trinh duyet, co gian cua so) thi can lai cho vua moi ghim
+        if (window.ResizeObserver) {
+            new ResizeObserver(() => { overviewMap.invalidateSize(); fitOverview(); }).observe(mapElement);
+        }
     }
     overviewMarkers.clearLayers();        SITES.forEach(site => {
         if (site.latitude == null || site.longitude == null) return;
@@ -128,8 +147,13 @@ function renderOverviewMap() {
         if (!point.every(Number.isFinite)) return;
         L.marker(point).bindPopup(escHtml(site.name)).addTo(overviewMarkers);
     });
-    if (overviewMarkers.getLayers().length) {
-        overviewMap.fitBounds(overviewMarkers.getBounds().pad(0.15), { maxZoom: 15 });
+    fitOverview();
+}
+
+// Thu phong de thay du moi di tich co toa do (Ha Noi, Hue, Hoi An, TP.HCM...)
+function fitOverview() {
+    if (overviewMap && overviewMarkers && overviewMarkers.getLayers().length) {
+        overviewMap.fitBounds(overviewMarkers.getBounds().pad(0.1), { maxZoom: 15 });
     }
 }
 
@@ -346,3 +370,4 @@ function escHtml(str) {
 initializeSiteMap();
 render();
 loadSites();
+loadArtifactCount();
