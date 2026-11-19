@@ -1,0 +1,105 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – beacon-service (Khoa)
+package controller {
+  class IBeaconController <<RestController /api/ibeacons>> {
+    + getBeacons(siteId) / getBeaconById(id)
+    + getRegistry()
+    + createBeacon / updateBeacon / deleteBeacon
+    + assignArtifact(id, artifactId)
+    + updatePosition(id, req) / updateBattery(id, req)
+    + runBatteryCheck()
+  }
+  class DeviceController <<RestController /api/me/devices>> {
+    + registerDevice(req)
+    + getMyDevices()
+    + sendTestNotification()
+    + deleteMyDevices()
+  }
+}
+package service {
+  class IBeaconService {
+    + getRegistry() : List<IBeaconResponse>
+    + createBeacon(req) / updateBeacon(id, req)
+    + assignArtifact(id, artifactId)
+    + updatePosition(id, x, y)
+    + updateBattery(id, level)
+  }
+  class BatteryAlertService {
+    ROUTING_KEY = "beacon.battery.low"
+    + checkAndAlert() : int
+  }
+  class DeviceService {
+    + register(userId, req)
+    + sendTest(userId, title, body)
+  }
+  class FcmService {
+    + sendToToken(token, title, body) : boolean
+    + sendToTopic(topic, title, body) : boolean
+    + subscribeToTopic(token, topic)
+  }
+  class NotificationEventListener {
+    + onFeedbackApproved(EventEnvelope)  <<@RabbitListener>>
+    + onBeaconBatteryLow(EventEnvelope)  <<@RabbitListener>>
+  }
+  class RegistryEventListener {
+    + onArtifactUpdated(EventEnvelope)  <<@RabbitListener>>
+  }
+  class ProcessedEvents {
+    + markIfNew(eventId, type) : boolean
+  }
+}
+package config {
+  class BatteryAlertSchedulerConfig {
+    + checkBatteryPeriodically()  <<@Scheduled 15 phút>>
+  }
+}
+package client {
+  class SiteClient
+  class ArtifactClient {
+    + requireArtifact(id)
+    + findName(id)
+    + invalidate(id)
+  }
+}
+package entity {
+  class IBeacon <<Entity ibeacons>> {
+    id, siteId, artifactId
+    uuid, major, minor
+    posX, posY
+    batteryLevel, batteryAlertedAt, status
+  }
+  class Device <<Entity devices>> {
+    id, userId, fcmToken
+  }
+  class ProcessedEvent <<Entity processed_events>> {
+    eventId : UUID, eventType
+  }
+}
+IBeaconController --> IBeaconService
+IBeaconController --> BatteryAlertService
+DeviceController --> DeviceService
+IBeaconService --> SiteClient
+IBeaconService --> ArtifactClient
+DeviceService --> FcmService
+BatteryAlertSchedulerConfig --> BatteryAlertService
+NotificationEventListener --> ProcessedEvents
+NotificationEventListener --> FcmService
+NotificationEventListener --> SiteClient
+RegistryEventListener --> ProcessedEvents
+RegistryEventListener --> ArtifactClient
+IBeaconService ..> IBeacon
+DeviceService ..> Device
+ProcessedEvents ..> ProcessedEvent
+@enduml

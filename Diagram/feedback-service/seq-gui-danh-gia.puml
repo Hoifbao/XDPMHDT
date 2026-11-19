@@ -1,0 +1,48 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Du khách gửi đánh giá hiện vật
+actor "Du khách" as U
+participant "FeedbackScreen\n(App)" as A
+participant "api-gateway" as G
+participant "FeedbackController" as C
+participant "FeedbackService" as S
+participant "ArtifactClient" as AC
+participant "UserProfileClient" as UP
+database "feedback_db" as DB
+participant "FeedbackEventPublisher" as P
+
+U -> A : chọn số sao (1–5) + nhận xét
+A -> G : POST /api/artifacts/{id}/feedbacks
+G -> G : AccessRules: phải đăng nhập (VISITOR hoặc ADMIN)
+alt chưa đăng nhập
+  G --> A : 401 → App chuyển màn hình đăng nhập
+else
+  G -> C : X-User-Id
+  C -> S : submitFeedback(artifactId, userId, req)
+  S -> S : kiểm rating 1..5, chuẩn hoá comment
+  S -> AC : getArtifactStatus(artifactId)  (content-service)
+  alt hiện vật không ACTIVE
+    S --> A : 400
+  else
+    S -> UP : findCurrentUserFullName()  (auth-service; lỗi → "Khách")
+    S -> DB : findByUserIdAndArtifactId
+    alt chưa có
+      S -> DB : INSERT (status = PENDING)
+      S -> P : publishCreated → "feedback.created" sau commit
+      S --> A : 201
+    else đã có (mỗi người 1 đánh giá / hiện vật)
+      S -> DB : UPDATE rating, comment, status = PENDING
+      S --> A : 200
+    end
+  end
+end
+A --> U : "Đánh giá đang chờ duyệt"
+@enduml

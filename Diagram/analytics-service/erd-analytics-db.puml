@@ -1,0 +1,65 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – analytics_db (kho dữ liệu thống kê)
+hide circle
+package "Nạp bởi NiFi (theo lô)" {
+entity fact_visits {
+  * visit_id <<PK>> (= visits.id)
+  --
+  user_id, artifact_id, site_id
+  language_code, detected_at
+  duration_seconds, synced_at
+}
+entity fact_feedbacks {
+  * feedback_id <<PK>>
+  --
+  artifact_id, rating, status, created_at
+}
+entity dim_artifact {
+  * artifact_id <<PK>>
+  --
+  code, name, site_id, site_name
+}
+entity dim_site {
+  * site_id <<PK>>
+  --
+  name, location, latitude, longitude
+}
+entity dim_user_lang {
+  * user_id <<PK>>
+  --
+  language_code
+}
+entity agg_daily_views {
+  * day <<PK>>
+  --
+  views, visitors
+}
+}
+package "Nạp bởi sự kiện RabbitMQ (thời gian thực)" {
+entity rt_daily_counters {
+  * day <<PK>>
+  * artifact_id <<PK>>
+  --
+  views, feedbacks, rating_sum
+}
+entity rt_processed_events {
+  * event_id CHAR(36) <<PK>>
+  --
+  event_type
+}
+}
+fact_visits }o..|| dim_artifact : artifact_id
+fact_visits }o..|| dim_site : site_id
+fact_feedbacks }o..|| dim_artifact : artifact_id
+fact_visits }o..|| dim_user_lang : user_id
+rt_daily_counters }o..|| dim_artifact : artifact_id
+@enduml

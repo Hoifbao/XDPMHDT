@@ -1,0 +1,55 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – content_db
+hide circle
+skinparam linetype ortho
+entity artifacts {
+  * id : BIGINT <<PK>>
+  --
+  * site_id : BIGINT (logic → site_db)
+  * name
+  artifact_code <<UQ>>, category
+  description, thumbnail_url
+  period, material, dimensions
+  beacon_uuid <<UQ>>
+  * status (ACTIVE/INACTIVE)
+}
+entity artifact_contents {
+  * id : BIGINT <<PK>>
+  --
+  * artifact_id : BIGINT <<FK>>
+  * language_code
+  title, description, transcript
+  audio_url, video_url, image_urls
+  <<UQ (artifact_id, language_code)>>
+}
+entity media_resources {
+  * id : BIGINT <<PK>>
+  --
+  * artifact_id : BIGINT <<FK>>
+  * media_type (IMAGE/AUDIO/VIDEO)
+  file_url, caption
+}
+entity languages {
+  * code <<PK>>
+  --
+  name, active
+}
+entity artifact_event_outbox {
+  * event_id <<PK>>
+  --
+  occurred_at, payload (JSON)
+  published_at (NULL = chưa gửi)
+}
+artifacts ||--o{ artifact_contents
+artifacts ||--o{ media_resources
+languages ||..o{ artifact_contents : language_code
+@enduml

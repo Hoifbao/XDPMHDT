@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1880" height="960" viewBox="0 0 1880 960" xmlns:c2pa="http://c2pa.org/manifest"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker><marker id="as" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#000"/></marker><marker id="ab" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000001"/></marker></defs><text x="940.0" y="30" font-size="17" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">Smart Heritage – Deployment Diagram (Docker Compose, profile &quot;all&quot;)</text>
+<polygon points="40,110 50,100 320,100 310,110" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="310,110 320,100 320,230 310,240" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="40" y="110" width="270" height="130" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="175.0" y="128" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">Máy Ban quản lý «device»</text>
+<polygon points="70,150 80,140 280,140 270,150" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="270,150 280,140 280,210 270,220" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="70" y="150" width="200" height="70" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="170.0" y="168" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">Trình duyệt</text>
+<rect x="95" y="180" width="150" height="30" rx="0" fill="#fff" stroke="#000" stroke-width="1.4"/>
+<text x="170" y="200" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">«artifact» Web Admin</text>
+<polygon points="90,320 100,310 270,310 260,320" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="260,320 270,310 270,366 260,376" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="90" y="320" width="170" height="56" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="175.0" y="344.5" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">iBeacon «device»</text>
+<text x="175.0" y="359.5" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">BLE</text>
+<polygon points="40,450 50,440 320,440 310,450" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="310,450 320,440 320,560 310,570" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="40" y="450" width="270" height="120" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="175.0" y="468" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">Điện thoại du khách</text>
+<text x="175.0" y="483" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">«device» Android</text>
+<rect x="70" y="505" width="210" height="40" rx="0" fill="#fff" stroke="#000" stroke-width="1.4"/>
+<text x="175" y="530" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">«artifact» Mobile App (Flutter APK)</text>
+<path d="M175,376 L175,450" fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="185" y="418" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">BLE (UUID/Major/Minor, RSSI)</text>
+<polygon points="380,90 394,76 1634,76 1620,90" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="1620,90 1634,76 1634,836 1620,850" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="380" y="90" width="1240" height="760" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="1000.0" y="108" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">Máy chủ / máy demo  «execution environment» Docker Engine</text>
+<polygon points="440,140 450,130 670,130 660,140" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="660,140 670,130 670,200 660,210" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="440" y="140" width="220" height="70" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="550.0" y="171.66666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">prometheus :9090 · grafana :3000</text>
+<text x="550.0" y="185.66666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">mysql-exporter · redis-exporter</text>
+<polygon points="440,440 450,430 620,430 610,440" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="610,440 620,430 620,510 610,520" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="440" y="440" width="170" height="80" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="525.0" y="476.5" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">api-gateway</text>
+<text x="525.0" y="491.5" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111" font-weight="bold">:8080</text>
+<path d="M310,175 L410,175 L410,460 L440,460" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="345" y="168" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">HTTP(S)</text>
+<path d="M310,500 L440,500" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="350" y="492" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">HTTP(S)</text>
+<path d="M525,210 L525,440" fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="533" y="330" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">scrape</text>
+<polygon points="740,130 750,120 990,120 980,130" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,130 990,120 990,172 980,182" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="130" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="159.66666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">auth-service :8081</text>
+<polygon points="740,212 750,202 990,202 980,212" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,212 990,202 990,254 980,264" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="212" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="241.66666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">site-service :8082</text>
+<polygon points="740,294 750,284 990,284 980,294" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,294 990,284 990,336 980,346" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="294" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="316.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">content-service :8083</text>
+<text x="860.0" y="330.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">(volume content_uploads)</text>
+<polygon points="740,376 750,366 990,366 980,376" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,376 990,366 990,418 980,428" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="376" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="405.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">personalization-service :8085</text>
+<polygon points="740,458 750,448 990,448 980,458" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,458 990,448 990,500 980,510" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="458" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="487.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">feedback-service :8086</text>
+<polygon points="740,540 750,530 990,530 980,540" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,540 990,530 990,582 980,592" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="540" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="569.6666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">analytics-service :8087</text>
+<polygon points="740,622 750,612 990,612 980,622" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,622 990,612 990,664 980,674" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="622" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="651.6666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">backend (cũ) :8090</text>
+<polygon points="740,704 750,694 990,694 980,704" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="980,704 990,694 990,746 980,756" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="740" y="704" width="240" height="52" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="860.0" y="733.6666666666666" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">beacon-service :8084</text>
+<path d="M610,480 L680,480" fill="none" stroke="#000" stroke-width="1.4"/>
+<path d="M680,156.0 L680,730.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<path d="M680,156.0 L740,156.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,238.0 L740,238.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,320.0 L740,320.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,402.0 L740,402.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,484.0 L740,484.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,566.0 L740,566.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,648.0 L740,648.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M680,730.0 L740,730.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M1189.3333333333333,125 L1400.6666666666667,125 A9.333333333333334,28.0 0 0 1 1400.6666666666667,181 L1189.3333333333333,181 A9.333333333333334,28.0 0 0 1 1189.3333333333333,125" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<path d="M1400.6666666666667,125 A9.333333333333334,28.0 0 0 0 1400.6666666666667,181" fill="none" stroke="#000" stroke-width="1.4"/>
+<text x="1295.0" y="157.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">rabbitmq 3.13 :5672 / 15672</text>
+<path d="M1180,229 L1180,321 A115.0,9 0 0 0 1410,321 L1410,229" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<ellipse cx="1295.0" cy="229" rx="115.0" ry="9" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="1295.0" y="276.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">mysql-db (mysql:8.0) :3307</text>
+<text x="1295.0" y="291.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">volume mysql_data</text>
+<path d="M1180,374 L1180,412 A85.0,9 0 0 0 1350,412 L1350,374" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<ellipse cx="1265.0" cy="374" rx="85.0" ry="9" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="1265.0" y="394.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">redis-cache</text>
+<text x="1265.0" y="409.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">redis:7.2 :6379</text>
+<polygon points="1180,470 1190,460 1390,460 1380,470" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<polygon points="1380,470 1390,460 1390,516 1380,526" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<rect x="1180" y="470" width="200" height="56" rx="0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="1280.0" y="494.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">nifi 1.28</text>
+<text x="1280.0" y="508.6666666666667" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">(profile nifi)</text>
+<path d="M980,148.0 L1060,148.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<path d="M980,230.0 L1060,230.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="230.0" r="3.2" fill="#000"/>
+<path d="M980,312.0 L1060,312.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="312.0" r="3.2" fill="#000"/>
+<path d="M980,394.0 L1060,394.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="394.0" r="3.2" fill="#000"/>
+<path d="M980,476.0 L1060,476.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="476.0" r="3.2" fill="#000"/>
+<path d="M980,558.0 L1060,558.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="558.0" r="3.2" fill="#000"/>
+<path d="M980,640.0 L1060,640.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="640.0" r="3.2" fill="#000"/>
+<path d="M980,722.0 L1060,722.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<circle cx="1060" cy="285" r="3.2" fill="#000"/>
+<path d="M1060,148.0 L1060,722.0" fill="none" stroke="#000" stroke-width="1.4"/>
+<path d="M1060,285 L1180,285" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="1100" y="279" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">JDBC</text>
+<path d="M980,330.0 L1110,330.0" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<circle cx="1110" cy="330.0" r="3.2" fill="#000001"/>
+<path d="M980,412.0 L1110,412.0" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<circle cx="1110" cy="412.0" r="3.2" fill="#000001"/>
+<path d="M980,494.0 L1110,494.0" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<circle cx="1110" cy="494.0" r="3.2" fill="#000001"/>
+<path d="M980,576.0 L1110,576.0" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<circle cx="1110" cy="576.0" r="3.2" fill="#000001"/>
+<path d="M980,740.0 L1110,740.0" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<path d="M1110,740.0 L1110,160" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3"/>
+<path d="M1110,160 L1180,160" fill="none" stroke="#000001" stroke-width="1.4" stroke-dasharray="10 3 2 3" marker-end="url(#ab)"/>
+<text x="1122" y="154" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">AMQP</text>
+<path d="M980,402.0 L1150,402.0 L1150,393 L1180,393" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M1380,498 L1450,498 L1450,275 L1410,275" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="1458" y="390" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">JDBC</text>
+<rect x="1680" y="704" width="180" height="50" rx="25.0" fill="#FFFFFF" stroke="#000" stroke-width="1.4"/>
+<text x="1770.0" y="733.0" font-size="12" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#111">Firebase (Google)</text>
+<path d="M980,716.0 L1680,716.0" fill="none" stroke="#000" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="1480" y="710" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#222">FCM HTTP v1</text>
+<path d="M1770,754 L1770,900 L175,900 L175,570" fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="900" y="893" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="middle" fill="#222">push notification</text>
+<path d="M440,790 L1330,790 L1340,800 L1340,834 L440,834 Z" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<text x="448" y="806" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#111">Khởi động: docker compose -f Infra/docker-compose.yml --profile all up -d --build</text>
+<text x="448" y="820" font-size="11" font-family="DejaVu Sans, Arial, sans-serif" text-anchor="start" fill="#111">Mỗi service có healthcheck; NiFi chạy riêng bằng profile &quot;nifi&quot;.  Nét chấm gạch: AMQP (RabbitMQ); nét liền: JDBC (MySQL).</text><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpiNjY5ZTJjNC04ZjhiLTQ4MDMtOTBhZS0yYmFkNzRmNjE0NWMAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaNsu+ADpn0+eN45/reMvZ5UAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDozODk5NjU4Yy1hZTdhLTRjNDUtYWE0YS01NjlhMzBhYWRjNmJscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoskW4Yb82HMyC6uf1mLBBSQAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggw9UUqRU66FDyKkemDH8Qgali5eaRCUEe1HUvBJhjScKkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaMAQ5x+pGDFxUhFAVm1lCY8AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIC61ap6V83O3p5s2211YhHPbCGZ2UA8jevHfeLUThS5bZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GUP8Zmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmI2NjllMmM0LThmOGItNDgwMy05MGFlLTJiYWQ3NGY2MTQ1Yy9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjhhZmU2MjdjLTZhZTItNDgzNy1iZjU4LTBjMmQxNjE5ZTU4ZXJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDD1RSpFTroUPIqR6YMfxCBqWLl5pEJQR7UdS8EmGNJwqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg/6gX0b7jOM6MX6L9Upl0wvWr6hAJAo/azSjXSUyX4bOiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgghuersHhNb1v3H16nFeVRDyyzJqucaKXFTlTti0mggF10Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQHalZdQPGB3L9+aN3ydIacPSmiBZx8t0xqbrwZtAuWLu03Se4UB2qQwgpOUngZyEToGixk2tNEvbJgIDiuwqMi0=</c2pa:manifest></metadata></svg>

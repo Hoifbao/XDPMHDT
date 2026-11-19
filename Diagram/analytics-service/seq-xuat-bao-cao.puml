@@ -1,0 +1,35 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Xuất báo cáo thống kê PDF / Excel
+actor Admin
+participant "dashboard.html" as W
+participant "api-gateway" as G
+participant "StatisticsController" as C
+participant "ReportExportService" as R
+participant "StatisticsService" as S
+database "analytics_db" as DB
+
+Admin -> W : bấm "Xuất PDF" hoặc "Xuất Excel"
+W -> G : GET /api/statistics/export?format=pdf|xlsx&siteId&from&to
+G -> G : AccessRules: /api/statistics/** chỉ ADMIN
+G -> C : chuyển tiếp
+alt format khác pdf/xlsx hoặc ngày sai định dạng
+  C --> W : 400
+else
+  C -> R : exportPdf() / exportExcel()
+  R -> S : getOverview(...)
+  S -> DB : truy vấn KPI, top hiện vật, ngôn ngữ, đánh giá
+  R -> R : dựng file (PDF dùng font NotoSans để hiện tiếng Việt)
+  R --> C : byte[]
+  C --> W : 200 attachment "bao-cao-thong-ke-<ngày>.<format>"
+  W --> Admin : tải file
+end
+@enduml

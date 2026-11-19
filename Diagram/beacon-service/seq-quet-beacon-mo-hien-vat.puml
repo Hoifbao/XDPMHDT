@@ -1,0 +1,51 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Quét iBeacon → tự mở hiện vật (luồng chính của đề tài)
+actor "Du khách" as U
+participant "BeaconScanScreen\n(App)" as S
+participant "BeaconService\n(App, flutter_blue_plus)" as B
+participant "api-gateway" as G
+participant "beacon-service" as BS
+participant "content-service" as CS
+participant "personalization-service" as PS
+
+U -> S : mở màn hình Quét
+S -> B : loadRegistry()
+alt cache RAM còn hạn (< 30 phút)
+  B --> S : registry trong bộ nhớ
+else
+  B -> G : GET /api/ibeacons/registry
+  G -> BS : (GET công khai)
+  BS --> B : [{uuid, major, minor, artifactId}]
+  B -> B : lưu vào bộ nhớ máy (dùng khi API lỗi)
+end
+loop mỗi lần quét BLE
+  B --> S : danh sách beacon + RSSI
+  S -> S : bỏ beacon ngoài registry;\nRSSI trung bình 5 lần; chọn beacon gần nhất
+  alt RSSI_tb ≥ -75 dBm và qua 60 giây kể từ lần báo trước
+    alt App đang mở (foreground)
+      S -> G : GET /api/artifacts/{artifactId}?lang=…
+      G -> CS : chuyển tiếp
+      CS --> S : chi tiết hiện vật
+      S --> U : mở ArtifactDetailScreen
+    else App chạy nền
+      S --> U : local notification (bấm → mở đúng hiện vật)
+    end
+  else RSSI_tb ≤ -85 dBm hoặc không thấy > 10 giây
+    S -> G : POST /api/me/visits (source = BEACON, durationSeconds)
+    G -> PS : ghi lượt tham quan
+  end
+end
+note over S
+  Không có beacon thật: bản debug có nút
+  "Giả lập phát hiện beacon".
+end note
+@enduml

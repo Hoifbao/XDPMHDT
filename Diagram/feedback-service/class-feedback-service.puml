@@ -1,0 +1,73 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – feedback-service (Tường)
+class FeedbackController <<RestController /api/artifacts/{artifactId}/feedbacks>> {
+  + submitFeedback(artifactId, req)
+  + getApprovedFeedbacks(artifactId)
+}
+class MyFeedbackController <<RestController /api/feedbacks/me>> {
+  + getMine()
+}
+class AdminFeedbackController <<RestController /api/admin/feedbacks>> {
+  + list(status, artifactId)
+  + pendingCount()
+  + updateStatus(id, FeedbackStatusRequest)
+}
+class RatingSummaryController <<RestController>> {
+  + getRatingSummary(artifactId)
+}
+class FeedbackService {
+  STATUS_PENDING / APPROVED / REJECTED
+  + submitFeedback(artifactId, userId, req) : SubmitResult
+  + getApprovedFeedbacks(artifactId)
+  + getRatingSummary(artifactId)
+  + getMyFeedbacks(userId)
+  + countPending() : long
+  + getFeedbacksForAdmin(status, artifactId)
+  + updateStatus(id, status) : FeedbackResponse
+}
+class FeedbackEventPublisher {
+  "feedback.created" / "feedback.approved"
+  + publishCreated(feedback)
+  + publishApproved(feedback, artifactName)
+}
+class ArtifactClient {
+  + getArtifactStatus(id) : String
+  + findArtifactName(id)
+}
+class UserProfileClient {
+  + findCurrentUserFullName() : Optional<String>
+}
+interface FeedbackRepository <<JpaRepository>> {
+  + findByUserIdAndArtifactId(…)
+}
+class Feedback <<Entity feedbacks>> {
+  id, userId, artifactId
+  reviewerName, rating (1..5), comment
+  status, createdAt, updatedAt
+}
+class EventPublisher <<common>> {
+  + publishAfterCommit(routingKey, type, data) : UUID
+}
+FeedbackController --> FeedbackService
+MyFeedbackController --> FeedbackService
+AdminFeedbackController --> FeedbackService
+RatingSummaryController --> FeedbackService
+FeedbackService --> FeedbackRepository
+FeedbackService --> ArtifactClient
+FeedbackService --> UserProfileClient
+FeedbackService --> FeedbackEventPublisher
+FeedbackEventPublisher --> EventPublisher
+FeedbackRepository ..> Feedback
+@enduml

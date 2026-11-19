@@ -1,0 +1,82 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – personalization-service (Phú)
+class VisitHistoryController <<RestController /api/me/visits>> {
+  + list(pageable)
+  + record(RecordVisitRequest)
+  + sync(SyncVisitsRequest)  (/batch)
+}
+class AdminVisitHistoryController <<RestController /api/admin/visits>> {
+  + list(from, to, siteId, page, size)
+}
+class FavoriteController <<RestController /api/me/favorites>> {
+  + list(pageable)
+  + add(artifactId)
+  + remove(artifactId)
+  + exists(artifactId)
+}
+class VisitHistoryService {
+  + list(userId, pageable)
+  + record(userId, req) : boolean
+  + sync(userId, events) : SyncVisitsResponse
+  + listForAdmin(from, to, pageable)
+}
+class FavoriteService {
+  + list(userId, pageable)
+  + add(userId, artifactId)
+  + remove(userId, artifactId)
+  + exists(userId, artifactId)
+}
+class ArtifactClient {
+  SUMMARY_PREFIX = "artifact:summary:"
+  + requireActive(id) : ArtifactSnapshot
+  + get(id) / getMany(ids)
+}
+class VisitEventPublisher {
+  TYPE = "VisitRecorded"
+  ROUTING_KEY = "visit.recorded"
+  + publishRecorded(visit)
+}
+class ArtifactUpdatedListener {
+  + onArtifactUpdated(EventEnvelope)  <<@RabbitListener>>
+}
+interface VisitHistoryRepository <<JpaRepository>> {
+  + existsByUserIdAndClientEventId(…)
+}
+interface FavoriteRepository <<JpaRepository>>
+class VisitHistory <<Entity visits>> {
+  id, userId, artifactId
+  detectedAt, durationSeconds
+  clientEventId
+}
+class Favorite <<Entity likes>> {
+  id : FavoriteId
+  savedAt
+}
+class FavoriteId <<Embeddable>> {
+  userId, artifactId
+}
+VisitHistoryController --> VisitHistoryService
+AdminVisitHistoryController --> VisitHistoryService
+FavoriteController --> FavoriteService
+VisitHistoryService --> VisitHistoryRepository
+VisitHistoryService --> ArtifactClient
+VisitHistoryService --> VisitEventPublisher
+FavoriteService --> FavoriteRepository
+FavoriteService --> ArtifactClient
+ArtifactUpdatedListener ..> ArtifactClient : xoá cache Redis cùng khoá
+VisitHistoryRepository ..> VisitHistory
+FavoriteRepository ..> Favorite
+Favorite *-- FavoriteId
+@enduml

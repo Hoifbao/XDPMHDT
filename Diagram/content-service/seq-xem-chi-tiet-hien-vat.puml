@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Xem chi tiết hiện vật theo ngôn ngữ
+actor "Du khách" as U
+participant "ArtifactDetailScreen\n(App)" as A
+participant "api-gateway" as G
+participant "ArtifactController" as C
+participant "ArtifactService" as S
+participant "LanguageService" as L
+participant "SiteClient" as SC
+database "content_db" as DB
+participant "site-service" as SITE
+
+U -> A : mở hiện vật (từ danh sách, bản đồ hoặc beacon)
+A -> G : GET /api/artifacts/{id}?lang=en
+G -> C : (GET công khai)
+C -> S : getArtifactById(id)
+S -> DB : findById + contents + media
+alt không có
+  S --> A : 404
+else
+  S -> SC : findName(siteId)
+  SC -> SITE : GET /api/heritage-sites/{siteId}
+  SITE --> SC : tên di tích (lỗi → bỏ trống, không chặn)
+  C -> S : localize(resp, "en")
+  S -> L : require("en")
+  alt ngôn ngữ không hỗ trợ
+    L --> A : 400
+  else
+    S -> S : chọn artifact_contents theo lang,\nkhông có thì dùng bản "vi" (fallback = true)
+    S --> A : 200 {name, description, audio/video/ảnh, languageCode, fallback}
+  end
+end
+A -> A : lưu cache offline (xem tiếp khi mất mạng / rời vùng beacon)
+A --> U : hiển thị nội dung đa phương tiện
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Admin tạo / sửa di tích trên Web Admin
+actor Admin
+participant "heritage-sites.html\n(Web Admin)" as W
+participant "api-gateway" as G
+participant "HeritageSiteController" as C
+participant "HeritageSiteService" as S
+database "site_db" as DB
+
+Admin -> W : nhập tên, địa chỉ, chọn điểm trên bản đồ
+W -> G : POST /api/heritage-sites (Bearer)
+G -> G : AccessRules: ghi /api/** → chỉ ADMIN
+alt không phải ADMIN
+  G --> W : 401 / 403
+else
+  G -> C : chuyển tiếp
+  C -> S : create(request)
+  S -> S : kiểm tên bắt buộc, toạ độ hợp lệ (lat ±90, lng ±180)
+  alt dữ liệu sai
+    S --> W : 400 kèm thông báo
+  else
+    S -> DB : save(HeritageSite)
+    S --> C : HeritageSiteResponse
+    C --> W : 201 Created
+    W --> Admin : thêm dòng mới vào bảng
+  end
+end
+note right of S
+  Sửa (PUT) dùng cùng kiểm tra;
+  clearCoordinates = true để xoá toạ độ.
+end note
+@enduml

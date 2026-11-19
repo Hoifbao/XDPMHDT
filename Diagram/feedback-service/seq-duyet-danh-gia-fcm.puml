@@ -1,0 +1,46 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Admin duyệt đánh giá → báo du khách qua FCM
+actor Admin
+participant "feedback.html" as W
+participant "api-gateway" as G
+participant "FeedbackService" as S
+database "feedback_db" as DB
+queue "sh.events" as MQ
+participant "beacon-service\nNotificationEventListener" as L
+database "beacon_db" as BDB
+participant "FcmService" as F
+actor "Du khách" as U
+
+Admin -> W : lọc "Chờ duyệt", bấm Duyệt
+W -> G : PATCH /api/admin/feedbacks/{id}/status {status: APPROVED}
+G -> S : (chỉ ADMIN) updateStatus(id, "APPROVED")
+alt status không phải APPROVED/REJECTED
+  S --> W : 400
+else
+  S -> DB : findById → newlyApproved = (trạng thái cũ ≠ APPROVED)
+  S -> DB : UPDATE status
+  opt newlyApproved
+    S -> MQ : "feedback.approved" (sau commit, kèm tên hiện vật)
+  end
+  S --> W : 200; badge "chờ duyệt" giảm
+end
+MQ -> L : queue notification.feedback-approved
+L -> L : thiếu userId → ném lỗi → DLQ
+L -> BDB : processed_events.markIfNew(eventId)
+alt mới
+  L -> BDB : devices của userId
+  loop mỗi thiết bị
+    L -> F : sendToToken(fcmToken, "Đánh giá của bạn về … đã được duyệt")
+  end
+  F --> U : push notification
+end
+@enduml

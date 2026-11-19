@@ -1,0 +1,102 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – content-service (Xuân Anh)
+package controller {
+  class ArtifactController <<RestController /api/artifacts>> {
+    + getArtifacts(siteId, keyword)
+    + getBatch(ids)
+    + getArtifactById(id, lang)
+    + createArtifact(req)
+    + updateArtifact(id, req)
+    + deleteArtifact(id)
+    + getContents(id) / upsertContent(id, req)
+  }
+  class MediaResourceController <<RestController>>
+  class MediaUploadController <<RestController /api/media>> {
+    + upload(file)
+    + file(name)
+  }
+  class LanguageController <<RestController>>
+}
+package service {
+  class ArtifactService {
+    + getArtifactById(id) : ArtifactResponse
+    + localize(resp, lang) : ArtifactResponse
+    + createArtifact(req) / updateArtifact(id, req)
+    + upsertContent(id, req)
+    + getContentByLanguage(id, lang)
+  }
+  class MediaResourceService
+  class MediaStorageService {
+    + store(file) : Stored
+    + load(name) : Resource
+  }
+  class LanguageService {
+    + require(code) : Language
+  }
+}
+package events {
+  class ArtifactChanges {
+    + snapshot(a) : Map
+    + updated(a, before)
+    + record(a, changedFields)
+  }
+  class ArtifactEventDispatcher {
+    + afterCommit(Pending)  <<AFTER_COMMIT>>
+    + retryPending()  <<@Scheduled 10s>>
+  }
+  class ArtifactEventDelivery {
+    + deliver(eventId)
+  }
+  interface ArtifactEventTransport {
+    + send(eventId, occurredAt, data)
+  }
+  class RabbitArtifactEventTransport {
+    ROUTING_KEY = "artifact.updated"
+  }
+  class ArtifactEventOutbox <<Entity artifact_event_outbox>>
+}
+package client {
+  class SiteClient {
+    + requireSite(siteId)
+    + findName(siteId)
+  }
+}
+package entity {
+  class Artifact <<Entity artifacts>> {
+    id, siteId, name, artifactCode
+    beaconUuid, status …
+  }
+  class ArtifactContent <<Entity artifact_contents>> {
+    languageCode, title, description
+    audioUrl, videoUrl, imageUrls
+  }
+  class MediaResource <<Entity media_resources>>
+  class Language <<Entity languages>>
+}
+ArtifactController --> ArtifactService
+MediaResourceController --> MediaResourceService
+MediaUploadController --> MediaStorageService
+LanguageController --> LanguageService
+ArtifactService --> SiteClient
+ArtifactService --> LanguageService
+ArtifactService --> ArtifactChanges
+MediaResourceService --> ArtifactChanges
+ArtifactChanges --> ArtifactEventOutbox : ghi trong cùng transaction
+ArtifactEventDispatcher --> ArtifactEventDelivery
+ArtifactEventDelivery --> ArtifactEventTransport
+ArtifactEventTransport <|.. RabbitArtifactEventTransport
+Artifact "1" *-- "0..*" ArtifactContent
+Artifact "1" -- "0..*" MediaResource
+@enduml

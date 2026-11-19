@@ -1,0 +1,47 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title Sequence – Admin sửa hiện vật → phát ArtifactUpdated qua Outbox
+actor Admin
+participant "artifacts.html" as W
+participant "api-gateway" as G
+participant "ArtifactService" as S
+participant "ArtifactChanges" as CH
+database "content_db" as DB
+participant "ArtifactEventDispatcher" as D
+participant "ArtifactEventDelivery" as DL
+queue "RabbitMQ\nsh.events" as MQ
+
+Admin -> W : sửa tên / mô tả / media
+W -> G : PUT /api/artifacts/{id}
+G -> S : (chỉ ADMIN) updateArtifact(id, req)
+activate S
+S -> CH : snapshot(artifact) trước khi sửa
+S -> DB : UPDATE artifacts …
+S -> CH : updated(artifact, before)
+CH -> CH : so sánh → danh sách trường đổi
+CH -> DB : INSERT artifact_event_outbox (published_at = NULL)
+CH -> D : publishEvent(Pending(eventId))
+S --> W : 200 hiện vật mới
+deactivate S
+note over S, DB : UPDATE và INSERT outbox nằm chung 1 transaction
+
+D -> DL : afterCommit → deliver(eventId)
+DL -> MQ : sendConfirmed("artifact.updated", ArtifactUpdated)
+alt broker xác nhận
+  DL -> DB : published_at = now()
+else lỗi / RabbitMQ tắt
+  DL --> D : exception (giữ published_at = NULL)
+  ... mỗi 10 giây ...
+  D -> DB : findTop50ByPublishedAtIsNull
+  D -> DL : deliver lại
+end
+MQ -> MQ : chuyển tới beacon-service, personalization-service
+@enduml

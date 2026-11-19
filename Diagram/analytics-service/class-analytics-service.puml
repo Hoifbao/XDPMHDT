@@ -1,0 +1,60 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+hide empty members
+skinparam linetype ortho
+
+title Class Diagram – analytics-service (Tuấn)
+class StatisticsController <<RestController /api/statistics>> {
+  + getOverview(top, siteId, from, to)
+  + getRealtime(siteId)
+  + export(format, siteId, from, to)
+}
+class StatisticsService {
+  + getOverview(top, siteId, from, to) : StatisticsResponse
+  + getRealtime(siteId) : RealtimeResponse
+}
+class ReportExportService {
+  FONT_PATH = "/fonts/NotoSans-Regular.ttf"
+  + exportExcel(siteId, from, to) : byte[]
+  + exportPdf(siteId, from, to) : byte[]
+}
+class StatisticsRepository <<JdbcTemplate>> {
+  + countViewsAndVisitors(filter)
+  + countDailyViews(filter, days)
+  + findTopArtifacts(filter, limit)
+  + countVisitorsByLanguage(filter)
+  + summarizeRatings(filter)
+  + findRecentFeedbacks(filter, limit)
+  + sumRealtime(day, siteId)
+  + findTopRealtime(day, siteId, limit)
+}
+class RealtimeCounterRepository <<JdbcTemplate>> {
+  + markProcessed(eventId, type) : boolean
+  + addView(day, artifactId)
+  + addFeedback(day, artifactId, rating)
+}
+class AnalyticsEventListener {
+  + onVisitRecorded(EventEnvelope)  <<@RabbitListener>>
+  + onFeedbackCreated(EventEnvelope)  <<@RabbitListener>>
+}
+class RabbitQueueConfig {
+  analytics.visit-recorded
+  analytics.feedback-created
+  analytics.dlq
+}
+StatisticsController --> StatisticsService
+StatisticsController --> ReportExportService
+StatisticsService --> StatisticsRepository
+ReportExportService --> StatisticsService
+ReportExportService --> StatisticsRepository
+AnalyticsEventListener --> RealtimeCounterRepository
+RabbitQueueConfig ..> AnalyticsEventListener
+@enduml

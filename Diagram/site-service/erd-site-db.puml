@@ -1,0 +1,22 @@
+@startuml
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam monochrome true
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam sequenceMessageAlign left
+skinparam ArrowColor #000000
+title ERD – site_db
+hide circle
+entity heritage_sites {
+  * id : BIGINT <<PK>>
+  --
+  * name : VARCHAR(150)
+  location : VARCHAR(255)
+  map_image_url : VARCHAR(500)
+  latitude : DECIMAL(10,7)
+  longitude : DECIMAL(10,7)
+}
+@enduml
