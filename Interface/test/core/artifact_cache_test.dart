@@ -24,6 +24,46 @@ Map<String, dynamic> artifactJson(int id, String lang) => {
 };
 
 void main() {
+  test(
+    '404 removes every language cache and never serves deleted content',
+    () async {
+      await ArtifactApiService.fetchArtifact(1, 'vi');
+      await ArtifactApiService.fetchArtifact(1, 'en');
+      AuthService.rawClient = MockClient((_) async => http.Response('{}', 404));
+      await expectLater(
+        ArtifactApiService.fetchArtifact(1, 'vi'),
+        throwsA(isA<ArtifactUnavailableException>()),
+      );
+      expect(await ArtifactApiService.hasCached(1), isFalse);
+      expect(await ArtifactApiService.recentArtifacts(), isEmpty);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('sh_artifact_1_en'), isFalse);
+      AuthService.rawClient = MockClient(
+        (_) async => throw const SocketException('offline'),
+      );
+      await expectLater(
+        ArtifactApiService.fetchArtifact(1, 'en'),
+        throwsA(isA<SocketException>()),
+      );
+    },
+  );
+
+  test(
+    'server outage uses cached article but rejected request does not',
+    () async {
+      await ArtifactApiService.fetchArtifact(1, 'vi');
+      AuthService.rawClient = MockClient((_) async => http.Response('{}', 503));
+      expect(
+        (await ArtifactApiService.fetchArtifact(1, 'vi')).fromCache,
+        isTrue,
+      );
+      AuthService.rawClient = MockClient((_) async => http.Response('{}', 400));
+      await expectLater(
+        ArtifactApiService.fetchArtifact(1, 'vi'),
+        throwsA(isA<ArtifactUnavailableException>()),
+      );
+    },
+  );
   TestWidgetsFlutterBinding.ensureInitialized();
   late http.Client original;
   setUp(() {

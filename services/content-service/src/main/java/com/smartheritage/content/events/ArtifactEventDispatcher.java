@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Configuration
 @EnableScheduling
@@ -18,6 +19,7 @@ public class ArtifactEventDispatcher {
     private final ArtifactEventOutboxRepository outbox;
     private final ArtifactEventDelivery delivery;
     private final ObjectProvider<ArtifactEventTransport> transport;
+    private final AtomicBoolean failureReported = new AtomicBoolean();
 
     public record Pending(String eventId) {}
 
@@ -38,15 +40,23 @@ public class ArtifactEventDispatcher {
             initialDelayString = "${app.events.retry-delay-ms:10000}")
     public void retryPending() {
         if (transport.getIfAvailable() == null) return;
-        outbox.findTop50ByPublishedAtIsNullOrderByOccurredAtAsc()
-                .forEach(entry -> tryDelivery(entry.getEventId()));
+        for (var entry : outbox.findTop50ByPublishedAtIsNullOrderByOccurredAtAsc()) {
+            if (!tryDelivery(entry.getEventId())) break;
+        }
     }
 
-    private void tryDelivery(String id) {
+    private boolean tryDelivery(String id) {
         try {
             delivery.deliver(id);
+            if (failureReported.getAndSet(false)) log.info("ArtifactUpdated delivery recovered; retrying pending events");
+            return true;
         } catch (Exception exception) {
-            log.warn("ArtifactUpdated eventId={} remains pending; delivery failed", id, exception);
+            if (failureReported.compareAndSet(false, true)) {
+                String reason = String.valueOf(exception.getMessage()).replaceAll("[\\r\\n]+", " ");
+                log.warn("ArtifactUpdated delivery unavailable; eventId={} remains pending: {}", id,
+                        reason.substring(0, Math.min(reason.length(), 240)));
+            }
+            return false;
         }
     }
 }
