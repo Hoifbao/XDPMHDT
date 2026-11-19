@@ -9,8 +9,8 @@
 | Bản kiểm thử cuối | tag `v1.0`, commit: *(điền khi Bảo gắn tag, Thứ 6 20/11)* |
 | Môi trường | Windows 11, JDK 25, MySQL 8 / Redis / RabbitMQ chạy Docker (`--profile mq`), 7 service + Gateway chạy jar; thiết bị Android: *(model, phiên bản Android, phiên bản app)* |
 
-**Tình trạng bản này (17/11):** đã có kết quả cấp Unit và Integration chạy trên `main` mới nhất (commit `533e64c`),
-và 5 test case quản lý người dùng mới. Cột lần 1 chờ kết quả Ân đã chạy; cột lần 2 điền sau buổi hồi quy 19/11.
+**Tình trạng bản này (17/11):** đã có kết quả cấp Unit và Integration chạy trên `main` (commit `533e64c` lúc Tường đo; `main` hiện tại `761248f`),
+và 5 test case quản lý người dùng mới. Lần 1 System Testing đã chạy 65/131 case trên máy này tối 17/11 (API, database, RabbitMQ, Prometheus). Chưa đủ 90%. Cột lần 2 điền sau buổi hồi quy 19/11.
 
 ## 1. Tổng hợp theo 3 cấp kiểm thử
 
@@ -18,7 +18,7 @@ và 5 test case quản lý người dùng mới. Cột lần 1 chờ kết quả
 |---|---|---|
 | Unit | `mvn test` (10 module Java), `flutter test` (app) | **330/330 đạt** (Java 269, Flutter 61) – mục 2 |
 | Integration | `Docs/testing/integration-smoke.ps1 -Events` qua Gateway | **12/12 đạt** – mục 3 |
-| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: *(chờ Ân)*; lần 2: *(19/11)* – mục 4 |
+| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: **65/131 đã chạy, 62 đạt, 3 không đạt** (17/11, `main@761248f`); lần 2: *(19/11)* – mục 4 |
 
 ## 2. Unit test
 
@@ -77,30 +77,33 @@ Luồng sự kiện đánh giá đầy đủ (FeedbackCreated, FeedbackApproved,
 
 | Nhóm | Số case | Lần 1: đã chạy | Lần 1: đạt | Lần 2: đã chạy | Lần 2: đạt | Ghi chú |
 |---|---|---|---|---|---|---|
-| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | | | | | |
-| Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | | | | | |
-| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | | | | | |
-| Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | | | | | |
-| Tuần 6: Sự kiện RabbitMQ (TC-87 → TC-100) | 14 | | | | | |
-| Tuần 6: Thông báo, pin, thời gian thực (TC-101 → TC-107) | 7 | | | | | |
-| Tuần 6: Hoàn thiện Mobile, Web (TC-111 → TC-119) | 9 | | | | | |
-| Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | | | | | |
-| Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | | | | | |
-| Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường) |
-| **Tổng** | **136** | | | | | |
+| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | | | TC-13 không đạt |
+| Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | | | TC-36, TC-71 không đạt |
+| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | | | |
+| Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | 3 | 3 | | | TC-86 chưa bấm nút trên Dashboard |
+| Tuần 6: Sự kiện RabbitMQ (TC-87 → TC-100) | 14 | 5 | 5 | | | TC-87, 88, 89, 90, 94. Chưa đọc DLQ và tin sai |
+| Tuần 6: Thông báo, pin, thời gian thực (TC-101 → TC-107) | 7 | 1 | 1 | | | TC-69 chỉ phần 401. Còn FCM và Dashboard |
+| Tuần 6: Hoàn thiện Mobile, Web (TC-111 → TC-119) | 9 | 3 | 3 | | | TC-116, TC-117, TC-118 |
+| Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | 1 | 1 | | | TC-120. Chưa tắt service để xem cảnh báo, chưa chạy lại k6 |
+| Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | | | Chỉ TC-130 (API 403) |
+| Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường). Không thuộc lần 1 tuần 6 |
+| **Tổng lần 1 (131 case)** | **131** | **65** | **62** | | | 66 case chưa chạy |
 
-- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%):
-- Tỉ lệ đạt trên số đã chạy:
-- Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%):
+- Tỉ lệ đã chạy lần 1: **65/131 = 50%** (yêu cầu ≥ 90%, chưa đạt).
+- Tỉ lệ đạt trên số đã chạy lần 1: **62/65 = 95%**.
+- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%): chưa chạy.
+- Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): chưa đủ số case Cao đã chạy để kết luận.
 
 ## 5. Lỗi theo mức độ
 
 | Mức độ | Hạn sửa | Tổng (lần 1) | Đã đóng | Còn mở sau lần 2 |
 |---|---|---|---|---|
-| Blocker | Trong 24 giờ | | | |
-| Critical | Trước Thứ 3 tuần 7 | | | |
-| Major | Trước Thứ 5 tuần 7 | | | |
-| Minor | Nếu còn thời gian | | | |
+| Blocker | Trong 24 giờ | 0 | | |
+| Critical | Trước Thứ 3 tuần 7 | 0 | | |
+| Major | Trước Thứ 5 tuần 7 | 0 | | |
+| Minor | Nếu còn thời gian | 0 | | |
+
+Ba case Không đạt chưa xếp mức và chưa mở Issue: TC-13 (endpoint beacon cũ trả 404), TC-36 (số mẫu trên DB lệch Test Plan), TC-71 (đổi vị trí beacon qua Gateway trả 404, gọi thẳng cổng 8084 thì 200).
 
 ## 6. Lỗi còn tồn
 
@@ -108,14 +111,18 @@ Luồng sự kiện đánh giá đầy đủ (FeedbackCreated, FeedbackApproved,
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
-## 7. Test case không đạt hoặc chưa chạy (lần 2)
+## 7. Test case không đạt (lần 1, 17/11)
 
 | Mã TC | Kết quả | Lý do | Issue |
 |---|---|---|---|
-| | | | |
+| TC-13 | Không đạt | `GET /api/artifacts/beacon/{uuid}` trả 404 trên Gateway và content-service. Cột `beacon_uuid` của hiện vật đang null. Code ghi endpoint này là luồng cũ; luồng chuẩn là registry rồi `GET /api/artifacts/{id}` | Chưa mở |
+| TC-36 | Không đạt | `GET /api/artifacts/2/rating-summary` trả 200 với averageRating=3.5, totalRatings=2. Test Plan mẫu kỳ vọng 4.0 và 1 | Chưa mở |
+| TC-71 | Không đạt | `PUT /api/ibeacons/1/position` qua Gateway 8080 trả 404. Gọi thẳng beacon-service cổng 8084 với cùng body trả 200 | Chưa mở |
+
+66 case còn lại ghi `Chưa chạy` trong [test-run-w6.md](test-run-w6.md): app Android, vài thao tác chỉ có trên trang HTML, NiFi, tắt service để xem cảnh báo. Lần 2 (19/11) chưa chạy.
 
 ## 8. Kết luận
 
-- Đạt tiêu chí kết thúc kiểm thử (Test Plan mục 6): Có / Không
-- Lỗi còn tồn và lý do: xem mục 6
-- Rủi ro cho buổi bảo vệ:
+- Đạt tiêu chí kết thúc kiểm thử lần 1 (chạy ≥ 90% Test Plan, mọi lỗi có Issue): **Không**. Đã chạy 65/131 case.
+- Lỗi còn tồn và lý do: xem mục 6 và mục 7. Chưa có lỗi Blocker/Critical từ phiên này.
+- Rủi ro cho buổi bảo vệ: luồng app, beacon, FCM, Dashboard trên trình duyệt và cảnh báo Prometheus chưa được ghi nhận trong lần 1.
