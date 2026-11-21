@@ -16,6 +16,7 @@ import 'local_notification_service.dart';
 /// 1. Khởi động: tải registry (cache 30 phút + bộ nhớ máy), initialize BLE.
 /// 2. Mỗi lần quét: so khớp (uuid, major, minor); bỏ qua beacon ngoài registry.
 /// 3. Chọn gần nhất (avg RSSI 5 lần); vào vùng ≥ rssiEnter; hysteresis rssiExit.
+///    Đang trong vùng: beacon khác chỉ thay khi mạnh hơn ≥ 5 dBm liên tục 3 lần đọc (BeaconSwitchGuard).
 /// 4. Chống trùng: không báo lại trong 60 giây kể từ lần báo trước.
 /// 5. Vào vùng:
 ///    - app ở foreground → ArtifactDetailScreen (KHÔNG tự đóng khi rời vùng);
@@ -45,6 +46,10 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
   /// Đang mở màn chi tiết (tránh push chồng khi nhiều beacon cùng vào).
   bool _navigatingToDetail = false;
+
+  /// Beacon đang trong vùng (tối đa 1 beacon tại một thời điểm).
+  String? _currentKey;
+  final BeaconSwitchGuard _switchGuard = BeaconSwitchGuard();
 
   StreamSubscription<List<ScannedBeacon>>? _subscription;
   Timer? _tickTimer;
@@ -165,8 +170,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     if (!mounted) return;
 
     final now = DateTime.now();
-    String? nearestEnterKey;
-    var nearestRssi = -999;
+    final averages = <String, int>{};
 
     for (final beacon in beacons) {
       // Bỏ qua beacon không có trong registry
@@ -174,27 +178,40 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
       _rssiBuffers.putIfAbsent(beacon.key, RssiBuffer.new).add(beacon.rssi);
       _lastSeenTimes[beacon.key] = now;
+      averages[beacon.key] = _rssiBuffers[beacon.key]!.average;
+    }
 
-      final avgRssi = _rssiBuffers[beacon.key]!.average;
-      final isActive = _activeBeacons[beacon.key] ?? false;
-      final registered = _registry[beacon.key]!;
+    final current = _currentKey;
+    if (current != null) {
+      // Đang trong vùng: chỉ đổi khi beacon khác mạnh hơn rõ rệt và ổn định (BeaconSwitchGuard).
+      // Đang mở màn chi tiết thì giữ nguyên, không đổi beacon.
+      if (_navigatingToDetail || !averages.containsKey(current)) return;
 
-      // Hysteresis: đang trong vùng mà RSSI ≤ rssiExit → đánh dấu ra (xử lý ở tick)
-      if (isActive && avgRssi <= BeaconConfig.rssiExit) {
-        continue;
-      }
-
-      // Ứng viên vào vùng
-      if (!isActive &&
-          avgRssi >= BeaconConfig.rssiEnter &&
-          registered.artifactId != null) {
-        final lastAlert = _lastAlertTimes[beacon.key];
-        final inCooldown = lastAlert != null &&
-            now.difference(lastAlert) < BeaconConfig.antispamCooldown;
-        if (!inCooldown && avgRssi > nearestRssi) {
-          nearestRssi = avgRssi;
-          nearestEnterKey = beacon.key;
+      final candidates = <String, int>{current: averages[current]!};
+      for (final entry in averages.entries) {
+        if (entry.key != current && _isEligibleForEnter(entry.key, now)) {
+          candidates[entry.key] = entry.value;
         }
+      }
+      final next = _switchGuard.update(currentKey: current, averages: candidates);
+      if (next != null) {
+        debugPrint('$_logTag ĐỔI BEACON $current → $next: mạnh hơn ≥ '
+            '${BeaconConfig.switchMarginDbm} dBm liên tục ${BeaconConfig.switchConfirmReads} lần đọc.');
+        _onEnterRegion(next, now);
+      }
+      return;
+    }
+
+    if (_navigatingToDetail) return;
+
+    String? nearestEnterKey;
+    var nearestRssi = -999;
+    for (final entry in averages.entries) {
+      if (entry.value >= BeaconConfig.rssiEnter &&
+          entry.value > nearestRssi &&
+          _isEligibleForEnter(entry.key, now)) {
+        nearestRssi = entry.value;
+        nearestEnterKey = entry.key;
       }
     }
 
@@ -208,15 +225,31 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     }
   }
 
+  /// Có hiện vật và không nằm trong cooldown 60s (chống báo trùng).
+  bool _isEligibleForEnter(String key, DateTime now) {
+    final registered = _registry[key];
+    if (registered == null || registered.artifactId == null) return false;
+    final lastAlert = _lastAlertTimes[key];
+    return lastAlert == null ||
+        now.difference(lastAlert) >= BeaconConfig.antispamCooldown;
+  }
+
   void _onEnterRegion(String key, DateTime now) {
     final registered = _registry[key];
     if (registered == null || registered.artifactId == null) return;
     if (_navigatingToDetail) return;
 
+    final previous = _currentKey;
+    if (previous != null && previous != key) {
+      _onExitRegion(previous, now);
+    }
+    _switchGuard.reset();
+
     setState(() {
       _activeBeacons[key] = true;
       _enterTimes[key] = now;
       _lastAlertTimes[key] = now;
+      _currentKey = key;
     });
 
     final appResumed =
@@ -284,7 +317,9 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
     setState(() {
       _activeBeacons[key] = false;
+      if (_currentKey == key) _currentKey = null;
     });
+    _switchGuard.reset();
 
     // Màn chi tiết KHÔNG tự đóng — chỉ ghi lượt tham quan
     final registered = _registry[key];

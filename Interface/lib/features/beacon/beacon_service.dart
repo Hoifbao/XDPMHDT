@@ -25,6 +25,12 @@ class BeaconConfig {
   /// Không thấy beacon quá thời gian này → coi là đã rời vùng.
   static const Duration exitTimeout = Duration(seconds: 10);
 
+  /// Beacon khác chỉ thay beacon hiện tại khi RSSI trung bình mạnh hơn ít nhất ngần này (dBm).
+  static const int switchMarginDbm = 5;
+
+  /// Số lần đọc liên tiếp beacon mới phải đạt [switchMarginDbm] thì mới đổi (chống nhảy qua lại).
+  static const int switchConfirmReads = 3;
+
   /// Cooldown giữa 2 lần báo cùng 1 beacon (tránh mở màn hình liên tục).
   static const Duration antispamCooldown = Duration(seconds: 60);
 
@@ -52,6 +58,48 @@ class RssiBuffer {
   bool get hasData => _values.isNotEmpty;
 
   void clear() => _values.clear();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SWITCH GUARD – chống nhảy qua lại giữa 2 beacon gần nhau
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Khi đang trong vùng một beacon, beacon khác chỉ thay thế khi RSSI trung bình
+/// của nó mạnh hơn beacon hiện tại ≥ [BeaconConfig.switchMarginDbm] trong
+/// [BeaconConfig.switchConfirmReads] lần đọc liên tiếp. Một lần đọc không đạt
+/// thì đếm lại từ đầu.
+class BeaconSwitchGuard {
+  final Map<String, int> _streaks = {};
+
+  /// [averages] gồm beacon hiện tại (currentKey) và các ứng viên đủ điều kiện.
+  /// Trả về key cần chuyển sang, hoặc null nếu chưa đủ điều kiện.
+  String? update({
+    required String currentKey,
+    required Map<String, int> averages,
+  }) {
+    final current = averages[currentKey];
+    if (current == null) return null;
+
+    String? winner;
+    var winnerAvg = -999;
+    for (final entry in averages.entries) {
+      if (entry.key == currentKey) continue;
+      if (entry.value >= current + BeaconConfig.switchMarginDbm) {
+        final streak = (_streaks[entry.key] ?? 0) + 1;
+        _streaks[entry.key] = streak;
+        if (streak >= BeaconConfig.switchConfirmReads && entry.value > winnerAvg) {
+          winner = entry.key;
+          winnerAvg = entry.value;
+        }
+      } else {
+        _streaks.remove(entry.key);
+      }
+    }
+    if (winner != null) _streaks.clear();
+    return winner;
+  }
+
+  void reset() => _streaks.clear();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
