@@ -304,6 +304,11 @@ class BeaconService {
       throw Exception('Cần cấp quyền Bluetooth và Vị trí để quét beacon.');
     }
 
+    // Android: BLE scan cần dịch vụ Định vị (GPS) đang bật, quyền đã cấp chưa đủ
+    if (await Permission.locationWhenInUse.serviceStatus == ServiceStatus.disabled) {
+      throw Exception('Hãy bật Định vị (GPS) để quét beacon.');
+    }
+
     if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
       await FlutterBluePlus.turnOn();
     }
@@ -325,6 +330,19 @@ class BeaconService {
   }
 
   static Future<void> stopScan() => FlutterBluePlus.stopScan();
+
+  /// Trạng thái Bluetooth theo thời gian thực (true = đang bật).
+  static Stream<bool> bluetoothOn() {
+    return FlutterBluePlus.adapterState
+        .map((state) => state == BluetoothAdapterState.on);
+  }
+
+  /// Thông báo lỗi gọn cho người dùng (bỏ tiền tố "Exception: " của Dart).
+  static String userMessage(Object error) {
+    const prefix = 'Exception: ';
+    final text = error.toString();
+    return text.startsWith(prefix) ? text.substring(prefix.length) : text;
+  }
 
   /// Luồng beacon iBeacon đang thấy. Mỗi lần có kết quả quét mới sẽ phát danh sách hiện tại.
   static Stream<List<ScannedBeacon>> ranging() {

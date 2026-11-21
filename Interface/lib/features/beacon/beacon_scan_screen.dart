@@ -52,6 +52,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   final BeaconSwitchGuard _switchGuard = BeaconSwitchGuard();
 
   StreamSubscription<List<ScannedBeacon>>? _subscription;
+  StreamSubscription<bool>? _bluetoothSub;
   Timer? _tickTimer;
   Timer? _registryRefreshTimer;
 
@@ -84,10 +85,19 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     );
   }
 
+  /// Quay lại app (có thể vừa đổi quyền/định vị trong Cài đặt) → nếu đang lỗi thì quét lại.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _error != null && !_loading) {
+      _start();
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _bluetoothSub?.cancel();
     _tickTimer?.cancel();
     _registryRefreshTimer?.cancel();
     BeaconService.stopScan();
@@ -119,7 +129,14 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     });
 
     try {
-      final items = await BeaconService.getRegistry();
+      final List<RegistryBeacon> items;
+      try {
+        items = await BeaconService.getRegistry();
+      } catch (_) {
+        // Không có mạng và chưa có bản lưu trên máy (getRegistry đã thử RAM + đĩa)
+        throw Exception('Không tải được danh sách beacon và chưa có bản lưu trên máy. '
+            'Kiểm tra mạng rồi bấm Thử lại.');
+      }
       _registry
         ..clear()
         ..addEntries(items.map((b) => MapEntry(b.key, b)));
@@ -136,19 +153,49 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
       _subscription = BeaconService.ranging().listen(
         _onBeaconsSeen,
         onError: (Object e) {
-          if (mounted) setState(() => _error = 'Lỗi quét BLE: $e');
+          if (mounted) _stopWithError('Lỗi quét BLE: $e');
         },
       );
+      _bluetoothSub ??= BeaconService.bluetoothOn().listen(_onBluetoothChanged);
 
       if (mounted) setState(() => _loading = false);
     } catch (e) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = e.toString();
+          _error = BeaconService.userMessage(e);
         });
       }
     }
+  }
+
+  /// Bluetooth tắt giữa chừng: kết thúc các lượt đang trong vùng (ghi lượt tham quan), báo rõ.
+  /// Bật lại thì quét tiếp tự động.
+  void _onBluetoothChanged(bool on) {
+    if (!mounted) return;
+    if (!on) {
+      _stopWithError('Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+    } else if (_error != null && !_loading) {
+      debugPrint('$_logTag Bluetooth đã bật lại → quét tiếp.');
+      _start();
+    }
+  }
+
+  void _stopWithError(String message) {
+    final now = DateTime.now();
+    final activeKeys =
+        _activeBeacons.entries.where((e) => e.value).map((e) => e.key).toList();
+    for (final key in activeKeys) {
+      _onExitRegion(key, now);
+    }
+    _subscription?.cancel();
+    _subscription = null;
+    BeaconService.stopScan();
+    debugPrint('$_logTag Dừng quét: $message');
+    setState(() {
+      _loading = false;
+      _error = message;
+    });
   }
 
   Future<void> _reloadRegistry() async {

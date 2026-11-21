@@ -93,6 +93,19 @@ void main() {
     });
   });
 
+  group('BeaconService.userMessage', () {
+    test('bỏ tiền tố "Exception: " khỏi thông báo lỗi', () {
+      expect(
+        BeaconService.userMessage(Exception('Hãy bật Định vị (GPS) để quét beacon.')),
+        'Hãy bật Định vị (GPS) để quét beacon.',
+      );
+    });
+
+    test('giữ nguyên lỗi không phải Exception', () {
+      expect(BeaconService.userMessage(StateError('boom')), 'Bad state: boom');
+    });
+  });
+
   group('BeaconSwitchGuard (chống nhảy qua lại)', () {
     test('không đổi khi beacon khác chỉ mạnh hơn dưới 5 dBm', () {
       final guard = BeaconSwitchGuard();
