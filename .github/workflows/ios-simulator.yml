@@ -1,0 +1,61 @@
+# XDPMHDT-105: build ban iOS cho simulator de chay tren Appetize.
+# Chi chay tren nhanh co chu "ios"; khong anh huong main va workflow guard.
+name: iOS simulator build
+
+on:
+  push:
+    branches: ['**ios**']
+
+jobs:
+  build:
+    runs-on: macos-latest          # repo cong khai -> runner macOS chuan mien phi
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: Interface
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ghim dung ban Flutter tren may Bao (3.47.8, Dart 3.13.7)
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.8
+          channel: stable
+          cache: true
+
+      - name: Phien ban cong cu
+        run: |
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      # Dung API_BASE_URL (bien repo) lam dia chi Gateway; thieu thi dung build
+      - name: Kiem tra bien API_BASE_URL
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Chua tao bien API_BASE_URL (Settings > Secrets and variables > Actions > Variables)"
+            exit 1
+          fi
+          echo "API_BASE_URL = $API_BASE_URL"
+
+      - name: Tai thu vien
+        run: flutter pub get
+
+      # Ban simulator chi build duoc che do debug, khong can ky
+      - name: Build ban simulator
+        run: >
+          flutter build ios --simulator --debug
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+          --dart-define=DEMO_MODE=true
+
+      # Nen Runner.app thanh Runner.zip dung dinh dang Appetize nhan
+      - name: Nen Runner.app
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app Runner.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartHeritage-ios-sim
+          path: Interface/Runner.zip
+          retention-days: 14
