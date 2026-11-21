@@ -11,6 +11,8 @@
 **Bổ sung tuần 7 (17/11/2026)**
 
 - Thêm 5 test case quản lý người dùng (TC-132 → TC-136, mục 8.13), dùng cho kiểm thử lần 2 (hồi quy).
+- 19/11: TC-36 ghi rõ tiền điều kiện (DB vừa đưa về mẫu); TC-13 đổi sang luồng app đang dùng
+  (registry rồi `GET /api/artifacts/{id}`), không kiểm endpoint cũ `GET /api/artifacts/beacon/{uuid}`.
 
 **Thay đổi so với bản 0.2**
 
@@ -185,7 +187,7 @@ Sau 18:00 Thứ 6 13/11 chỉ merge PR sửa lỗi có Issue, mô tả PR ghi `F
 | TC-10 | US04, US18 | Quét beacon trên Android | Bluetooth bật, đã cấp quyền; Beacon Simulator phát 1/1 | Mở màn hình "Quét beacon", đứng gần rồi đi xa | UUID dự án, Major 1, Minor 1 | Hiện UUID/Major/Minor/RSSI, cập nhật khoảng 1 giây/lần; RSSI thay đổi khi di chuyển | C |
 | TC-11 | US04 | Từ chối quyền hoặc tắt Bluetooth | Thu hồi quyền vị trí/Bluetooth | Mở màn hình quét | — | App hiện hướng dẫn mở Cài đặt, không crash | C |
 | TC-12 | US05, US23 | Chi tiết hiện vật tiếng Anh | Hiện vật 1 có bản `en` | `GET /api/artifacts/1?lang=en` | — | 200, nội dung tiếng Anh "Khue Van Cac", `fallbackUsed`/`fallback = false`, có media | C |
-| TC-13 | US05 | Lấy hiện vật theo beacon | Beacon 1/1 gán hiện vật 1 | `GET /api/artifacts/beacon/{uuid}?lang=vi` | UUID dự án | 200, đúng hiện vật Khuê Văn Các | C |
+| TC-13 | US05 | Lấy hiện vật theo beacon | Beacon 1/1 gán hiện vật 1 | Luồng app đang dùng: `GET /api/ibeacons/registry`, tìm dòng có `uuid` dự án, `major = 1`, `minor = 1`, lấy `artifactId`; rồi `GET /api/artifacts/{artifactId}?lang=vi` | UUID dự án, 1/1 | Registry 200 có `artifactId = 1`; chi tiết 200, đúng hiện vật Khuê Văn Các. (`GET /api/artifacts/beacon/{uuid}` là endpoint cũ, các beacon dùng chung UUID nên không dùng để tra; không kiểm ở đây) | C |
 | TC-14 | US06 | Xem lại nội dung khi rời vùng beacon | Đã mở chi tiết hiện vật 1 | Tắt Beacon Simulator / bật chế độ máy bay | — | Màn hình chi tiết vẫn hiển thị nội dung đã tải, không bị đóng | TB |
 | TC-15 | US07 | Thêm và bỏ yêu thích | Đăng nhập `visitor_an` | 1. `POST /api/me/favorites/2` 2. `GET /api/me/favorites` 3. `DELETE /api/me/favorites/2` | artifactId 2 | Bước 2 có hiện vật 2 kèm tên; bước 3 xong thì danh sách không còn hiện vật 2; thêm trùng không tạo 2 dòng | C |
 | TC-16 | US07 | Xem lịch sử tham quan | Đăng nhập `visitor_an` | `GET /api/me/visits` | — | 200, có lượt tham quan hiện vật 1 và 2 của user 2, mới nhất trước; không thấy dữ liệu của user khác | C |

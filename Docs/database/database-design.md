@@ -454,11 +454,13 @@ Kho thống kê: NiFi đổ dữ liệu theo lô vào `fact_*`, `dim_*`, `agg_*`
 | Dữ liệu | Có ở | Ghi chú |
 |---|---|---|
 | 4 tài khoản: `admin` (ADMIN), `visitor_an`, `visitor_mai`, `visitor_john` (VISITOR) | `auth_db`, `smart_heritage_db` | Mật khẩu chung `Test@1234` (BCrypt), `locked = 0` |
-| 2 di tích, 3 hiện vật, bản dịch `vi`/`en`, 3 media | `site_db`, `content_db` | Id giữ nguyên ở mọi schema |
-| 4 beacon | `beacon_db` | 3 beacon gán hiện vật 1..3, 1 beacon chưa gán |
-| 4 lượt tham quan, 3 yêu thích, 6 đánh giá | `personalization_db`, `feedback_db` | Đủ để chạy Test Plan |
+| 2 di tích: Văn Miếu - Quốc Tử Giám, Hoàng thành Thăng Long | `site_db` | Có toạ độ |
+| 6 hiện vật (id 1..6), 12 bản dịch `vi`/`en`, 6 ảnh minh hoạ (dữ liệu demo bản cuối, `09_demo_seed.sql`) | `content_db` | Mỗi hiện vật có ảnh lớn, ảnh nhỏ, audio tiếng Anh; file media ở `Infra/seed/media/` |
+| 4 beacon | `beacon_db` | 3 beacon gán hiện vật 1..3, 1 beacon chưa gán; hiện vật 4..6 chưa gắn beacon |
+| 4 lượt tham quan, 3 yêu thích, 6 đánh giá | `personalization_db`, `feedback_db` | Đủ để chạy Test Plan; chỉ trỏ tới hiện vật 1..3 |
 
-Dữ liệu demo bản cuối (dữ liệu Xuân Anh nhập) sẽ là file seed riêng trong `Infra/db`.
+Dữ liệu demo bản cuối (Xuân Anh nhập, Tường đóng gói): `Infra/db/09_demo_seed.sql` chạy sau `03_content.sql`, thay 3 hiện vật mẫu
+bằng 6 hiện vật, giữ id 1..3 để các schema khác vẫn khớp. Nạp media và cách tạo lại: xem [`Infra/seed/README.md`](../../Infra/seed/README.md).
 
 ## 7. Tạo lại và kiểm tra database
 
@@ -483,4 +485,4 @@ Thêm cột cho DB đang chạy mà không xoá dữ liệu: xem [`Infra/db/READ
 | 4 | Tách `smart_heritage_db` thành 7 schema theo service, bỏ khoá ngoại chéo schema; `feedbacks.reviewer_name`; `visits.client_event_id`, `source`; `analytics_db`: `fact_*`, `dim_artifact`, `agg_daily_views` |
 | 5 | `feedbacks`: khoá `(user_id, artifact_id)`, cột `updated_at`; `analytics_db`: `dim_site`, `dim_user_lang`; `content_db.languages`; `beacon_db.devices` |
 | 6 | `beacon_db`: `processed_events`, `ibeacons.battery_alerted_at`; `analytics_db`: `rt_daily_counters`, `rt_processed_events` |
-| 7 | `users.locked` (trạng thái tài khoản) ở `auth_db` và `smart_heritage_db`; đưa `content_db.artifact_event_outbox` (có từ tuần 6, trước đây do service tự tạo) vào `03_content.sql` |
+| 7 | `users.locked` (trạng thái tài khoản) ở `auth_db` và `smart_heritage_db`; đưa `content_db.artifact_event_outbox` (có từ tuần 6, trước đây do service tự tạo) vào `03_content.sql`; thêm `09_demo_seed.sql` (dữ liệu demo bản cuối) |
