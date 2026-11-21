@@ -164,20 +164,19 @@ docker compose -f Infra/docker-compose.yml --profile all down -v   # XOÁ CẢ D
 
 Cách 2: đóng các cửa sổ service (bấm X) rồi `docker compose -f Infra/docker-compose.yml --profile mq --profile monitoring stop`.
 
-Biên bản chạy thử máy sạch (Tuấn, 18/11, `main` 761248f, Windows 11 + Docker Desktop). Clone mới vào thư mục trống, volume MySQL/Grafana mới hoàn toàn. Một số image nền (`maven`, `redis`) đã có sẵn trên máy nên máy hoàn toàn mới sẽ lâu hơn do phải tải image.
+Biên bản chạy thử máy sạch (Tuấn, 21/11, tag `v1.0` 2a6e9e7, Windows 11 + Docker Desktop). Clone mới vào thư mục trống, volume MySQL/Grafana/media mới hoàn toàn. Một số image nền (`maven`, `mysql`, `redis`) đã có sẵn trên máy nên máy hoàn toàn mới sẽ lâu hơn do phải tải image.
 
-| Bước | Thời gian | Vướng mắc | Đã sửa trong tài liệu |
-|---|---|---|---|
-| Mục 2: `git clone`, tạo `Infra\.env`, đổi các giá trị `change-me…` | 1 phút | `git checkout v1.0` báo lỗi vì chưa gắn tag v1.0 | Chờ Bảo gắn tag |
-| Mục 3: build image | 8 phút | Không | – |
-| Mục 3: khởi động đến khi đủ *healthy* | 2 phút | Cổng 8080, 3000 bị project khác chiếm → phải dừng project đó trước (mục 10 đã có cách xử lý) | Không cần sửa |
-| Mục 3: `ps` | – | Đủ 16 container: 10 container có healthcheck đều *healthy*; Grafana, Prometheus, Redis, 2 exporter *Up*. DB khởi tạo từ `Infra/db` không lỗi | – |
-| Mục 3: kiểm tra nhanh | – | `/api/heritage-sites`, `/api/ibeacons/registry` trả 200. **`smoke-test.ps1` báo 3 `[LOI]` Grafana** vì đã đổi `GRAFANA_ADMIN_PASSWORD` theo mục 2 mà script mặc định dùng `change-me-grafana`; chạy `smoke-test.ps1 -GrafanaPassword <giá trị trong Infra\.env>` thì **ĐẠT** (1 cảnh báo site-service chưa có histogram, việc của Ân) | Đã thêm `-GrafanaPassword` vào lệnh ở mục 3 |
-| Mục 5: đăng nhập `admin`, Dashboard, xuất báo cáo qua Gateway | – | Đăng nhập được; `/api/statistics/overview` 0,45 s, Excel 1,8 s, PDF 0,3 s; `visitor_an` gọi thống kê nhận 403; CORS cho Web Admin mở bằng file đạt. Dashboard máy sạch chỉ có số "Hôm nay" vì `all` không gồm NiFi (đúng như mục 7) | – |
-| Mục 8: nạp media `docker cp Infra/seed/media/. …` | – | **Lỗi**: chưa có thư mục `Infra/seed/media/` trên `main`; dữ liệu mẫu mới có 2 di tích, 3 hiện vật (chưa có seed bản cuối) | Chờ Tường đưa seed + media lên `main`, Tuấn chạy lại |
-| **Tổng** (clone → đủ *healthy*) | **11 phút** | Đạt yêu cầu ≤ 15 phút | – |
+| Bước | Thời gian | Kết quả |
+|---|---|---|
+| Mục 2: `git clone`, `git checkout v1.0`, tạo `Infra\.env`, đổi các giá trị `change-me…` | ~1 phút | Không vướng |
+| Mục 3: build image | 5 phút 46 giây | Không lỗi |
+| Mục 3: khởi động đến khi đủ *healthy* | 1 phút 43 giây | Đủ 16 container: 10 container có healthcheck đều *healthy*; Grafana, Prometheus, Redis, 2 exporter *Up*. DB khởi tạo từ `Infra/db` (gồm `09_demo_seed.sql`) không lỗi |
+| Mục 3: kiểm tra nhanh | – | `/api/heritage-sites`, `/api/ibeacons/registry` trả 200; `smoke-test.ps1 -GrafanaPassword …` **ĐẠT**, không có `[LOI]` |
+| Mục 5: Web Admin, Dashboard, xuất báo cáo qua Gateway | – | `admin` đăng nhập được; Dashboard không lọc, lọc di tích, lọc khoảng ngày đều trả số; xuất Excel/PDF có lọc mở được; khoảng ngày ngược và `format` sai trả 400; không token 401, `visitor_an` 403; du khách ghi 1 lượt xem thì số "Hôm nay" tăng ngay (sự kiện RabbitMQ). Dashboard máy sạch không có số tổng hợp vì `all` không gồm NiFi (mục 7) |
+| Mục 8: nạp media `docker cp Infra/seed/media/. smart_heritage_content:/app/uploads/` | 1 giây | 18/18 file media mà seed dùng đều mở được qua `/api/media/files/…`. Seed: 2 di tích, 6 hiện vật, 4 beacon, 4 tài khoản |
+| **Tổng** (clone → đủ *healthy*) | **~8,5 phút** | Đạt yêu cầu ≤ 15 phút |
 
-Còn lại để chạy lại sau khi sửa: tag v1.0, seed + media.
+Lần chạy trước (18/11, `main` 761248f, 11 phút) vướng 3 chỗ: chưa có tag v1.0, `smoke-test.ps1` thiếu `-GrafanaPassword`, chưa có `Infra/seed/media`. Cả 3 đã sửa trên v1.0.
 
 ## 10. Lỗi thường gặp
 
