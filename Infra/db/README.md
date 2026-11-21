@@ -14,6 +14,7 @@ Từ tuần 4, mỗi microservice có **schema riêng** và **user MySQL riêng*
 | `05_personalization.sql` | `personalization_db` | personalization-service (8085, tuần 5) | Phú | visits, likes |
 | `06_feedback.sql` | `feedback_db` | feedback-service (8086, tuần 5) | Tường | feedbacks |
 | `07_analytics.sql` | `analytics_db` | analytics-service (8087, tuần 5) / NiFi | Tuấn | fact_visits, fact_feedbacks, dim_artifact, agg_daily_views |
+| `09_demo_seed.sql` | `content_db` | content-service (8083) | Tường (dữ liệu: Xuân Anh) | Dữ liệu demo bản cuối: thay hiện vật mẫu bằng 6 hiện vật; media ở `Infra/seed/media/` (xem [`Infra/seed/README.md`](../seed/README.md)) |
 | `99_init_db_legacy.sql` | `smart_heritage_db` | Backend cũ (8090) | — | Toàn bộ bảng cũ (giữ đến hết tuần 5) |
 
 ## Quy ước

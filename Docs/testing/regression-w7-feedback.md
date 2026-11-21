@@ -43,9 +43,15 @@ feedback-service; case trên app Android và trang Web chạy tay cùng Ân, ghi
 | TC-114, TC-115 | Màn "Đánh giá đang chờ duyệt", "Đánh giá của tôi" trên app | |
 | TC-117 | Số chờ duyệt trên menu Web | |
 
-## Lần 1 không đạt nhưng không thuộc phần Đánh giá
+## Lần 1 không đạt nhưng không thuộc phần Đánh giá (chạy lại 19/11)
 
-| Mã TC | Phụ trách | Ghi chú |
-|---|---|---|
-| TC-13 | Xuân Anh, Khoa | `GET /api/artifacts/beacon/{uuid}` là luồng cũ; luồng chuẩn là registry rồi `GET /api/artifacts/{id}` |
-| TC-71 | Bảo, Khoa | `PUT /api/ibeacons/{id}/position` qua Gateway 404 khi Gateway chạy thiếu `BEACON_SERVICE_URL` |
+| Mã TC | Phụ trách | Lần 2 | Ghi chú |
+|---|---|---|---|
+| TC-13 | Xuân Anh, Khoa | Đạt | `GET /api/artifacts/beacon/{uuid}` là endpoint cũ (các beacon dùng chung UUID). Test Plan đã đổi TC-13 sang luồng app đang dùng: registry trả `artifactId = 1`, `GET /api/artifacts/1` ra Khuê Văn Các |
+| TC-71 | Bảo, Khoa | Đạt | Chạy toàn hệ thống bằng docker-compose: `PUT /api/ibeacons/1/position` qua Gateway trả 200. Lần 1 lỗi vì Gateway chạy Maven thiếu `BEACON_SERVICE_URL` |
+
+## Chạy lại trên dữ liệu demo bản cuối (19/11, tối)
+
+Sau khi nạp `Infra/db/09_demo_seed.sql` và `Infra/seed/media` (toàn hệ thống chạy Docker `--profile core --profile mq`):
+`regression-feedback.ps1` 17/17 kiểm tra đạt, `integration-smoke.ps1 -Events` 12/12 đạt. Dữ liệu demo không làm đổi kết quả
+phần Đánh giá (hiện vật 1..3 giữ nguyên id).
