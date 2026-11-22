@@ -300,11 +300,14 @@ class BeaconService {
       throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
     }
 
-    final statuses = await [
+    final permissions = [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.locationWhenInUse,
-    ].request();
+    ];
+    final statuses = askToTurnOn
+        ? await permissions.request()
+        : {for (final p in permissions) p: await p.status};
     if (statuses.values.any((status) => !status.isGranted)) {
       throw Exception('Cần cấp quyền Bluetooth và Vị trí để quét beacon.');
     }
