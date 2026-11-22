@@ -162,6 +162,17 @@ void main() {
       expect(guard.update(currentKey: 'A', averages: {'B': -60}), isNull);
     });
 
+    test('không đổi sang beacon chưa đạt ngưỡng vào vùng', () {
+      final guard = BeaconSwitchGuard();
+      // B mạnh hơn A 10 dBm nhưng -80 < rssiEnter (-75) → không đổi
+      for (var i = 0; i < 4; i++) {
+        expect(
+          guard.update(currentKey: 'A', averages: {'A': -90, 'B': -80}),
+          isNull,
+        );
+      }
+    });
+
     test('reset xóa streak đang đếm', () {
       final guard = BeaconSwitchGuard();
       final averages = {'A': -72, 'B': -65};
