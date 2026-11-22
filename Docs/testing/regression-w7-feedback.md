@@ -33,15 +33,25 @@ feedback-service; case trên app Android và trang Web chạy tay cùng Ân, ghi
 
 **Tổng: 16/16 case đạt** (script: 15 case, 17 kiểm tra đều đạt; TC-93 chạy tay).
 
-## Case của Tường chạy tay cùng Ân (app, Web)
+## Case chạy tay trên app và Web (phần D, 22/11/2026)
 
-| Mã TC | Nội dung | Kết quả |
-|---|---|---|
-| TC-65 → TC-68 | Gửi, sửa đánh giá, điểm TB trên app | *(điền sau buổi hồi quy)* |
-| TC-70 | Duyệt / ẩn đánh giá trên Web | |
-| TC-101 | Du khách nhận thông báo khi được duyệt (cùng Khoa) | |
-| TC-114, TC-115 | Màn "Đánh giá đang chờ duyệt", "Đánh giá của tôi" trên app | |
-| TC-117 | Số chờ duyệt trên menu Web | |
+Bảo chạy trên `main` `31853e6` (= `v1.0` + bản iOS, backend và app Android không đổi), Docker `--profile all`, DB sạch + dữ liệu
+demo; máy ảo Android Pixel 7, Android 17 (API 37), app 1.0.0+1 debug; Web Admin trên Chrome. Mỗi bước có ảnh chụp và được đối
+chiếu bằng script đọc API và MySQL (`Kiem_case_Tuong_v1.ps1`, không sửa dữ liệu): 27/27 kiểm tra đạt.
+
+| Mã TC | Nội dung | Kết quả | Ghi chú |
+|---|---|---|---|
+| TC-65 | Gửi đánh giá từ app | Đạt | Gửi 4 sao, trạng thái chờ duyệt; ô bình luận dừng ở 500/500 ký tự |
+| TC-66 | Chưa đăng nhập thì yêu cầu đăng nhập | Đạt | Có nút "Đăng nhập để đánh giá"; đăng nhập xong quay về đúng màn |
+| TC-67 | Gửi lại = sửa đánh giá cũ | Đạt | Cùng id, `created_at` giữ, `updated_at` đổi, về PENDING. Danh sách bình luận cùng màn chưa tự làm mới (Minor) |
+| TC-68 | Điểm TB và bình luận trên app khớp dữ liệu | Đạt | 5.0 / 4.0 / 5.0; sau khi duyệt, ẩn: Khuê Văn Các 3.0, 1 lượt |
+| TC-70 | Duyệt / ẩn đánh giá trên Web | Đạt | Thiếu huy hiệu "Dữ liệu từ API" trên trang Phản hồi (Minor); giờ hiện UTC (Minor) |
+| TC-101 | Thông báo FCM khi được duyệt | Chặn | Thiếu cấu hình Firebase và điện thoại thật |
+| TC-114 | Sau khi gửi hiện chờ duyệt | Đạt | Có "Đánh giá đang chờ duyệt" và nút "Xem đánh giá của tôi" |
+| TC-115 | Màn "Đánh giá của tôi" | Đạt | Thẻ hiện ngày cập nhật thay cho ngày gửi (Minor); tài khoản mới hiện màn trống có hướng dẫn |
+| TC-117 | Số chờ duyệt trên menu Web | Đạt | Số đúng trên mọi trang, giảm ngay khi duyệt; tắt feedback-service thì menu vẫn dùng được, không hiện số. Gateway trả 500, nên là 503 (Minor) |
+
+**Tổng phần D: 8 đạt, 1 chặn.** Lỗi Minor: xem Test Report mục 6.
 
 ## Lần 1 không đạt nhưng không thuộc phần Đánh giá (chạy lại 19/11)
 

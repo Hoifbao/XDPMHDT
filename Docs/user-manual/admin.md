@@ -5,7 +5,7 @@
 | Người viết | Tường |
 | Đối tượng | Ban quản lý di tích (tài khoản vai trò ADMIN) |
 | Phiên bản hệ thống | v1.0 (tuần 7) |
-| Trạng thái | Bản khung: đã có các bước, **chưa có ảnh chụp** (chụp ngày 19/11 trên bản đã chốt giao diện và có dữ liệu demo) |
+| Trạng thái | Bản cuối: có ảnh chụp thật từ bản `v1.0` với dữ liệu demo (chụp 19/11 – 22/11/2026) |
 
 Phần du khách (app Android) xem tài liệu của Ân.
 
@@ -108,7 +108,8 @@ Trang **Danh sách Di tích** gồm bản đồ **Vị trí Di tích** và bản
 
 **Mục đích:** tạo hồ sơ hiện vật để du khách xem khi đến gần beacon.
 
-Trang **Thêm hiện vật** có bên trái là **Danh sách hiện vật**, bên phải là biểu mẫu.
+Trang có **Danh sách hiện vật** ở trên, biểu mẫu ở dưới. Tiêu đề trang là **Thêm hiện vật** khi nhập mới và
+**Cập nhật hiện vật** khi đang sửa một hiện vật đã chọn.
 
 **Thêm hiện vật:**
 1. Ở mục **Thông tin hiện vật**: chọn **Địa điểm di tích** (bắt buộc), nhập **Tên hiện vật** (bắt buộc).
@@ -127,7 +128,11 @@ Trang **Thêm hiện vật** có bên trái là **Danh sách hiện vật**, bê
 - URL phải bắt đầu bằng `http://` hoặc `https://`.
 - Tệp tải lên tối đa: ảnh 10 MB, audio 30 MB, video 100 MB. Tải xong vẫn phải bấm **Lưu hiện vật**.
 
-![Quản lý hiện vật](images/admin-05-artifacts.png)
+![Danh sách hiện vật (đang sửa nên tiêu đề là Cập nhật hiện vật)](images/admin-05-artifacts.png)
+
+![Thông tin hiện vật](images/admin-06-translations_2.png)
+
+![Tài nguyên đa phương tiện và nút Lưu hiện vật](images/admin-06-translations_4.png)
 
 ## 6. Bản dịch, thuyết minh và ngôn ngữ
 
@@ -146,7 +151,11 @@ Mỗi ngôn ngữ chỉ có 1 bản dịch cho 1 hiện vật. Bỏ bản dịch
 2. Tick **Đang hoạt động**, bấm **Thêm ngôn ngữ**.
 3. Ngôn ngữ đã có: sửa tên hoặc bật/tắt rồi bấm **Lưu** trên dòng đó.
 
-![Bản dịch và ngôn ngữ](images/admin-06-translations.png)
+![Bản dịch và thuyết minh (bản en và vi của Khuê Văn Các)](images/admin-06-translations_3.png)
+
+![Ngôn ngữ hỗ trợ](images/admin-06-translations_1.png)
+
+Ghi chú: ảnh chụp trước khi sửa script `08_languages.sql` (22/11) nên tên "Tiếng Việt" còn lỗi dấu; bản đã sửa hiện đúng.
 
 ## 7. Quản lý iBeacon
 
@@ -169,7 +178,9 @@ Trang **Quản lý iBeacon** có bảng **Danh sách thiết bị** (UUID, Major
 
 **Sửa / xóa:** bấm **Sửa** hoặc **Xóa** ở cột **Thao tác**.
 
-![Quản lý iBeacon](images/admin-07-ibeacons.png)
+![Quản lý iBeacon: thẻ thống kê, cảnh báo pin](images/admin-07-ibeacons_1.png)
+
+![Hộp Thêm iBeacon](images/admin-07-ibeacons_2.png)
 
 ## 8. Sơ đồ vị trí beacon
 
@@ -185,7 +196,7 @@ Trang **Quản lý iBeacon** có bảng **Danh sách thiết bị** (UUID, Major
 
 **Kết quả:** ghim hiện đúng chỗ, tải lại trang vẫn giữ vị trí.
 
-![Sơ đồ vị trí beacon](images/admin-08-beacon-map.png)
+![Sơ đồ vị trí beacon và Danh sách thiết bị (nút Gán / Bỏ gán, Sửa, Xóa)](images/admin-08-beacon-map.png)
 
 ## 9. Duyệt đánh giá (Phản hồi)
 
@@ -232,7 +243,9 @@ Trang **Dashboard thống kê** gồm:
 
 **Kết quả:** file có cùng số liệu với bộ lọc đang chọn; dòng trạng thái báo "Đã tải file …".
 
-![Xuất báo cáo](images/admin-11-export.png)
+![Sau khi bấm Xuất Excel: "Đã tải file XLSX theo bộ lọc đang chọn"](images/admin-11-export_1.png)
+
+![File Excel (trái) và PDF (phải) vừa tải về](images/admin-11-export_2.png)
 
 ## 12. Quản lý người dùng
 

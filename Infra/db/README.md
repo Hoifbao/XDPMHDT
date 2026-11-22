@@ -106,3 +106,13 @@ bảng ngay. DB đang chạy thì không cần làm gì (bảng đã được se
 ```bash
 docker exec -i smart_heritage_mysql mysql -uroot -prootpassword123 < services/content-service/db/artifact_event_outbox.sql
 ```
+
+## Sửa lỗi 22/11: tên ngôn ngữ "Tiếng Việt" bị lỗi dấu
+
+`08_languages.sql` thiếu `SET NAMES utf8mb4` nên khi Docker tạo DB, tên `vi` bị lưu thành "Tiáº¿ng Viá»‡t"
+(thấy ở mục Ngôn ngữ hỗ trợ trên trang Hiện vật). Đã thêm dòng này. DB tạo mới (`down -v`) tự đúng; DB đang chạy
+(ví dụ máy demo đã nạp dữ liệu) sửa bằng 1 lệnh, không mất dữ liệu (giá trị viết dạng hex = "Tiếng Việt" để PowerShell không làm hỏng dấu):
+
+```bash
+docker exec smart_heritage_mysql mysql -uroot -prootpassword123 --default-character-set=utf8mb4 -e "UPDATE content_db.languages SET name = CONVERT(X'5469E1BABF6E67205669E1BB8774' USING utf8mb4) WHERE code = 'vi'"
+```
