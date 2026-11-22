@@ -290,7 +290,12 @@ class BeaconService {
   // ── BLE ────────────────────────────────────────────────────────────────
 
   /// Xin quyền, kiểm tra thiết bị và bật Bluetooth nếu cần.
-  static Future<void> initialize() async {
+  ///
+  /// [askToTurnOn] = true: hiện hộp thoại hệ thống xin bật Bluetooth — dùng khi người
+  /// dùng chủ động mở màn quét hoặc bấm "Thử lại".
+  /// [askToTurnOn] = false: chỉ báo lỗi, không hỏi lại — dùng khi app tự quét lại lúc
+  /// quay về foreground, tránh hộp thoại hiện lặp vô hạn sau khi người dùng từ chối.
+  static Future<void> initialize({bool askToTurnOn = true}) async {
     if (!await FlutterBluePlus.isSupported) {
       throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
     }
@@ -310,15 +315,25 @@ class BeaconService {
     }
 
     if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
+      if (!askToTurnOn) {
+        throw Exception(
+            'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+      }
       await FlutterBluePlus.turnOn();
+      // Người dùng từ chối hộp thoại → báo ngay, không chờ hết 10 giây.
+      if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
+        throw Exception(
+            'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+      }
+      await FlutterBluePlus.adapterState
+          .where((state) => state == BluetoothAdapterState.on)
+          .first
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception(
+                'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.'),
+          );
     }
-    await FlutterBluePlus.adapterState
-        .where((state) => state == BluetoothAdapterState.on)
-        .first
-        .timeout(
-          const Duration(seconds: 10),
-          onTimeout: () => throw Exception('Bluetooth chưa bật.'),
-        );
   }
 
   /// Bắt đầu quét liên tục. Gọi [stopScan] khi thoát màn hình.

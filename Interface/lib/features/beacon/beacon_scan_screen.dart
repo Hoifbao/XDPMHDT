@@ -86,10 +86,12 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   }
 
   /// Quay lại app (có thể vừa đổi quyền/định vị trong Cài đặt) → nếu đang lỗi thì quét lại.
+  /// Không tự bật hộp thoại xin Bluetooth ở đây: người dùng vừa từ chối thì hộp thoại
+  /// sẽ hiện lại ngay khi app resume, gây vòng lặp không thoát được.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _error != null && !_loading) {
-      _start();
+      _start(askToTurnOn: false);
     }
   }
 
@@ -121,7 +123,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     });
   }
 
-  Future<void> _start() async {
+  Future<void> _start({bool forceRefresh = false, bool askToTurnOn = true}) async {
     await _subscription?.cancel();
     setState(() {
       _loading = true;
@@ -131,7 +133,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     try {
       final List<RegistryBeacon> items;
       try {
-        items = await BeaconService.getRegistry();
+        items = await BeaconService.getRegistry(forceRefresh: forceRefresh);
       } catch (_) {
         // Không có mạng và chưa có bản lưu trên máy (getRegistry đã thử RAM + đĩa)
         throw Exception('Không tải được danh sách beacon và chưa có bản lưu trên máy. '
@@ -147,7 +149,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
       // Local notification cho kịch bản app đang chạy nền (Sprint 5)
       unawaited(LocalNotificationService.I.initialize());
       LocalNotificationService.I.onNotificationTap = _onNotificationTap;
-      await BeaconService.initialize();
+      await BeaconService.initialize(askToTurnOn: askToTurnOn);
       await BeaconService.startScan();
 
       _subscription = BeaconService.ranging().listen(
@@ -403,7 +405,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
           IconButton(
             tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _start,
+            onPressed: _loading ? null : () => _start(forceRefresh: true),
           ),
         ],
       ),
@@ -633,7 +635,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
                 Icon(Icons.bluetooth_searching, size: 56, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
-                  'Chưa thấy beacon nào trong registry.\nHãy bật Bluetooth và đến gần beacon.',
+                  'Chưa thấy beacon nào trong registry.\nĐưa điện thoại đến gần beacon để bắt đầu.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
