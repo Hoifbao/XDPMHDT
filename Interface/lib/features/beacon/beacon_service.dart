@@ -25,6 +25,12 @@ class BeaconConfig {
   /// Không thấy beacon quá thời gian này → coi là đã rời vùng.
   static const Duration exitTimeout = Duration(seconds: 10);
 
+  /// Beacon khác chỉ thay beacon hiện tại khi RSSI trung bình mạnh hơn ít nhất ngần này (dBm).
+  static const int switchMarginDbm = 5;
+
+  /// Số lần đọc liên tiếp beacon mới phải đạt [switchMarginDbm] thì mới đổi (chống nhảy qua lại).
+  static const int switchConfirmReads = 3;
+
   /// Cooldown giữa 2 lần báo cùng 1 beacon (tránh mở màn hình liên tục).
   static const Duration antispamCooldown = Duration(seconds: 60);
 
@@ -52,6 +58,48 @@ class RssiBuffer {
   bool get hasData => _values.isNotEmpty;
 
   void clear() => _values.clear();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SWITCH GUARD – chống nhảy qua lại giữa 2 beacon gần nhau
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Khi đang trong vùng một beacon, beacon khác chỉ thay thế khi RSSI trung bình
+/// của nó mạnh hơn beacon hiện tại ≥ [BeaconConfig.switchMarginDbm] trong
+/// [BeaconConfig.switchConfirmReads] lần đọc liên tiếp. Một lần đọc không đạt
+/// thì đếm lại từ đầu.
+class BeaconSwitchGuard {
+  final Map<String, int> _streaks = {};
+
+  /// [averages] gồm beacon hiện tại (currentKey) và các ứng viên đủ điều kiện.
+  /// Trả về key cần chuyển sang, hoặc null nếu chưa đủ điều kiện.
+  String? update({
+    required String currentKey,
+    required Map<String, int> averages,
+  }) {
+    final current = averages[currentKey];
+    if (current == null) return null;
+
+    String? winner;
+    var winnerAvg = -999;
+    for (final entry in averages.entries) {
+      if (entry.key == currentKey) continue;
+      if (entry.value >= current + BeaconConfig.switchMarginDbm) {
+        final streak = (_streaks[entry.key] ?? 0) + 1;
+        _streaks[entry.key] = streak;
+        if (streak >= BeaconConfig.switchConfirmReads && entry.value > winnerAvg) {
+          winner = entry.key;
+          winnerAvg = entry.value;
+        }
+      } else {
+        _streaks.remove(entry.key);
+      }
+    }
+    if (winner != null) _streaks.clear();
+    return winner;
+  }
+
+  void reset() => _streaks.clear();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,30 +290,53 @@ class BeaconService {
   // ── BLE ────────────────────────────────────────────────────────────────
 
   /// Xin quyền, kiểm tra thiết bị và bật Bluetooth nếu cần.
-  static Future<void> initialize() async {
+  ///
+  /// [askToTurnOn] = true: hiện hộp thoại hệ thống xin bật Bluetooth — dùng khi người
+  /// dùng chủ động mở màn quét hoặc bấm "Thử lại".
+  /// [askToTurnOn] = false: chỉ báo lỗi, không hỏi lại — dùng khi app tự quét lại lúc
+  /// quay về foreground, tránh hộp thoại hiện lặp vô hạn sau khi người dùng từ chối.
+  static Future<void> initialize({bool askToTurnOn = true}) async {
     if (!await FlutterBluePlus.isSupported) {
       throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
     }
 
-    final statuses = await [
+    final permissions = [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.locationWhenInUse,
-    ].request();
+    ];
+    final statuses = askToTurnOn
+        ? await permissions.request()
+        : {for (final p in permissions) p: await p.status};
     if (statuses.values.any((status) => !status.isGranted)) {
       throw Exception('Cần cấp quyền Bluetooth và Vị trí để quét beacon.');
     }
 
-    if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
-      await FlutterBluePlus.turnOn();
+    // Android: BLE scan cần dịch vụ Định vị (GPS) đang bật, quyền đã cấp chưa đủ
+    if (await Permission.locationWhenInUse.serviceStatus == ServiceStatus.disabled) {
+      throw Exception('Hãy bật Định vị (GPS) để quét beacon.');
     }
-    await FlutterBluePlus.adapterState
-        .where((state) => state == BluetoothAdapterState.on)
-        .first
-        .timeout(
-          const Duration(seconds: 10),
-          onTimeout: () => throw Exception('Bluetooth chưa bật.'),
-        );
+
+    if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
+      if (!askToTurnOn) {
+        throw Exception(
+            'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+      }
+      await FlutterBluePlus.turnOn();
+      // Người dùng từ chối hộp thoại → báo ngay, không chờ hết 10 giây.
+      if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
+        throw Exception(
+            'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+      }
+      await FlutterBluePlus.adapterState
+          .where((state) => state == BluetoothAdapterState.on)
+          .first
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception(
+                'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.'),
+          );
+    }
   }
 
   /// Bắt đầu quét liên tục. Gọi [stopScan] khi thoát màn hình.
@@ -277,6 +348,19 @@ class BeaconService {
   }
 
   static Future<void> stopScan() => FlutterBluePlus.stopScan();
+
+  /// Trạng thái Bluetooth theo thời gian thực (true = đang bật).
+  static Stream<bool> bluetoothOn() {
+    return FlutterBluePlus.adapterState
+        .map((state) => state == BluetoothAdapterState.on);
+  }
+
+  /// Thông báo lỗi gọn cho người dùng (bỏ tiền tố "Exception: " của Dart).
+  static String userMessage(Object error) {
+    const prefix = 'Exception: ';
+    final text = error.toString();
+    return text.startsWith(prefix) ? text.substring(prefix.length) : text;
+  }
 
   /// Luồng beacon iBeacon đang thấy. Mỗi lần có kết quả quét mới sẽ phát danh sách hiện tại.
   static Stream<List<ScannedBeacon>> ranging() {

@@ -16,6 +16,7 @@ import 'local_notification_service.dart';
 /// 1. Khởi động: tải registry (cache 30 phút + bộ nhớ máy), initialize BLE.
 /// 2. Mỗi lần quét: so khớp (uuid, major, minor); bỏ qua beacon ngoài registry.
 /// 3. Chọn gần nhất (avg RSSI 5 lần); vào vùng ≥ rssiEnter; hysteresis rssiExit.
+///    Đang trong vùng: beacon khác chỉ thay khi mạnh hơn ≥ 5 dBm liên tục 3 lần đọc (BeaconSwitchGuard).
 /// 4. Chống trùng: không báo lại trong 60 giây kể từ lần báo trước.
 /// 5. Vào vùng:
 ///    - app ở foreground → ArtifactDetailScreen (KHÔNG tự đóng khi rời vùng);
@@ -46,7 +47,12 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   /// Đang mở màn chi tiết (tránh push chồng khi nhiều beacon cùng vào).
   bool _navigatingToDetail = false;
 
+  /// Beacon đang trong vùng (tối đa 1 beacon tại một thời điểm).
+  String? _currentKey;
+  final BeaconSwitchGuard _switchGuard = BeaconSwitchGuard();
+
   StreamSubscription<List<ScannedBeacon>>? _subscription;
+  StreamSubscription<bool>? _bluetoothSub;
   Timer? _tickTimer;
   Timer? _registryRefreshTimer;
 
@@ -79,10 +85,21 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     );
   }
 
+  /// Quay lại app (có thể vừa đổi quyền/định vị trong Cài đặt) → nếu đang lỗi thì quét lại.
+  /// Không tự bật hộp thoại xin Bluetooth ở đây: người dùng vừa từ chối thì hộp thoại
+  /// sẽ hiện lại ngay khi app resume, gây vòng lặp không thoát được.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _error != null && !_loading) {
+      _start(askToTurnOn: false);
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _bluetoothSub?.cancel();
     _tickTimer?.cancel();
     _registryRefreshTimer?.cancel();
     BeaconService.stopScan();
@@ -106,7 +123,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     });
   }
 
-  Future<void> _start() async {
+  Future<void> _start({bool forceRefresh = false, bool askToTurnOn = true}) async {
     await _subscription?.cancel();
     setState(() {
       _loading = true;
@@ -114,7 +131,14 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     });
 
     try {
-      final items = await BeaconService.getRegistry();
+      final List<RegistryBeacon> items;
+      try {
+        items = await BeaconService.getRegistry(forceRefresh: forceRefresh);
+      } catch (_) {
+        // Không có mạng và chưa có bản lưu trên máy (getRegistry đã thử RAM + đĩa)
+        throw Exception('Không tải được danh sách beacon và chưa có bản lưu trên máy. '
+            'Kiểm tra mạng rồi bấm Thử lại.');
+      }
       _registry
         ..clear()
         ..addEntries(items.map((b) => MapEntry(b.key, b)));
@@ -125,25 +149,55 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
       // Local notification cho kịch bản app đang chạy nền (Sprint 5)
       unawaited(LocalNotificationService.I.initialize());
       LocalNotificationService.I.onNotificationTap = _onNotificationTap;
-      await BeaconService.initialize();
+      await BeaconService.initialize(askToTurnOn: askToTurnOn);
       await BeaconService.startScan();
 
       _subscription = BeaconService.ranging().listen(
         _onBeaconsSeen,
         onError: (Object e) {
-          if (mounted) setState(() => _error = 'Lỗi quét BLE: $e');
+          if (mounted) _stopWithError('Lỗi quét BLE: $e');
         },
       );
+      _bluetoothSub ??= BeaconService.bluetoothOn().listen(_onBluetoothChanged);
 
       if (mounted) setState(() => _loading = false);
     } catch (e) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = e.toString();
+          _error = BeaconService.userMessage(e);
         });
       }
     }
+  }
+
+  /// Bluetooth tắt giữa chừng: kết thúc các lượt đang trong vùng (ghi lượt tham quan), báo rõ.
+  /// Bật lại thì quét tiếp tự động.
+  void _onBluetoothChanged(bool on) {
+    if (!mounted) return;
+    if (!on) {
+      _stopWithError('Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+    } else if (_error != null && !_loading) {
+      debugPrint('$_logTag Bluetooth đã bật lại → quét tiếp.');
+      _start();
+    }
+  }
+
+  void _stopWithError(String message) {
+    final now = DateTime.now();
+    final activeKeys =
+        _activeBeacons.entries.where((e) => e.value).map((e) => e.key).toList();
+    for (final key in activeKeys) {
+      _onExitRegion(key, now);
+    }
+    _subscription?.cancel();
+    _subscription = null;
+    BeaconService.stopScan();
+    debugPrint('$_logTag Dừng quét: $message');
+    setState(() {
+      _loading = false;
+      _error = message;
+    });
   }
 
   Future<void> _reloadRegistry() async {
@@ -165,8 +219,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     if (!mounted) return;
 
     final now = DateTime.now();
-    String? nearestEnterKey;
-    var nearestRssi = -999;
+    final averages = <String, int>{};
 
     for (final beacon in beacons) {
       // Bỏ qua beacon không có trong registry
@@ -174,27 +227,40 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
       _rssiBuffers.putIfAbsent(beacon.key, RssiBuffer.new).add(beacon.rssi);
       _lastSeenTimes[beacon.key] = now;
+      averages[beacon.key] = _rssiBuffers[beacon.key]!.average;
+    }
 
-      final avgRssi = _rssiBuffers[beacon.key]!.average;
-      final isActive = _activeBeacons[beacon.key] ?? false;
-      final registered = _registry[beacon.key]!;
+    final current = _currentKey;
+    if (current != null) {
+      // Đang trong vùng: chỉ đổi khi beacon khác mạnh hơn rõ rệt và ổn định (BeaconSwitchGuard).
+      // Đang mở màn chi tiết thì giữ nguyên, không đổi beacon.
+      if (_navigatingToDetail || !averages.containsKey(current)) return;
 
-      // Hysteresis: đang trong vùng mà RSSI ≤ rssiExit → đánh dấu ra (xử lý ở tick)
-      if (isActive && avgRssi <= BeaconConfig.rssiExit) {
-        continue;
-      }
-
-      // Ứng viên vào vùng
-      if (!isActive &&
-          avgRssi >= BeaconConfig.rssiEnter &&
-          registered.artifactId != null) {
-        final lastAlert = _lastAlertTimes[beacon.key];
-        final inCooldown = lastAlert != null &&
-            now.difference(lastAlert) < BeaconConfig.antispamCooldown;
-        if (!inCooldown && avgRssi > nearestRssi) {
-          nearestRssi = avgRssi;
-          nearestEnterKey = beacon.key;
+      final candidates = <String, int>{current: averages[current]!};
+      for (final entry in averages.entries) {
+        if (entry.key != current && _isEligibleForEnter(entry.key, now)) {
+          candidates[entry.key] = entry.value;
         }
+      }
+      final next = _switchGuard.update(currentKey: current, averages: candidates);
+      if (next != null) {
+        debugPrint('$_logTag ĐỔI BEACON $current → $next: mạnh hơn ≥ '
+            '${BeaconConfig.switchMarginDbm} dBm liên tục ${BeaconConfig.switchConfirmReads} lần đọc.');
+        _onEnterRegion(next, now);
+      }
+      return;
+    }
+
+    if (_navigatingToDetail) return;
+
+    String? nearestEnterKey;
+    var nearestRssi = -999;
+    for (final entry in averages.entries) {
+      if (entry.value >= BeaconConfig.rssiEnter &&
+          entry.value > nearestRssi &&
+          _isEligibleForEnter(entry.key, now)) {
+        nearestRssi = entry.value;
+        nearestEnterKey = entry.key;
       }
     }
 
@@ -208,15 +274,31 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
     }
   }
 
+  /// Có hiện vật và không nằm trong cooldown 60s (chống báo trùng).
+  bool _isEligibleForEnter(String key, DateTime now) {
+    final registered = _registry[key];
+    if (registered == null || registered.artifactId == null) return false;
+    final lastAlert = _lastAlertTimes[key];
+    return lastAlert == null ||
+        now.difference(lastAlert) >= BeaconConfig.antispamCooldown;
+  }
+
   void _onEnterRegion(String key, DateTime now) {
     final registered = _registry[key];
     if (registered == null || registered.artifactId == null) return;
     if (_navigatingToDetail) return;
 
+    final previous = _currentKey;
+    if (previous != null && previous != key) {
+      _onExitRegion(previous, now);
+    }
+    _switchGuard.reset();
+
     setState(() {
       _activeBeacons[key] = true;
       _enterTimes[key] = now;
       _lastAlertTimes[key] = now;
+      _currentKey = key;
     });
 
     final appResumed =
@@ -284,7 +366,9 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
     setState(() {
       _activeBeacons[key] = false;
+      if (_currentKey == key) _currentKey = null;
     });
+    _switchGuard.reset();
 
     // Màn chi tiết KHÔNG tự đóng — chỉ ghi lượt tham quan
     final registered = _registry[key];
@@ -321,7 +405,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
           IconButton(
             tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _start,
+            onPressed: _loading ? null : () => _start(forceRefresh: true),
           ),
         ],
       ),
@@ -551,7 +635,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
                 Icon(Icons.bluetooth_searching, size: 56, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
-                  'Chưa thấy beacon nào trong registry.\nHãy bật Bluetooth và đến gần beacon.',
+                  'Chưa thấy beacon nào trong registry.\nĐưa điện thoại đến gần beacon để bắt đầu.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),

@@ -93,6 +93,86 @@ void main() {
     });
   });
 
+  group('BeaconService.userMessage', () {
+    test('bỏ tiền tố "Exception: " khỏi thông báo lỗi', () {
+      expect(
+        BeaconService.userMessage(Exception('Hãy bật Định vị (GPS) để quét beacon.')),
+        'Hãy bật Định vị (GPS) để quét beacon.',
+      );
+    });
+
+    test('giữ nguyên lỗi không phải Exception', () {
+      expect(BeaconService.userMessage(StateError('boom')), 'Bad state: boom');
+    });
+  });
+
+  group('BeaconSwitchGuard (chống nhảy qua lại)', () {
+    test('không đổi khi beacon khác chỉ mạnh hơn dưới 5 dBm', () {
+      final guard = BeaconSwitchGuard();
+      for (var i = 0; i < 6; i++) {
+        final next = guard.update(
+          currentKey: 'A',
+          averages: {'A': -70, 'B': -66},
+        );
+        expect(next, isNull);
+      }
+    });
+
+    test('đổi sau đúng 3 lần đọc liên tiếp đạt ngưỡng 5 dBm', () {
+      final guard = BeaconSwitchGuard();
+      final averages = {'A': -72, 'B': -65};
+
+      expect(guard.update(currentKey: 'A', averages: averages), isNull);
+      expect(guard.update(currentKey: 'A', averages: averages), isNull);
+      expect(guard.update(currentKey: 'A', averages: averages), 'B');
+    });
+
+    test('một lần đọc không đạt làm đếm lại từ đầu', () {
+      final guard = BeaconSwitchGuard();
+
+      guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65});
+      guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65});
+      guard.update(currentKey: 'A', averages: {'A': -72, 'B': -70});
+      expect(guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65}), isNull);
+      expect(guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65}), isNull);
+      expect(guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65}), 'B');
+    });
+
+    test('beacon vắng mặt trong lượt quét không làm mất streak', () {
+      final guard = BeaconSwitchGuard();
+
+      guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65});
+      guard.update(currentKey: 'A', averages: {'A': -72});
+      guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65});
+      expect(guard.update(currentKey: 'A', averages: {'A': -72, 'B': -65}), 'B');
+    });
+
+    test('khi có nhiều ứng viên đạt ngưỡng, chọn beacon mạnh nhất', () {
+      final guard = BeaconSwitchGuard();
+      final averages = {'A': -80, 'B': -70, 'C': -68};
+
+      guard.update(currentKey: 'A', averages: averages);
+      guard.update(currentKey: 'A', averages: averages);
+      expect(guard.update(currentKey: 'A', averages: averages), 'C');
+    });
+
+    test('không đổi khi beacon hiện tại không có trong lượt quét', () {
+      final guard = BeaconSwitchGuard();
+
+      expect(guard.update(currentKey: 'A', averages: {'B': -60}), isNull);
+    });
+
+    test('reset xóa streak đang đếm', () {
+      final guard = BeaconSwitchGuard();
+      final averages = {'A': -72, 'B': -65};
+
+      guard.update(currentKey: 'A', averages: averages);
+      guard.update(currentKey: 'A', averages: averages);
+      guard.reset();
+      expect(guard.update(currentKey: 'A', averages: averages), isNull);
+    });
+  });
+
   group('RegistryBeacon', () {
     test('fromJson chuẩn hóa UUID về chữ hoa và tạo key đúng', () {
       final beacon = RegistryBeacon.fromJson({
