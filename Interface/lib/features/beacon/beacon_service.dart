@@ -84,7 +84,9 @@ class BeaconSwitchGuard {
     var winnerAvg = -999;
     for (final entry in averages.entries) {
       if (entry.key == currentKey) continue;
-      if (entry.value >= current + BeaconConfig.switchMarginDbm) {
+      // Beacon mới phải mạnh hơn rõ rệt VÀ đạt ngưỡng vào vùng (tránh nhảy sang beacon cũng đang yếu).
+      if (entry.value >= current + BeaconConfig.switchMarginDbm &&
+          entry.value >= BeaconConfig.rssiEnter) {
         final streak = (_streaks[entry.key] ?? 0) + 1;
         _streaks[entry.key] = streak;
         if (streak >= BeaconConfig.switchConfirmReads && entry.value > winnerAvg) {
@@ -322,7 +324,14 @@ class BeaconService {
         throw Exception(
             'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
       }
-      await FlutterBluePlus.turnOn();
+      try {
+        await FlutterBluePlus.turnOn();
+      } catch (_) {
+        // Từ chối hộp thoại bật Bluetooth (FlutterBluePlusException "user rejected")
+        // hoặc hết thời gian chờ → báo câu tiếng Việt thay cho thông báo kỹ thuật.
+        throw Exception(
+            'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
+      }
       // Người dùng từ chối hộp thoại → báo ngay, không chờ hết 10 giây.
       if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
         throw Exception(
