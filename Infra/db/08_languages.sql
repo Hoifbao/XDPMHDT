@@ -1,5 +1,6 @@
 -- Existing databases: run this file once. New databases: Docker init runs it automatically.
 USE content_db;
+SET NAMES utf8mb4;   -- thiếu dòng này thì "Tiếng Việt" bị lưu sai mã (hiện "Tiáº¿ng Viá»‡t")
 CREATE TABLE IF NOT EXISTS languages (
     code VARCHAR(10) NOT NULL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,

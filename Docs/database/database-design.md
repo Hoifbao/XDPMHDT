@@ -41,6 +41,10 @@ giống hệt `auth_db`.
 
 Đường liền: khoá ngoại thật trong cùng schema. Đường đứt: tham chiếu logic chéo schema (chỉ là cột `BIGINT`, không có khoá ngoại).
 
+![Sơ đồ ERD các bảng nghiệp vụ](images/erd.png)
+
+Ảnh trên được vẽ từ mã Mermaid dưới đây; sửa bảng thì sửa mã Mermaid rồi xuất lại ảnh.
+
 ```mermaid
 erDiagram
     users ||--o{ refresh_tokens : "auth_db: FK user_id"
