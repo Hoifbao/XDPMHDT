@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         if: always()
         with:
-          ref: 31853e64d4cdbf6725fb7de4b7dfb88b8267d779
+          ref: e2ff2fc764c766f7fdc42abf2e34faf44bce44bb
           path: baseline
           persist-credentials: false
       - name: Analyze main baseline
