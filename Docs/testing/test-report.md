@@ -12,9 +12,9 @@
 
 **Tình trạng bản này (22/11):** lần 2 đã có phần API của Tường (19/11), phần Thống kê trên máy sạch của Tuấn (21/11, mục 4.1)
 và phần chạy tay trên app, Web (phần D, 22/11): 36 case đã chạy đều đạt, TC-101 bị chặn (thiếu Firebase và máy thật).
-Không có lỗi Blocker, Critical, Major; 8 lỗi Minor ghi ở mục 6, đến 23/11 đã sửa cả 8.
+Không có lỗi Blocker, Critical, Major; 9 lỗi Minor ghi ở mục 6 (lỗi số 9 phát hiện khi chạy R1 23/11), đã sửa cả 9.
 Phần D có bằng chứng ảnh chụp và script đối chiếu dữ liệu `Kiem_case_Tuong_v1.ps1` (chỉ đọc API và MySQL): 27/27 kiểm tra đạt.
-**Cập nhật 23/11:** đã chạy 20 case hồi quy R1 trên `main` sau #99 (mục 4.2): 19 đạt, 1 chặn (TC-62 cần beacon thật). Lần 2 nâng lên 50/136 case, đạt 50/50.
+**Cập nhật 23/11:** đã chạy 20 case hồi quy R1 trên `main` sau #99 (mục 4.2): 19 đạt, TC-62 đạt một phần (giả lập ra vùng trên máy ảo, chưa có beacon thật). Lần 2 nâng lên 51/136 case, đạt 51/51.
 
 ## 1. Tổng hợp theo 3 cấp kiểm thử
 
@@ -86,7 +86,7 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 
 | Nhóm | Số case | Lần 1: đã chạy | Lần 1: đạt | Lần 2: đã chạy | Lần 2: đạt | Ghi chú |
 |---|---|---|---|---|---|---|
-| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 17 | 17 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 64; TC-62 **Chặn** (cần beacon thật) |
+| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 18 | 18 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 62 (giả lập), 64 |
 | Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | 8 | 8 | Lần 1: TC-36, TC-71 không đạt. Lần 2: TC-34, TC-35, TC-36, TC-71 (API); TC-70 (Web); R1 23/11: TC-24, 37, 72 |
 | System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 4 | 4 | Lần 2 (Tường): TC-83; R1 23/11: TC-47, 75, 85 |
 | Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | 3 | 3 | 4 | 4 | Lần 1: TC-86 chưa bấm nút trên Dashboard. Lần 2 (Tuấn, máy sạch `v1.0`, 21/11): TC-86, TC-108 → TC-110 |
@@ -96,12 +96,12 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 | Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | 1 | 1 | | | TC-120. Chưa tắt service để xem cảnh báo, chưa chạy lại k6 |
 | Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | 1 | 1 | Lần 1: chỉ TC-130 (API 403). R1 23/11: TC-131 |
 | Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường). Không thuộc lần 1 tuần 6 |
-| **Tổng** | **136** | **65** | **62** | **50** | **50** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (14 case mới; TC-13, 21, 70, 133, 134 đã tính trước); 2 chặn (TC-101, TC-62) |
+| **Tổng** | **136** | **65** | **62** | **51** | **51** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (14 case mới; TC-13, 21, 70, 133, 134 đã tính trước); 1 chặn (TC-101) |
 
 - Tỉ lệ đã chạy lần 1: **65/131 = 50%** (yêu cầu ≥ 90%, chưa đạt).
 - Tỉ lệ đạt trên số đã chạy lần 1: **62/65 = 95%**.
-- Lần 2 (19–23/11): **50/136** case đã chạy, đạt 50/50; TC-101, TC-62 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1; R1: mục 4.2.
-- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%): **50/136 = 37%, chưa đạt** – còn các case R2/R3 chưa chạy lại và các case cần điện thoại thật, beacon thật, NiFi.
+- Lần 2 (19–23/11): **51/136** case đã chạy, đạt 51/51; TC-101 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1; R1: mục 4.2.
+- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%): **51/136 = 38%, chưa đạt** – còn các case R2/R3 chưa chạy lại và các case cần điện thoại thật, beacon thật, NiFi.
 - Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): chưa đủ số case Cao đã chạy để kết luận.
 
 ### 4.1 Chạy lại phần Thống kê trên máy sạch `v1.0` (Tuấn, 21/11/2026)
@@ -137,7 +137,7 @@ TC-15 và TC-134 có ghi dữ liệu nhưng script tự trả lại như cũ (y�
 | TC-47 | Định tuyến Gateway | Script | Đạt | 6 đường dẫn của test-plan 200; `/feedbacks`, `/rating-summary` trả dữ liệu feedback-service |
 | TC-54 | Đổi ngôn ngữ trên màn chi tiết | Tay (app) | Đạt | VI ↔ EN đổi ngay, có phụ đề thuyết minh. Chưa kiểm nhãn "Chưa có bản dịch" vì cả 6 hiện vật seed đều có bản EN |
 | TC-61 | Nút giả lập phát hiện beacon | Tay (app) | Đạt | Theo nghiệm thu PR #88 (EM-03, EM-05): mở chi tiết, ghi lượt BEACON, đồng bộ không trùng |
-| TC-62 | Ghi lượt tham quan khi ra vùng | — | Chặn | Cần beacon thật (BLE); máy ảo không quét được |
+| TC-62 | Ghi lượt tham quan khi ra vùng | Tay (app, giả lập) | Đạt một phần | Màn Quét iBeacon → nút giả lập → Vào vùng: app tự ra vùng sau 10 s mất sóng (đúng quy tắc `exitTimeout`) và ghi lượt `source = BEACON`, `durationSeconds = 10`, `clientEventId` là UUID. Chưa kiểm đứng trong vùng 30 s và quét BLE thật (cần điện thoại Android + beacon). Khi chạy phát hiện lỗi treo quyền lần đầu mở màn (mục 6, số 9) |
 | TC-64 | Yêu thích, Lịch sử trên app qua Gateway | Tay (app) | Đạt | Theo nghiệm thu PR #88 (EM-01, EM-04, EM-07) |
 | TC-70 | Duyệt / ẩn đánh giá trên Web | Tay (Web) | Đạt | Huy hiệu "Dữ liệu từ API"; Ẩn rồi Duyệt lại 1 đánh giá, F5 giữ trạng thái, thẻ số liệu cập nhật; giờ hiển thị đúng giờ VN |
 | TC-72 | Dashboard số liệu thật | Script | Đạt | Tải ≤ 5 s (tổng 36 ms, lọc di tích 49 ms, lọc 30 ngày 85 ms). Phần khớp số liệu nguồn cần NiFi, đã kiểm ở mục 4.1 |
@@ -156,7 +156,7 @@ Cùng đợt, màn "Hiện Vật Di Sản" trên app (trước đây dùng dữ 
 | Blocker | Trong 24 giờ | 0 | – | 0 |
 | Critical | Trước Thứ 3 tuần 7 | 0 | – | 0 |
 | Major | Trước Thứ 5 tuần 7 | 0 | – | 0 |
-| Minor | Nếu còn thời gian | 0 (lần 2 phát hiện 8) | 8 | 0 |
+| Minor | Nếu còn thời gian | 0 (lần 2 phát hiện 9) | 9 | 0 |
 
 Ba case Không đạt ở lần 1 chưa xếp mức và chưa mở Issue: TC-13 (endpoint beacon cũ trả 404), TC-36 (số mẫu trên DB lệch Test Plan), TC-71 (đổi vị trí beacon qua Gateway trả 404, gọi thẳng cổng 8084 thì 200).
 Lần 2 xác định cả ba **không phải lỗi code** (nguyên nhân ở mục 7), nên không mở Issue; đến 19/11 chưa có lỗi Blocker/Critical nào.
@@ -164,7 +164,7 @@ Lần 2 xác định cả ba **không phải lỗi code** (nguyên nhân ở m�
 ## 6. Lỗi còn tồn
 
 Các lỗi Minor phát hiện ở lần 2 (Thống kê trên máy sạch 21/11, phần D 22/11 và khi chụp ảnh User Manual). Đều không chặn luồng demo; vì đã chốt tag `v1.0`
-nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sửa 6 lỗi trong PR #96 (XDPMHDT-108) và lỗi số 2 trong PR #98 (XDPMHDT-109); không còn lỗi Minor tồn.
+nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sửa 6 lỗi trong PR #96 (XDPMHDT-108) và lỗi số 2 trong PR #98 (XDPMHDT-109); lỗi số 9 (phát hiện khi chạy R1) sửa trong PR XDPMHDT-111; không còn lỗi Minor tồn.
 
 | # | Lỗi | Test case | Mức độ | Service / file | Người phụ trách | Trạng thái | Ảnh hưởng demo |
 |---|---|---|---|---|---|---|---|
@@ -176,6 +176,7 @@ nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sử
 | 6 | Trang chủ app: Row tràn 14 px (`main.dart` dòng 325); 1 ảnh Unsplash gõ cứng trả 404 | — | Minor | App `Interface` | Xuân Anh | **Đã sửa** (23/11, PR #96): `Expanded`, bỏ ảnh gõ cứng, có khung thay thế | Bản debug hiện dải sọc vàng đen |
 | 7 | Tên ngôn ngữ "Tiếng Việt" lỗi dấu ("Tiáº¿ng Viá»‡t") ở mục Ngôn ngữ hỗ trợ: `08_languages.sql` thiếu `SET NAMES utf8mb4` | — | Minor | `Infra/db/08_languages.sql` | Tường | **Đã sửa** (22/11, chỉ script DB; DB đang chạy sửa bằng 1 lệnh trong `Infra/db/README.md`) | Không |
 | 8 | Giờ UTC ở Thống kê: "Xuất lúc" trong file Excel/PDF lệch 7 giờ; số "Hôm nay" tính theo ngày UTC (analytics-service trong container chạy múi giờ UTC) | TC-105, TC-109 | Minor | analytics-service | Tuấn | **Đã sửa** (23/11, PR #96): `TZ=Asia/Ho_Chi_Minh` trong `docker-compose.yml` (chỉ khi chạy bằng Docker) | Không, trừ khi demo từ 0 h – 7 h sáng |
+| 9 | Lần đầu mở màn Quét iBeacon sau khi cài app: xoay mãi "Đang tải registry và khởi động BLE...". App xin quyền thông báo (không chờ) và quyền Bluetooth/Vị trí cùng lúc; Android chỉ xử lý 1 yêu cầu, yêu cầu Bluetooth không bao giờ trả kết quả (log `Can request only one set of permissions at a time`) | TC-62 | Minor | App `beacon_scan_screen.dart` | Khoa | **Đã sửa** (23/11, PR XDPMHDT-111): chờ xin quyền thông báo xong mới xin quyền Bluetooth | Có, nếu cài app mới ngay trước demo (máy ảo hôm nay phải cấp quyền bằng `adb`) |
 
 **Hiệu năng lọc theo di tích (không tính là lỗi Minor):** ở mục 4.1, với 1.000.000 lượt, Dashboard và file xuất khi lọc một di tích mất 24 – 27 s
 (không lọc 1,5 – 3,3 s). Nguyên nhân: lọc di tích phải quay lại bảng `fact_visits` lấy `user_id`, `duration_seconds` cho từng dòng, và bộ nhớ đệm
@@ -204,7 +205,7 @@ thay `idx_fact_visits_artifact_date` (DB cũ chạy `Infra/analytics_w8_cover_in
 - Lần 2 (19–22/11, trên `v1.0`): 36 case đã chạy đều đạt, 1 case chặn (TC-101). 3 case không đạt của lần 1 đều đạt
   và đều không phải lỗi code. Luồng Đánh giá đầy đủ trên app và Web (gửi, sửa, chờ duyệt, duyệt, ẩn, điểm trung bình, số chờ duyệt) đạt;
   Thống kê trên máy sạch 5/5 đạt.
-- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **chưa đạt** trong báo cáo này (50/136). Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 chặn.
-- Lỗi còn tồn: không có Blocker, Critical, Major; 8 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98).
+- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **chưa đạt** trong báo cáo này (51/136). Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 đạt một phần (TC-62, giả lập).
+- Lỗi còn tồn: không có Blocker, Critical, Major; 9 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC), 1 ngày 23/11 (XDPMHDT-111, treo quyền màn Quét iBeacon). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98).
 - Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-101); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
   (NiFi, cảnh báo Prometheus khi tắt service) cần người phụ trách xác nhận trước buổi bảo vệ.

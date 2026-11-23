@@ -147,7 +147,11 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
           '(tự làm mới mỗi ${BeaconConfig.registryCacheAge.inMinutes} phút). '
           'Có hiện vật gán: ${items.where((b) => b.artifactId != null).length}.');
       // Local notification cho kịch bản app đang chạy nền (Sprint 5)
-      unawaited(LocalNotificationService.I.initialize());
+      // Bảo W8: xin quyền thông báo XONG rồi mới xin quyền Bluetooth/Vị trí (BeaconService.initialize).
+      // Android chỉ xử lý 1 yêu cầu quyền mỗi lúc; xin song song thì yêu cầu sau không bao giờ trả
+      // kết quả → lần đầu mở màn này xoay mãi "Đang tải registry và khởi động BLE..." (R1 23/11).
+      await LocalNotificationService.I.initialize()
+          .timeout(const Duration(seconds: 15), onTimeout: () {});
       LocalNotificationService.I.onNotificationTap = _onNotificationTap;
       await BeaconService.initialize(askToTurnOn: askToTurnOn);
       await BeaconService.startScan();
