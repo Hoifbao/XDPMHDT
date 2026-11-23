@@ -1,0 +1,45 @@
+name: XDPMHDT-99 Flutter Web Chrome smoke
+on:
+  push:
+    branches:
+      - fix/XDPMHDT-99-phu-w7-personalization
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome-web:
+    name: Flutter Web on Chrome (CI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: Interface
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          flutter-version: "3.50.0"
+          cache: true
+      - name: Show browser and Flutter versions
+        run: |
+          flutter --version
+          command -v google-chrome || command -v chromium
+          google-chrome --version || chromium --version
+      - name: Create web bootstrap for CI only
+        run: |
+          flutter create --platforms=web --project-name smartheritage --no-pub .
+          flutter pub get
+      - name: Build Flutter Web
+        run: flutter build web --dart-define=DEMO_MODE=true --dart-define=API_BASE_URL=http://localhost:8080
+      - name: Run personalization smoke tests in headless Chrome
+        run: flutter test --platform chrome --reporter expanded test/personalization_screens_test.dart test/features/personalization/personalization_offline_test.dart
+      - name: Verify build artifacts
+        run: |
+          test -f build/web/index.html
+          test -f build/web/main.dart.js || test -f build/web/main.dart.wasm
+          du -sh build/web
