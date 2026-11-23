@@ -110,6 +110,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         _submitError = result.message;
       }
     });
+    // Gửi (hoặc gửi lại) thành công -> tải lại điểm trung bình và danh sách bình luận
+    if (result.success) {
+      await _reload();
+    }
   }
 
   /// Quay lại form với nội dung vừa gửi để sửa (gửi lại = ghi đè, chờ duyệt lại)

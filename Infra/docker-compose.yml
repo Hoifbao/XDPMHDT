@@ -259,6 +259,9 @@ services:
     container_name: smart_heritage_analytics
     environment:
       DB_URL: jdbc:mysql://mysql-db:3306/analytics_db?useSSL=false&allowPublicKeyRetrieval=true
+      # Bao W8: gio Viet Nam cho "Xuat luc" (Excel/PDF) va so "Hom nay" - truoc day lech 7 gio (UTC)
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Ho_Chi_Minh
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
