@@ -12,7 +12,7 @@
 
 **Tình trạng bản này (22/11):** lần 2 đã có phần API của Tường (19/11), phần Thống kê trên máy sạch của Tuấn (21/11, mục 4.1)
 và phần chạy tay trên app, Web (phần D, 22/11): 36 case đã chạy đều đạt, TC-101 bị chặn (thiếu Firebase và máy thật).
-Không có lỗi Blocker, Critical, Major; 8 lỗi Minor (7 đã sửa, 1 còn tồn) ghi ở mục 6.
+Không có lỗi Blocker, Critical, Major; 8 lỗi Minor ghi ở mục 6, đến 23/11 đã sửa cả 8.
 Phần D có bằng chứng ảnh chụp và script đối chiếu dữ liệu `Kiem_case_Tuong_v1.ps1` (chỉ đọc API và MySQL): 27/27 kiểm tra đạt.
 Chưa có kết quả 20 case hồi quy R1 của Ân.
 
@@ -125,7 +125,7 @@ của 12_Final_Report, log `bench_1m.log`.
 | Blocker | Trong 24 giờ | 0 | – | 0 |
 | Critical | Trước Thứ 3 tuần 7 | 0 | – | 0 |
 | Major | Trước Thứ 5 tuần 7 | 0 | – | 0 |
-| Minor | Nếu còn thời gian | 0 (lần 2 phát hiện 8) | 7 | 1 |
+| Minor | Nếu còn thời gian | 0 (lần 2 phát hiện 8) | 8 | 0 |
 
 Ba case Không đạt ở lần 1 chưa xếp mức và chưa mở Issue: TC-13 (endpoint beacon cũ trả 404), TC-36 (số mẫu trên DB lệch Test Plan), TC-71 (đổi vị trí beacon qua Gateway trả 404, gọi thẳng cổng 8084 thì 200).
 Lần 2 xác định cả ba **không phải lỗi code** (nguyên nhân ở mục 7), nên không mở Issue; đến 19/11 chưa có lỗi Blocker/Critical nào.
@@ -133,12 +133,12 @@ Lần 2 xác định cả ba **không phải lỗi code** (nguyên nhân ở m�
 ## 6. Lỗi còn tồn
 
 Các lỗi Minor phát hiện ở lần 2 (Thống kê trên máy sạch 21/11, phần D 22/11 và khi chụp ảnh User Manual). Đều không chặn luồng demo; vì đã chốt tag `v1.0`
-nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sửa 6 lỗi trong PR #96 (XDPMHDT-108); còn lỗi số 2.
+nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sửa 6 lỗi trong PR #96 (XDPMHDT-108) và lỗi số 2 trong PR #98 (XDPMHDT-109); không còn lỗi Minor tồn.
 
 | # | Lỗi | Test case | Mức độ | Service / file | Người phụ trách | Trạng thái | Ảnh hưởng demo |
 |---|---|---|---|---|---|---|---|
 | 1 | Trang Phản hồi mất huy hiệu "Dữ liệu từ API" (`admin-nav.js` thay khối `.nav` chứa huy hiệu) | TC-70 | Minor | WebAdmin `feedback.html`, `admin-nav.js` | Bảo, Tường | **Đã sửa** (23/11, PR #96): đưa huy hiệu ra ngoài khối `.nav` | Không |
-| 2 | Cột "Ngày tạo", "Cập nhật" trên trang Phản hồi hiện giờ UTC (lệch 7 giờ): feedback-service trong container chạy múi giờ UTC | TC-70 | Minor | feedback-service | Tường | Còn tồn | Không |
+| 2 | Cột "Ngày tạo", "Cập nhật" trên trang Phản hồi hiện giờ UTC (lệch 7 giờ): feedback-service trong container chạy múi giờ UTC | TC-70 | Minor | feedback-service | Tường | **Đã sửa** (23/11, PR #98): `TZ=Asia/Ho_Chi_Minh` cho cả 9 service Java trong `docker-compose.yml`; phản hồi cũ trên từng máy sửa bằng 1 lệnh cộng 7 giờ | Không |
 | 3 | Màn "Đánh giá của tôi" hiện ngày cập nhật thay cho ngày gửi | TC-115 | Minor | App `Interface` | Tường | **Đã sửa** (23/11, PR #96): dùng `createdAt` | Không |
 | 4 | Sau khi gửi lại đánh giá, danh sách bình luận trên cùng màn chưa tự làm mới (mở lại thì đúng) | TC-67 | Minor | App `Interface` | Tường | **Đã sửa** (23/11, PR #96): gửi thành công thì tải lại | Không |
 | 5 | Tắt feedback-service thì Gateway trả 500 thay vì 503 | TC-117 | Minor | api-gateway | Bảo | **Đã sửa** (23/11, PR #96): `ServiceUnavailableHandler` trả 503 | Không |
@@ -146,6 +146,11 @@ nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sử
 | 7 | Tên ngôn ngữ "Tiếng Việt" lỗi dấu ("Tiáº¿ng Viá»‡t") ở mục Ngôn ngữ hỗ trợ: `08_languages.sql` thiếu `SET NAMES utf8mb4` | — | Minor | `Infra/db/08_languages.sql` | Tường | **Đã sửa** (22/11, chỉ script DB; DB đang chạy sửa bằng 1 lệnh trong `Infra/db/README.md`) | Không |
 | 8 | Giờ UTC ở Thống kê: "Xuất lúc" trong file Excel/PDF lệch 7 giờ; số "Hôm nay" tính theo ngày UTC (analytics-service trong container chạy múi giờ UTC) | TC-105, TC-109 | Minor | analytics-service | Tuấn | **Đã sửa** (23/11, PR #96): `TZ=Asia/Ho_Chi_Minh` trong `docker-compose.yml` (chỉ khi chạy bằng Docker) | Không, trừ khi demo từ 0 h – 7 h sáng |
 
+**Hiệu năng lọc theo di tích (không tính là lỗi Minor):** ở mục 4.1, với 1.000.000 lượt, Dashboard và file xuất khi lọc một di tích mất 24 – 27 s
+(không lọc 1,5 – 3,3 s). Nguyên nhân: lọc di tích phải quay lại bảng `fact_visits` lấy `user_id`, `duration_seconds` cho từng dòng, và bộ nhớ đệm
+InnoDB mặc định 128 MB nhỏ hơn index. Đã sửa 23/11 trong PR #98: index bao trùm `idx_fact_visits_artifact_cover (artifact_id, detected_at, user_id, duration_seconds)`
+thay `idx_fact_visits_artifact_date` (DB cũ chạy `Infra/analytics_w8_cover_index.sql` một lần) và `innodb-buffer-pool-size=512M`.
+Đo lại trên máy Bảo qua Gateway, 1.000.000 lượt (`Infra/loadtest/analytics_1m_bench.sql`), lọc Hoàng thành Thăng Long: `overview?siteId=2` 0,53 s, xuất Excel 1,24 s.
 ## 7. Test case không đạt (lần 1, 17/11) và kết quả lần 2
 
 | Mã TC | Lần 1 | Lý do lần 1 | Lần 2 (19/11) | Kết luận |
@@ -169,6 +174,6 @@ nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sử
   và đều không phải lỗi code. Luồng Đánh giá đầy đủ trên app và Web (gửi, sửa, chờ duyệt, duyệt, ẩn, điểm trung bình, số chờ duyệt) đạt;
   Thống kê trên máy sạch 5/5 đạt.
 - Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **chưa đạt** trong báo cáo này (36/136), vì chưa có kết quả 20 case R1 của Ân.
-- Lỗi còn tồn: không có Blocker, Critical, Major; 8 lỗi Minor: 1 đã sửa 22/11 (script DB), 6 đã sửa 23/11 (PR #96), 1 còn tồn (giờ UTC trang Phản hồi – mục 6, số 2).
+- Lỗi còn tồn: không có Blocker, Critical, Major; 8 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98).
 - Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-101); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
   (NiFi, cảnh báo Prometheus khi tắt service) cần người phụ trách xác nhận trước buổi bảo vệ.
