@@ -17,10 +17,10 @@
 | `flutter pub get` | **PASS** | Tải và giải quyết dependencies |
 | `flutter build web` | **PASS** | Có `build/web`, build không có backend gắn sẵn |
 | `flutter test --platform chrome` | **12/12 PASS** | 10 bài kiểm thử `personalization_offline_test.dart` và 2 bài `personalization_screens_test.dart` chạy trên Chrome headless |
-| Mở app build hoàn chỉnh trên Chrome và ghi ảnh màn hình | **Đã bổ sung bước CI, cần đối chiếu run có bước screenshot** | Phân biệt khỏi widget tests; chưa tuyên bố thao tác đầy đủ UI với người dùng thật |
+| Mở app Web đã build trong Chrome headless + chụp screenshot | **PASS** — [run #45156819980](https://github.com/phuht0462-a11y/XDPMHDT/actions/runs/45156819980) | Chrome đã mở URL từ HTTP server cục bộ, tạo ảnh PNG, xuất DOM và xác nhận có `flutter-view`/`flt-glass-pane`; artifact `smart-heritage-flutter-web-chrome-proof`. Chưa kiểm thử E2E bằng thao tác người dùng thực |
 | Luồng đăng nhập → quét beacon BLE → offline → đồng bộ với backend qua Chrome | **CHƯA KIỂM THỬ E2E** | Chrome test và Web build không thay thế kiểm thử Android Emulator 9/9 mà nhóm trưởng báo cáo |
 
-**Kết luận:** Flutter Web biên dịch được; 12 test chạy qua Chrome headless thành công. Đây là smoke test và kiểm thử logic, **không phải** nghiệm thu trình duyệt có thao tác thủ công với toàn bộ backend.
+**Kết luận:** Flutter Web biên dịch được; 12 test chạy qua Chrome headless thành công, và bản Web đã build được mở qua Chrome headless với artifact ảnh/DOM. Chưa khẳng định ảnh đã được reviewer xem thủ công hoặc toàn bộ luồng chức năng UI hoạt động. Đây là smoke test và kiểm thử logic, **không phải** nghiệm thu trình duyệt có thao tác thủ công với toàn bộ backend.
 
 ## Cách tái lập
 
