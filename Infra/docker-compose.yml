@@ -26,6 +26,8 @@ services:
     image: mysql:8.0
     container_name: smart_heritage_mysql
     restart: always
+    # Bao W8: bo nho dem InnoDB 512M (mac dinh 128M nho hon index fact_visits khi co 1 trieu luot)
+    command: --innodb-buffer-pool-size=512M
     environment:
       MYSQL_DATABASE: smart_heritage_db
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
@@ -54,6 +56,7 @@ services:
       context: ../Backend
     container_name: smart_heritage_backend
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       SERVER_PORT: 8090
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/smart_heritage_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
@@ -79,6 +82,7 @@ services:
       dockerfile: services/auth-service/Dockerfile
     container_name: smart_heritage_auth
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       AUTH_DB_URL: jdbc:mysql://mysql-db:3306/smart_heritage_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       AUTH_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
@@ -104,6 +108,7 @@ services:
     volumes:
       - content_uploads:/app/uploads
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       DB_URL: jdbc:mysql://mysql-db:3306/content_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       # Chưa có site-service thì kiểm tra siteId qua Backend cũ
@@ -134,6 +139,7 @@ services:
       dockerfile: services/site-service/Dockerfile
     container_name: smart_heritage_site
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       DB_URL: jdbc:mysql://mysql-db:3306/site_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
     ports:
@@ -157,6 +163,7 @@ services:
       dockerfile: services/feedback-service/Dockerfile
     container_name: smart_heritage_feedback
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       DB_URL: jdbc:mysql://mysql-db:3306/feedback_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_USERNAME: feedback_user
       DB_PASSWORD: ${FEEDBACK_DB_PASSWORD:-feedback_pass_dev}
@@ -196,6 +203,7 @@ services:
       dockerfile: services/personalization-service/Dockerfile
     container_name: smart_heritage_personalization
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       DB_URL: jdbc:mysql://mysql-db:3306/personalization_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       REDIS_HOST: redis-cache
@@ -228,6 +236,7 @@ services:
       dockerfile: services/beacon-service/Dockerfile
     container_name: smart_heritage_beacon
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       DB_URL: jdbc:mysql://mysql-db:3306/beacon_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
       CONTENT_SERVICE_URL: http://content-service:8083
@@ -287,6 +296,7 @@ services:
       dockerfile: services/api-gateway/Dockerfile
     container_name: smart_heritage_gateway
     environment:
+      TZ: Asia/Ho_Chi_Minh   # Bao W8: gio Viet Nam (truoc day container chay UTC, lech 7 gio)
       JWT_SECRET: ${JWT_SECRET:-smart-heritage-dev-secret-key-change-me-0123456789abcdef}
       AUTH_SERVICE_URL: http://auth-service:8081
       LEGACY_BACKEND_URL: http://backend:8090

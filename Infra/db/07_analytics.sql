@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS fact_visits (
     -- Tuần 7 (Tuấn): DISTINCT user_id cho thống kê ngôn ngữ; lọc theo artifact khi Dashboard chọn di tích.
     -- Không thêm index (site_id, ...) vì NiFi để site_id NULL. DB cũ: chạy Infra/analytics_w7_indexes.sql
     KEY idx_fact_visits_user_date     (user_id, detected_at),
-    KEY idx_fact_visits_artifact_date (artifact_id, detected_at)
+    -- Tuần 8 (Bảo): thay idx_fact_visits_artifact_date bằng index bao trùm. Lọc theo di tích đọc xong
+    -- user_id, duration_seconds ngay trong index, không phải quay lại bảng cho từng dòng.
+    -- DB cũ: chạy Infra/analytics_w8_cover_index.sql
+    KEY idx_fact_visits_artifact_cover (artifact_id, detected_at, user_id, duration_seconds)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Mỗi đánh giá của du khách (nguồn: feedbacks)
