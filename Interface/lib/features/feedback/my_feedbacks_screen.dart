@@ -141,7 +141,8 @@ class _MyFeedbacksScreenState extends State<MyFeedbacksScreen> {
 
   Widget _buildTile(MyFeedback feedback) {
     final item = feedback.item;
-    final date = item.updatedAt ?? item.createdAt;
+    // Hiện ngày gửi; updatedAt đổi cả khi ADMIN duyệt nên không dùng làm ngày gửi
+    final date = item.createdAt ?? item.updatedAt;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),

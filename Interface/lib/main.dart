@@ -81,8 +81,8 @@ class _HomePageState extends State<HomePage> {
       'beacon': 'iBeacon 1',
       'description':
           'The constellation pavilion and signature symbol of the Temple of Literature.',
-      'image':
-          'https://images.unsplash.com/photo-1573270689103-d7a4e42b1a6c?auto=format&fit=crop&w=1000&q=80',
+      // Bỏ link Unsplash gõ cứng (bị 404) -> card hiện khung thay thế
+      'image': '',
     },
     {
       'id': 2,
@@ -90,8 +90,8 @@ class _HomePageState extends State<HomePage> {
       'beacon': 'iBeacon 2',
       'description':
           'Stone stelae recording royal examinations and doctoral laureates.',
-      'image':
-          'https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=1000&q=80',
+      // Bỏ link Unsplash gõ cứng (bị 404) -> card hiện khung thay thế
+      'image': '',
     },
   ];
 
@@ -325,27 +325,31 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BẢN ĐỒ DI SẢN',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      color: Color(0xFF718B78),
+              // Expanded: tiêu đề co lại theo bề ngang, không tràn khi màn hình hẹp
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BẢN ĐỒ DI SẢN',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                        color: Color(0xFF718B78),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Các di tích trong hệ thống',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    SizedBox(height: 4),
+                    Text(
+                      'Các di tích trong hệ thống',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               _pill('OpenStreetMap'),
             ],
           ),
@@ -447,12 +451,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.network(
-            artifact['image'],
-            height: 190,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+          _artifactImage(artifact['image']?.toString() ?? ''),
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -601,6 +600,24 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Ảnh hiện vật: link rỗng hoặc tải lỗi (404, mất mạng) thì hiện khung thay thế, không báo lỗi
+  Widget _artifactImage(String url) {
+    final placeholder = Container(
+      height: 190,
+      width: double.infinity,
+      color: const Color(0xFFE3E6DC),
+      child: const Icon(Icons.account_balance, size: 48, color: Color(0xFF718B78)),
+    );
+    if (url.isEmpty) return placeholder;
+    return Image.network(
+      url,
+      height: 190,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => placeholder,
     );
   }
 

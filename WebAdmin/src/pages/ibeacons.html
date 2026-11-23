@@ -112,6 +112,8 @@
             border-radius: 16px;
             background: #e74c3c12;
         }
+        /* display:flex ở trên đè thuộc tính hidden -> banner luôn hiện dù 0 beacon pin thấp */
+        .ib-battery-alert[hidden] { display: none; }
         .ib-battery-alert-icon { font-size: 26px; }
         .ib-battery-alert strong {
             display: block;
