@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import '../features/auth/auth_service.dart';
 import 'artifact_detail_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
-//  DATA MODEL (temporary local model – sẽ thay bằng API call)
+//  DATA MODEL  (map từ GET /api/artifacts – ArtifactSummaryResponse)
 // ─────────────────────────────────────────────────────────────
 
 class ArtifactSummary {
@@ -23,6 +27,59 @@ class ArtifactSummary {
     required this.locationName,
     required this.status,
   });
+
+  factory ArtifactSummary.fromJson(Map<String, dynamic> json) {
+    return ArtifactSummary(
+      id: (json['id'] as num).toInt(),
+      name: _text(json['name']) ?? 'Hiện vật #${json['id']}',
+      thumbnailUrl: _mediaUrl(_text(json['thumbnailUrl'])),
+      period: _text(json['period']),
+      material: _text(json['material']),
+      locationName: _text(json['locationName']) ?? '',
+      status: _text(json['status']) ?? 'ACTIVE',
+    );
+  }
+
+  static String? _text(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  // Ảnh upload (/api/media/files/...) luôn đi theo địa chỉ Gateway của app (vd 10.0.2.2 trên máy ảo)
+  static String? _mediaUrl(String? raw) {
+    if (raw == null) return null;
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.path.startsWith('/api/media/files/')) {
+      return Uri.parse(AuthService.baseUrl).resolve(uri.path).toString();
+    }
+    return raw;
+  }
+}
+
+/// Bảo W8: thay dữ liệu mẫu bằng GET /api/artifacts (công khai, qua Gateway).
+/// Chỉ hiện hiện vật ACTIVE cho du khách.
+class ArtifactListApi {
+  ArtifactListApi._();
+
+  static const Duration _timeout = Duration(seconds: 10);
+
+  static Future<List<ArtifactSummary>> fetchAll() async {
+    final response = await AuthService.rawClient
+        .get(Uri.parse('${AuthService.baseUrl}/api/artifacts'))
+        .timeout(_timeout);
+    if (response.statusCode != 200) {
+      throw Exception('Không tải được danh sách hiện vật (mã ${response.statusCode}).');
+    }
+    final body = jsonDecode(utf8.decode(response.bodyBytes));
+    final data = body is Map<String, dynamic> ? body['data'] : body;
+    if (data is! List) return const [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(ArtifactSummary.fromJson)
+        .where((a) => a.status == 'ACTIVE')
+        .toList();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -37,61 +94,65 @@ class ArtifactListScreen extends StatefulWidget {
 }
 
 class _ArtifactListScreenState extends State<ArtifactListScreen> {
-  // Sample data – sẽ thay bằng HTTP call tới GET /api/artifacts
-  final List<ArtifactSummary> _allArtifacts = const [
-    ArtifactSummary(
-      id: 1,
-      name: 'Trống đồng Đông Sơn',
-      period: 'Thế kỷ VII – I TCN',
-      material: 'Đồng',
-      locationName: 'Bảo tàng Lịch sử Quốc gia',
-      status: 'ACTIVE',
-    ),
-    ArtifactSummary(
-      id: 2,
-      name: 'Tượng Phật A Di Đà',
-      period: 'Thế kỷ XI',
-      material: 'Đá',
-      locationName: 'Chùa Một Cột',
-      status: 'ACTIVE',
-    ),
-    ArtifactSummary(
-      id: 3,
-      name: 'Ấn vàng triều Nguyễn',
-      period: 'Thế kỷ XIX',
-      material: 'Vàng',
-      locationName: 'Đại Nội Huế',
-      status: 'ACTIVE',
-    ),
-    ArtifactSummary(
-      id: 4,
-      name: 'Gốm hoa lam thế kỷ XV',
-      period: 'Thế kỷ XV',
-      material: 'Gốm sứ',
-      locationName: 'Bảo tàng Mỹ thuật',
-      status: 'ACTIVE',
-    ),
-  ];
-
-  List<ArtifactSummary> _filtered = [];
+  List<ArtifactSummary> _allArtifacts = const [];
+  List<ArtifactSummary> _filtered = const [];
+  String? _selectedLocation; // null = tất cả di tích
+  bool _loading = true;
+  String? _error;
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _filtered = List.from(_allArtifacts);
     _searchCtrl.addListener(_onSearch);
+    _load();
   }
 
-  void _onSearch() {
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final items = await ArtifactListApi.fetchAll();
+      if (!mounted) return;
+      setState(() {
+        _allArtifacts = items;
+        _loading = false;
+      });
+      _applyFilters();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Không tải được danh sách hiện vật. Kiểm tra kết nối rồi thử lại.';
+      });
+    }
+  }
+
+  void _onSearch() => _applyFilters();
+
+  void _applyFilters() {
     final q = _searchCtrl.text.toLowerCase();
     setState(() {
       _filtered = _allArtifacts.where((a) {
-        return a.name.toLowerCase().contains(q) ||
+        final matchLocation =
+            _selectedLocation == null || a.locationName == _selectedLocation;
+        final matchText = q.isEmpty ||
+            a.name.toLowerCase().contains(q) ||
             a.locationName.toLowerCase().contains(q) ||
             (a.period?.toLowerCase().contains(q) ?? false);
+        return matchLocation && matchText;
       }).toList();
     });
+  }
+
+  List<String> get _locations {
+    final set = <String>{
+      for (final a in _allArtifacts)
+        if (a.locationName.isNotEmpty) a.locationName,
+    };
+    return set.toList()..sort();
   }
 
   @override
@@ -110,12 +171,44 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
       body: Column(
         children: [
           _buildSearchBar(),
-          _buildResultCount(),
-          Expanded(child: _buildArtifactGrid()),
+          if (!_loading && _error == null) _buildResultCount(),
+          Expanded(child: _buildBody()),
         ],
       ),
-      floatingActionButton: _buildFAB(),
     );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: Colors.brown.shade300),
+              const SizedBox(height: 12),
+              Text(_error!, textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.brown.shade700)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6B3A1F),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(onRefresh: _load, child: _buildArtifactGrid());
   }
 
   // ── App Bar ──────────────────────────────────
@@ -154,8 +247,6 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
     );
   }
 
-  // ── Search Bar ───────────────────────────────
-
   Widget _buildSearchBar() {
     return Container(
       color: const Color(0xFF6B3A1F),
@@ -176,7 +267,7 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white.withOpacity(0.18),
+          fillColor: Colors.white.withValues(alpha: 0.18),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           border: OutlineInputBorder(
@@ -187,8 +278,6 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
       ),
     );
   }
-
-  // ── Result count ─────────────────────────────
 
   Widget _buildResultCount() {
     return Padding(
@@ -212,14 +301,13 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
     );
   }
 
-  // ── Artifact Grid ────────────────────────────
-
   Widget _buildArtifactGrid() {
     if (_filtered.isEmpty) {
       return _buildEmptyState();
     }
 
     return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -232,8 +320,6 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
           _ArtifactCard(artifact: _filtered[index]),
     );
   }
-
-  // ── Empty State ──────────────────────────────
 
   Widget _buildEmptyState() {
     return Center(
@@ -260,30 +346,22 @@ class _ArtifactListScreenState extends State<ArtifactListScreen> {
     );
   }
 
-  // ── FAB ──────────────────────────────────────
-
-  Widget _buildFAB() {
-    return FloatingActionButton.extended(
-      onPressed: () {
-        // TODO: điều hướng tới màn hình tạo hiện vật mới (Admin)
-      },
-      backgroundColor: const Color(0xFF6B3A1F),
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.add),
-      label: const Text('Thêm hiện vật'),
-    );
-  }
-
   // ── Filter Bottom Sheet ──────────────────────
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
+  Future<void> _showFilterSheet() async {
+    final result = await showModalBottomSheet<_FilterResult>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _FilterSheet(),
+      builder: (_) => _FilterSheet(
+        locations: _locations,
+        selected: _selectedLocation,
+      ),
     );
+    if (result == null) return;
+    _selectedLocation = result.location;
+    _applyFilters();
   }
 }
 
@@ -383,7 +461,7 @@ class _ArtifactCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6B3A1F).withOpacity(0.1),
+                        color: const Color(0xFF6B3A1F).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -420,7 +498,7 @@ class _ArtifactCard extends StatelessWidget {
         artifact.thumbnailUrl!,
         fit: BoxFit.cover,
         width: double.infinity,
-        errorBuilder: (_, __, ___) => _placeholderImage(),
+        errorBuilder: (_, _, _) => _placeholderImage(),
       );
     }
     return _placeholderImage();
@@ -437,11 +515,38 @@ class _ArtifactCard extends StatelessWidget {
   }
 }
 
+
 // ─────────────────────────────────────────────────────────────
-//  FILTER BOTTOM SHEET
+//  FILTER BOTTOM SHEET  (lọc theo di tích lấy từ dữ liệu thật)
 // ─────────────────────────────────────────────────────────────
 
-class _FilterSheet extends StatelessWidget {
+class _FilterResult {
+  final String? location;
+  const _FilterResult(this.location);
+}
+
+class _FilterSheet extends StatefulWidget {
+  final List<String> locations;
+  final String? selected;
+
+  const _FilterSheet({required this.locations, required this.selected});
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  late String? _current = widget.selected;
+
+  Widget _chip(String label, String? value) {
+    return FilterChip(
+      label: Text(label),
+      selected: _current == value,
+      onSelected: (_) => setState(() => _current = value),
+      selectedColor: const Color(0x336B3A1F),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -450,7 +555,6 @@ class _FilterSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
           Center(
             child: Container(
               width: 40,
@@ -464,63 +568,24 @@ class _FilterSheet extends StatelessWidget {
           const Text('Bộ lọc',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 16),
-
-          // Lọc theo địa điểm
-          const Text('Địa điểm di tích',
+          const Text('Di tích',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
+            runSpacing: 4,
             children: [
-              'Tất cả',
-              'Hà Nội',
-              'Huế',
-              'Hội An',
-              'TP.HCM',
-            ]
-                .map((loc) => FilterChip(
-                      label: Text(loc),
-                      selected: loc == 'Tất cả',
-                      onSelected: (_) {},
-                      selectedColor:
-                          const Color(0xFF6B3A1F).withOpacity(0.2),
-                    ))
-                .toList(),
+              _chip('Tất cả', null),
+              for (final loc in widget.locations) _chip(loc, loc),
+            ],
           ),
-
-          const SizedBox(height: 16),
-
-          // Lọc theo thời kỳ
-          const Text('Thời kỳ lịch sử',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              'Tất cả',
-              'Tiền sử',
-              'Đông Sơn',
-              'Phong kiến',
-              'Cận đại',
-            ]
-                .map((p) => FilterChip(
-                      label: Text(p),
-                      selected: p == 'Tất cả',
-                      onSelected: (_) {},
-                      selectedColor:
-                          const Color(0xFF6B3A1F).withOpacity(0.2),
-                    ))
-                .toList(),
-          ),
-
           const SizedBox(height: 20),
-
-          // Buttons
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () =>
+                      Navigator.pop(context, const _FilterResult(null)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF6B3A1F),
                     side: const BorderSide(color: Color(0xFF6B3A1F)),
@@ -533,7 +598,8 @@ class _FilterSheet extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () =>
+                      Navigator.pop(context, _FilterResult(_current)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6B3A1F),
                     foregroundColor: Colors.white,
@@ -550,5 +616,3 @@ class _FilterSheet extends StatelessWidget {
     );
   }
 }
-
-

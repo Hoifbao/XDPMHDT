@@ -5,7 +5,7 @@
 | Người lập | Tường (đầu mối QA), Ân (System Testing) |
 | Căn cứ | [Test Plan](test-plan.md) (136 test case); `task_w7_chi_tiet` mục III.5 |
 | Lần 1 (System Testing) | 10/11/2026 – 15/11/2026, bản chốt code 18:00 13/11 |
-| Lần 2 (hồi quy) | 19/11/2026 (API Đánh giá, Tường), 21/11/2026 (Thống kê trên máy sạch `v1.0`, Tuấn) và 22/11/2026 (app, Web – phần D, Bảo chạy) |
+| Lần 2 (hồi quy) | 19/11/2026 (API Đánh giá, Tường), 21/11/2026 (Thống kê trên máy sạch `v1.0`, Tuấn), 22/11/2026 (app, Web – phần D, Bảo chạy) và 23/11/2026 (20 case R1, Bảo chạy thay Ân, mục 4.2) |
 | Bản kiểm thử cuối | tag `v1.0` = `2a6e9e7`. Phần D chạy trên `main` `31853e6` = `v1.0` + bản iOS (#90); backend và app Android không đổi so với `v1.0` |
 | Môi trường | Windows 11, JDK 25. Lần 2: toàn hệ thống chạy Docker (`--profile core --profile mq` ngày 19/11, `--profile all` ngày 22/11), DB sạch + dữ liệu demo bản cuối (`Infra/db/09_demo_seed.sql` + `Infra/seed/media`) |
 | Thiết bị | Máy ảo Android Pixel 7, Android 17 (API 37, Google Play), app 1.0.0+1 bản debug, `DEMO_MODE=true` (nhóm không có điện thoại Android thật). Web Admin: Chrome, Live Server, tài khoản `admin` |
@@ -14,7 +14,7 @@
 và phần chạy tay trên app, Web (phần D, 22/11): 36 case đã chạy đều đạt, TC-101 bị chặn (thiếu Firebase và máy thật).
 Không có lỗi Blocker, Critical, Major; 8 lỗi Minor ghi ở mục 6, đến 23/11 đã sửa cả 8.
 Phần D có bằng chứng ảnh chụp và script đối chiếu dữ liệu `Kiem_case_Tuong_v1.ps1` (chỉ đọc API và MySQL): 27/27 kiểm tra đạt.
-Chưa có kết quả 20 case hồi quy R1 của Ân.
+**Cập nhật 23/11:** đã chạy 20 case hồi quy R1 trên `main` sau #99 (mục 4.2): 19 đạt, 1 chặn (TC-62 cần beacon thật). Lần 2 nâng lên 50/136 case, đạt 50/50.
 
 ## 1. Tổng hợp theo 3 cấp kiểm thử
 
@@ -86,22 +86,22 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 
 | Nhóm | Số case | Lần 1: đã chạy | Lần 1: đạt | Lần 2: đã chạy | Lần 2: đạt | Ghi chú |
 |---|---|---|---|---|---|---|
-| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 10 | 10 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11) |
-| Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | 5 | 5 | Lần 1: TC-36, TC-71 không đạt. Lần 2: TC-34, TC-35, TC-36, TC-71 (API); TC-70 (Web) |
-| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 1 | 1 | Lần 2 (Tường): TC-83 |
+| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 17 | 17 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 64; TC-62 **Chặn** (cần beacon thật) |
+| Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | 8 | 8 | Lần 1: TC-36, TC-71 không đạt. Lần 2: TC-34, TC-35, TC-36, TC-71 (API); TC-70 (Web); R1 23/11: TC-24, 37, 72 |
+| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 4 | 4 | Lần 2 (Tường): TC-83; R1 23/11: TC-47, 75, 85 |
 | Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | 3 | 3 | 4 | 4 | Lần 1: TC-86 chưa bấm nút trên Dashboard. Lần 2 (Tuấn, máy sạch `v1.0`, 21/11): TC-86, TC-108 → TC-110 |
 | Tuần 6: Sự kiện RabbitMQ (TC-87 → TC-100) | 14 | 5 | 5 | 5 | 5 | Lần 1: TC-87, 88, 89, 90, 94. Lần 2 (Tường): TC-89 → TC-93 |
 | Tuần 6: Thông báo, pin, thời gian thực (TC-101 → TC-107) | 7 | 1 | 1 | 1 | 1 | Lần 1: TC-69 chỉ phần 401. Lần 2: TC-105 (Tuấn, 21/11); TC-101 **Chặn** (thiếu Firebase và máy thật) |
 | Tuần 6: Hoàn thiện Mobile, Web (TC-111 → TC-119) | 9 | 3 | 3 | 5 | 5 | Lần 1: TC-116, TC-117, TC-118. Lần 2: TC-116, TC-118 (API); TC-114, TC-115, TC-117 (app, Web) |
 | Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | 1 | 1 | | | TC-120. Chưa tắt service để xem cảnh báo, chưa chạy lại k6 |
-| Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | | | Chỉ TC-130 (API 403) |
+| Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | 1 | 1 | Lần 1: chỉ TC-130 (API 403). R1 23/11: TC-131 |
 | Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường). Không thuộc lần 1 tuần 6 |
-| **Tổng** | **136** | **65** | **62** | **36** | **36** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn; 1 chặn (TC-101); chưa có 20 case R1 của Ân |
+| **Tổng** | **136** | **65** | **62** | **50** | **50** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (14 case mới; TC-13, 21, 70, 133, 134 đã tính trước); 2 chặn (TC-101, TC-62) |
 
 - Tỉ lệ đã chạy lần 1: **65/131 = 50%** (yêu cầu ≥ 90%, chưa đạt).
 - Tỉ lệ đạt trên số đã chạy lần 1: **62/65 = 95%**.
-- Lần 2 (19–22/11): **36/136** case đã chạy, đạt 36/36; TC-101 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1.
-- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%): **36/136 = 26%, chưa đạt** – còn 20 case R1 của Ân và các case cần điện thoại thật, beacon thật.
+- Lần 2 (19–23/11): **50/136** case đã chạy, đạt 50/50; TC-101, TC-62 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1; R1: mục 4.2.
+- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90%): **50/136 = 37%, chưa đạt** – còn các case R2/R3 chưa chạy lại và các case cần điện thoại thật, beacon thật, NiFi.
 - Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): chưa đủ số case Cao đã chạy để kết luận.
 
 ### 4.1 Chạy lại phần Thống kê trên máy sạch `v1.0` (Tuấn, 21/11/2026)
@@ -117,6 +117,37 @@ của 12_Final_Report, log `bench_1m.log`.
 | TC-109 | File PDF đúng tiếng Việt | Đạt | 2 trang, có tiêu đề, khoảng ngày, di tích, bảng số; tiếng Việt có dấu đúng. Giờ "Xuất lúc" lệch 7 giờ (container chạy UTC) – lỗi Minor, mục 6 |
 | TC-110 | Phân quyền và kiểm tra tham số xuất báo cáo | Đạt | `visitor_an` 403; không token 401; `format` sai 400; khoảng ngày ngược 400 |
 | TC-105 | Số "Hôm nay" tăng khi có lượt mới | Đạt | Du khách ghi 1 lượt xem thì số "Hôm nay" tăng ngay (sự kiện RabbitMQ), không cần NiFi |
+
+### 4.2 Hồi quy R1 – 20 case (Bảo chạy thay Ân, 23/11/2026)
+
+Chạy trên `main` `dffc5c0` (sau #99: đã sửa 8 lỗi Minor, giờ VN, index `fact_visits`), Docker `--profile all`, máy ảo Pixel 7, Web Admin Chrome.
+13 case API chạy tự động bằng script `Chay_R1_v1.ps1` (để ngoài repo, thư mục môn học); 7 case giao diện chạy tay. Danh sách R1: [regression-list.md](regression-list.md) mục 4.
+TC-15 và TC-134 có ghi dữ liệu nhưng script tự trả lại như cũ (yêu thích hiện vật 2 của `visitor_an`; khoá rồi mở khoá `visitor_mai`).
+
+| Mã TC | Nội dung | Cách chạy | Kết quả | Ghi chú |
+|---|---|---|---|---|
+| TC-02 | Đăng nhập đúng | Script | Đạt | 200, có `accessToken`, `refreshToken`, `tokenType = Bearer` |
+| TC-12 | Chi tiết hiện vật tiếng Anh | Script | Đạt | `languageCode = en`, `fallback = false`, có media. Tiêu đề EN theo seed bản cuối là "Constellation of Literature Pavilion" (test-plan còn ghi "Khue Van Cac") |
+| TC-13 | Lấy hiện vật theo beacon | Script | Đạt | Registry 1/1 → `artifactId = 1`; chi tiết đúng Khuê Văn Các |
+| TC-15 | Thêm và bỏ yêu thích | Script | Đạt | Thêm 2 lần chỉ 1 dòng, có tên hiện vật; xoá xong không còn |
+| TC-16 | Xem lịch sử tham quan | Script | Đạt | Có hiện vật 1 và 2, mới nhất trước |
+| TC-21 | Xem đánh giá đã duyệt | Script | Đạt | Chỉ APPROVED, mới nhất trước, không lộ `userId`/email |
+| TC-24 | Thêm di tích bằng bản đồ | Tay (Web) | Đạt | Bấm bản đồ tự điền vĩ độ/kinh độ, lưu, F5 vẫn còn; đã xoá sau khi thử. Ghi chú: ô vĩ độ/kinh độ dùng chữ gợi ý là số tọa độ thật, dễ tưởng đã có tọa độ |
+| TC-37 | Dashboard thống kê | Script + tay | Đạt | API 200, đủ trường; máy không chạy NiFi nên số liệu bằng 0 |
+| TC-47 | Định tuyến Gateway | Script | Đạt | 6 đường dẫn của test-plan 200; `/feedbacks`, `/rating-summary` trả dữ liệu feedback-service |
+| TC-54 | Đổi ngôn ngữ trên màn chi tiết | Tay (app) | Đạt | VI ↔ EN đổi ngay, có phụ đề thuyết minh. Chưa kiểm nhãn "Chưa có bản dịch" vì cả 6 hiện vật seed đều có bản EN |
+| TC-61 | Nút giả lập phát hiện beacon | Tay (app) | Đạt | Theo nghiệm thu PR #88 (EM-03, EM-05): mở chi tiết, ghi lượt BEACON, đồng bộ không trùng |
+| TC-62 | Ghi lượt tham quan khi ra vùng | — | Chặn | Cần beacon thật (BLE); máy ảo không quét được |
+| TC-64 | Yêu thích, Lịch sử trên app qua Gateway | Tay (app) | Đạt | Theo nghiệm thu PR #88 (EM-01, EM-04, EM-07) |
+| TC-70 | Duyệt / ẩn đánh giá trên Web | Tay (Web) | Đạt | Huy hiệu "Dữ liệu từ API"; Ẩn rồi Duyệt lại 1 đánh giá, F5 giữ trạng thái, thẻ số liệu cập nhật; giờ hiển thị đúng giờ VN |
+| TC-72 | Dashboard số liệu thật | Script | Đạt | Tải ≤ 5 s (tổng 36 ms, lọc di tích 49 ms, lọc 30 ngày 85 ms). Phần khớp số liệu nguồn cần NiFi, đã kiểm ở mục 4.1 |
+| TC-75 | Bảng route Gateway tuần 5 | Script | Đạt | 11 nhóm route qua 8080 đều 200 |
+| TC-85 | Smoke test toàn hệ thống | Script | Đạt | Đăng nhập admin, visitor + 1 API chính của 7 service đều 200 |
+| TC-131 | Smoke test bản chốt code | Script + tay | Đạt | Gộp TC-85, luồng app (đăng nhập, mô phỏng beacon, yêu thích, lịch sử) và TC-70 |
+| TC-133 | Danh sách và tìm kiếm người dùng | Script | Đạt | `q=an` có `visitor_an`, đủ `role`, `locked`, không có `passwordHash` |
+| TC-134 | Khoá và mở khoá tài khoản | Script | Đạt | Khoá 200; đăng nhập 403; refresh token cũ 401; mở khoá 200; đăng nhập lại 200 |
+
+Cùng đợt, màn "Hiện Vật Di Sản" trên app (trước đây dùng dữ liệu mẫu gõ cứng) đã nối `GET /api/artifacts`: hiện đủ 6 hiện vật thật, lọc theo di tích thật.
 
 ## 5. Lỗi theo mức độ
 
@@ -173,7 +204,7 @@ thay `idx_fact_visits_artifact_date` (DB cũ chạy `Infra/analytics_w8_cover_in
 - Lần 2 (19–22/11, trên `v1.0`): 36 case đã chạy đều đạt, 1 case chặn (TC-101). 3 case không đạt của lần 1 đều đạt
   và đều không phải lỗi code. Luồng Đánh giá đầy đủ trên app và Web (gửi, sửa, chờ duyệt, duyệt, ẩn, điểm trung bình, số chờ duyệt) đạt;
   Thống kê trên máy sạch 5/5 đạt.
-- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **chưa đạt** trong báo cáo này (36/136), vì chưa có kết quả 20 case R1 của Ân.
+- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **chưa đạt** trong báo cáo này (50/136). Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 chặn.
 - Lỗi còn tồn: không có Blocker, Critical, Major; 8 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98).
 - Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-101); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
   (NiFi, cảnh báo Prometheus khi tắt service) cần người phụ trách xác nhận trước buổi bảo vệ.
