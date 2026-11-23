@@ -22,20 +22,15 @@
 ## 3. Chuẩn bị Windows / Android Emulator
 
 1. Mở **Android Studio → Device Manager → Create Virtual Device** → chọn máy Pixel, system image có **Google Play**, tải SDK image nếu được yêu cầu, rồi bấm nút ▶ khởi động AVD.
-2. Dùng PowerShell **trong thư mục gốc của repository**. Đảm bảo `git status --short` không có thay đổi chưa lưu; `git remote -v` để xác định upstream/fork trước khi cập nhật. Checkout đúng nhánh PR đã được đẩy lên GitHub, không chạy thử trên main:
+2. Dùng PowerShell **trong thư mục gốc repository**. Do nhánh PR đã **force-with-lease sau rebase ngày 23/11**, lịch sử nhánh cũ trên Windows có thể khác SHA. Để chạy thử an toàn, không reset/xóa mã chưa commit và không dùng `git merge --ff-only` với nhánh cũ bị diverge:
    ```powershell
    git status --short
-   git branch --show-current
    git remote -v
-   git fetch origin
-   # Nếu đã có nhánh tuần 7 trên máy:
-   git switch fix/XDPMHDT-99-phu-w7-personalization
-   # Fetch từ fork và chỉ cập nhật khi fast-forward an toàn:
    git fetch https://github.com/phuht0462-a11y/XDPMHDT.git fix/XDPMHDT-99-phu-w7-personalization
-   git merge --ff-only FETCH_HEAD
+   git switch -c phu-w7-verify-20261123 FETCH_HEAD
    git log -1 --oneline
    ```
-   Nếu chưa có nhánh local: sau khi fetch nhánh fork, dùng `git switch -c fix/XDPMHDT-99-phu-w7-personalization FETCH_HEAD`. Nếu báo branch conflict/dirty hoặc không fast-forward: dừng, không `reset --hard` và không `push --force`.
+   Nhánh `phu-w7-verify-20261123` chỉ là **nhánh thử cục bộ mới** từ HEAD của PR, không thay đổi hoặc xóa nhánh cũ. Nếu tên này đã tồn tại, chọn một tên khác. Nếu `git status` có file chưa lưu, cần commit/stash chúng có chủ đích trước khi switch; không xóa dữ liệu. Không chạy `git push --force` từ máy sau khi PR đã được cập nhật bằng lease.
 3. Khởi động Docker Desktop. Tại gốc repo:
    ```powershell
    docker compose -f Infra/docker-compose.yml --profile all up -d --build
