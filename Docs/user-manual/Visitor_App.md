@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng – Ứng dụng du khách Smart Heritage
 
-**Trạng thái: KHUNG (bản nháp Sprint 7).** Cấu trúc mục và nội dung đã chốt; các chỗ đánh dấu `TODO` là phần còn phải bổ sung ảnh chụp màn hình / câu chữ sau khi chạy hồi quy trên máy Android thật.
+**Trạng thái: đã bổ sung ảnh chụp màn hình.** Cấu trúc mục và nội dung đã chốt; còn thiếu duy nhất ảnh hộp thoại xin quyền (`02-permissions.png`).
 
 | Mục | Giá trị |
 |---|---|
@@ -9,7 +9,7 @@
 | Bản tài liệu | 0.1 (khung) – 17/11/2026, cập nhật mục 3 + 6.2 theo UI sau commit `436d2f0` |
 | Người viết | Nguyễn Văn Ân |
 | Nguồn đối chiếu | `Docs/testing/test-plan.md` mục 8.1, 8.4, 8.10; `Docs/user-manual/README.md` |
-| Ảnh minh hoạ | `Docs/user-manual/images/` — `TODO` bổ sung |
+| Ảnh minh hoạ | `Docs/user-manual/images/` — đã bổ sung, còn thiếu `02-permissions.png` |
 
 ---
 
@@ -19,7 +19,7 @@ Smart Heritage là ứng dụng thuyết minh du lịch văn hoá. Khi du khách
 
 Phạm vi tài liệu: app Android. iOS, quét beacon khi app chạy nền lâu, và các màn quản trị **không** thuộc tài liệu này (xem hướng dẫn riêng cho Web Admin).
 
-`TODO`: thêm 1 ảnh chụp màn hình Trang chủ (`images/01-home.png`).
+![Trang chủ](images/01-home.png)
 
 ## 2. Cài đặt và đăng nhập lần đầu
 
@@ -83,7 +83,9 @@ Trang chủ **không** còn hiển thị các ô số liệu gõ cứng (số kh
 
 Menu ☰ (góc trên trái) chứa: **Trang chủ**, **Bản đồ di tích**, và khi chưa đăng nhập là **Đăng nhập / Đăng ký**; khi đã đăng nhập là **Hồ sơ cá nhân**, **Hiện vật yêu thích**, **Lịch sử tham quan**, **Đánh giá của tôi**, **Đăng xuất**.
 
-`TODO`: ảnh Trang chủ + ảnh menu ☰ (`images/03-home.png`, `images/04-sidebar.png`).
+![Trang chủ](images/03-home.png)
+
+![Menu ☰](images/04-sidebar.png)
 
 ## 4. Đăng ký, đăng nhập, hồ sơ
 
@@ -93,7 +95,11 @@ Menu ☰ (góc trên trái) chứa: **Trang chủ**, **Bản đồ di tích**, v
 - **Hồ sơ cá nhân**: xem họ tên, email, ngôn ngữ ưa thích; đổi ngôn ngữ tại đây sẽ đổi ngôn ngữ nội dung hiện vật.
 - **Đăng xuất**: menu ☰ → *Đăng xuất*; các màn Yêu thích / Lịch sử / Đánh giá của tôi yêu cầu đăng nhập lại.
 
-`TODO`: ảnh 3 màn Đăng nhập / Đăng ký / Hồ sơ (`images/05-login.png`, `06-register.png`, `07-profile.png`).
+![Đăng nhập](images/05-login.png)
+
+![Đăng ký](images/06-register.png)
+
+![Hồ sơ cá nhân](images/07-profile.png)
 
 ## 5. Bản đồ di tích
 
@@ -110,7 +116,7 @@ Trường hợp đặc biệt:
 | Mất mạng | Báo lỗi kết nối, không treo app; danh sách đã tải trước đó vẫn xem được |
 | Ảnh sơ đồ di tích không tải được | Khung bản đồ để trắng nhưng marker vẫn đúng vị trí (lỗi dữ liệu mẫu, đã ghi nhận) |
 
-`TODO`: ảnh bản đồ có marker và bảng thông tin (`images/08-map.png`).
+![Bản đồ di tích](images/08-map.png)
 
 ## 6. Nghe thuyết minh tại hiện vật
 
@@ -147,7 +153,9 @@ Bản cài thường **không** có hai nút này. Khi đó, để xem nội dun
 
 Chế độ này dùng cho buổi demo và cho máy ảo (emulator không quét được BLE).
 
-`TODO`: ảnh màn quét beacon + màn chọn beacon giả lập (`images/09-scan.png`, `10-simulate.png`).
+![Quét iBeacon](images/09-scan.png)
+
+![Chọn beacon giả lập](images/10-simulate.png)
 
 ## 7. Chi tiết hiện vật
 
@@ -163,7 +171,9 @@ Chế độ này dùng cho buổi demo và cho máy ảo (emulator không quét 
 
 Đọc lại khi mất mạng: app lưu tối đa **20 hiện vật xem gần nhất**. Hiện vật đã xem mở được offline; hiện vật chưa xem báo mất mạng, không treo app.
 
-`TODO`: ảnh chi tiết hiện vật có audio/video và nút VI/EN (`images/11-detail.png`, `12-detail-en.png`).
+![Chi tiết hiện vật – tiếng Việt](images/11-detail.png)
+
+![Chi tiết hiện vật – tiếng Anh](images/12-detail-en.png)
 
 ## 8. Yêu thích
 
@@ -172,7 +182,7 @@ Chế độ này dùng cho buổi demo và cho máy ảo (emulator không quét 
 - Thêm trùng không tạo 2 dòng; bỏ rồi thêm lại vẫn đúng 1 dòng.
 - Chưa đăng nhập: màn này yêu cầu đăng nhập trước.
 
-`TODO`: ảnh màn Yêu thích (`images/13-favorites.png`).
+![Hiện vật yêu thích](images/13-favorites.png)
 
 ## 9. Lịch sử tham quan
 
@@ -181,7 +191,7 @@ Chế độ này dùng cho buổi demo và cho máy ảo (emulator không quét 
 - **Không có mạng**: lượt tham quan được xếp vào hàng đợi trong máy, tự gửi lại khi có mạng; gửi lại nhiều lần không sinh lượt trùng.
 - Chỉ thấy lịch sử của chính mình.
 
-`TODO`: ảnh màn Lịch sử, gồm cả trạng thái "chờ đồng bộ" (`images/14-history.png`).
+![Lịch sử tham quan](images/14-history.png)
 
 ## 10. Đánh giá hiện vật
 
@@ -210,7 +220,11 @@ Menu ☰ → *Đánh giá của tôi*: danh sách đánh giá bạn đã gửi k
 
 Khi quản trị viên duyệt đánh giá, app nhận thông báo *"Đánh giá của bạn về &lt;tên hiện vật&gt; đã được duyệt"*. Bấm thông báo để mở lại hiện vật.
 
-`TODO`: ảnh form đánh giá, màn Đánh giá của tôi, ảnh thông báo (`images/15-review.png`, `16-my-reviews.png`, `17-notification.png`).
+![Đánh giá hiện vật – điểm trung bình và bình luận](images/15-review.png)
+
+![Đánh giá của tôi](images/16-my-reviews.png)
+
+![Thông báo cập nhật đánh giá](images/17-notification.png)
 
 ## 11. Xử lý sự cố
 
@@ -237,15 +251,18 @@ Khi quản trị viên duyệt đánh giá, app nhận thông báo *"Đánh giá
 
 ### 12.2. Ảnh cần bổ sung (làm sau khi chạy hồi quy)
 
-- [ ] `01-home.png` – Trang chủ
-- [ ] `02-permissions.png` – Hộp thoại xin quyền
-- [ ] `03-home.png`, `04-sidebar.png` – Trang chủ + menu ☰
-- [ ] `05-login.png`, `06-register.png`, `07-profile.png`
-- [ ] `08-map.png` – Bản đồ có marker và bảng thông tin
-- [ ] `09-scan.png`, `10-simulate.png` – Quét beacon thật / chọn beacon giả lập
-- [ ] `11-detail.png`, `12-detail-en.png` – Chi tiết VI và EN
-- [ ] `13-favorites.png`, `14-history.png`
-- [ ] `15-review.png`, `16-my-reviews.png`, `17-notification.png`
+- [x] `01-home.png` – Trang chủ
+- [ ] `02-permissions.png` – Hộp thoại xin quyền (chưa có ảnh)
+- [x] `03-home.png` – Trang chủ
+- [x] `04-sidebar.png` – menu ☰
+- [x] `05-login.png` – Đăng nhập
+- [x] `06-register.png` – Đăng ký
+- [x] `07-profile.png` – Hồ sơ
+- [x] `08-map.png` – Bản đồ có marker và bảng thông tin
+- [x] `09-scan.png`, `10-simulate.png` – Quét beacon thật / chọn beacon giả lập
+- [x] `11-detail.png`, `12-detail-en.png` – Chi tiết VI và EN
+- [x] `13-favorites.png`, `14-history.png`
+- [x] `15-review.png`, `16-my-reviews.png`, `17-notification.png`
 
 ### 12.3. Đối chiếu test case
 

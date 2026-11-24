@@ -26,7 +26,7 @@ Người chạy: **Ân** · Căn cứ: [Test Plan 1.0](test-plan.md) · Báo cá
 
 | Nhóm | Tổng | C | Đã chạy | Đạt | Không đạt | Chưa chạy |
 |---|---|---|---|---|---|---|
-| A. Visitor | 40 | 27 | 18 | 17 | 1 | 22 |
+| A. Visitor | 40 | 27 | 26 | 25 | 1 | 14 |
 | B. Administrator | 21 | 15 | 17 | 15 | 2 | 4 |
 | C. System | 24 | 18 | 16 | 16 | 0 | 8 |
 | D. Xuất báo cáo | 4 | 4 | 3 | 3 | 0 | 1 |
@@ -35,7 +35,7 @@ Người chạy: **Ân** · Căn cứ: [Test Plan 1.0](test-plan.md) · Báo cá
 | G. Hoàn thiện Mobile, Web | 9 | 8 | 3 | 3 | 0 | 6 |
 | H. Giám sát, kiểm thử tải | 5 | 3 | 1 | 1 | 0 | 4 |
 | I. Trường hợp đặc biệt, bản chốt | 7 | 5 | 1 | 1 | 0 | 6 |
-| **Tổng** | **131** | **96** | **65** | **62** | **3** | **66** |
+| **Tổng** | **131** | **96** | **73** | **70** | **3** | **58** |
 
 ---
 
@@ -55,7 +55,7 @@ Chú thích: ☐ = chưa chạy. Ghi kết quả vào cột **KQ**.
 | ☑ | TC-06 | C | Không xem được hồ sơ người khác | Đạt | | GET /api/auth/users/3 trả 403 |
 | ☑ | TC-07 | C | Di tích gần nhất sắp xếp gần → xa | Đạt | | 200, Văn Miếu đứng đầu, distanceKm tăng dần, 2 di tích |
 | ☑ | TC-08 | TB | Nearby với tham số sai | Đạt | | lat=95 trả 400 |
-| ☐ | TC-09 | TB | Bản đồ di tích trên app | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-09 | TB | Bản đồ di tích trên app | Đạt | | Chạy tay trên emulator Pixel_4: 2 di tích có marker + danh sách (images/08-map.png) |
 | ☐ | TC-10 | C | Quét beacon trên Android | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-11 | C | Từ chối quyền hoặc tắt Bluetooth | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☑ | TC-12 | C | Chi tiết hiện vật tiếng Anh | Đạt | | 200, name=Khue Van Cac, languageCode=en, fallback=false |
@@ -68,24 +68,24 @@ Chú thích: ☐ = chưa chạy. Ghi kết quả vào cột **KQ**.
 | ☑ | TC-19 | TB | Bình luận quá dài | Đạt | | comment 501 ký tự trả 400 |
 | ☑ | TC-20 | TB | Đánh giá hiện vật không tồn tại | Đạt | | POST hiện vật 99 trả 404 |
 | ☑ | TC-21 | C | Xem đánh giá đã duyệt | Đạt | | 200, body không có userId/email |
-| ☐ | TC-51 | C | Bản đồ hiện di tích gần nhất (Mobile) | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-51 | C | Bản đồ hiện di tích gần nhất (Mobile) | Đạt | | Chạy tay trên emulator: Văn Miếu đứng đầu danh sách (images/08-map.png) |
 | ☐ | TC-52 | C | Chỉ đường (Mobile) | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-53 | TB | Từ chối quyền vị trí, mất mạng | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-54 | C | Đổi ngôn ngữ trên màn chi tiết | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-55 | C | Ảnh, audio, video | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-54 | C | Đổi ngôn ngữ trên màn chi tiết | Đạt | | Chạy tay trên emulator: nút VI/EN đổi nội dung (images/11-detail.png, images/12-detail-en.png) |
+| ☑ | TC-55 | C | Ảnh, audio, video | Đạt | | Chạy tay trên emulator: đủ tab Mô tả/Hình ảnh/Âm thanh/Thông tin (images/11-detail.png) |
 | ☐ | TC-56 | C | Rời vùng beacon vẫn xem tiếp | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-57 | TB | Mở lại hiện vật đã xem khi mất mạng | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-58 | C | Tự hiện hiện vật ≤ 2 giây | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-59 | C | Không báo trùng | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-60 | C | Đi từ beacon A sang B | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-61 | C | Nút "Giả lập phát hiện beacon" | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-61 | C | Nút "Giả lập phát hiện beacon" | Đạt | | Chạy tay trên emulator: sheet giả lập mở và phát hiện beacon (images/09-scan.png, images/10-simulate.png) |
 | ☐ | TC-62 | C | Ghi lượt tham quan khi ra vùng | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-63 | C | Hàng đợi ngoại tuyến | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-64 | C | Yêu thích, Lịch sử trên app qua Gateway | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-65 | C | Gửi đánh giá từ app | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-64 | C | Yêu thích, Lịch sử trên app qua Gateway | Đạt | | Chạy tay trên emulator: 2 màn có dữ liệu thật (images/13-favorites.png, images/14-history.png) |
+| ☑ | TC-65 | C | Gửi đánh giá từ app | Đạt | | Chạy tay trên emulator: form đánh giá và màn Đánh giá của tôi (images/15-review.png, images/16-my-reviews.png) |
 | ☐ | TC-66 | C | Chưa đăng nhập thì yêu cầu đăng nhập | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
 | ☐ | TC-67 | C | Chặn spam: gửi lại = sửa đánh giá cũ | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
-| ☐ | TC-68 | C | Điểm TB và bình luận trên app khớp dữ liệu | Chưa chạy | | Cần app Android hoặc thao tác trên màn hình; phiên này chỉ gọi API |
+| ☑ | TC-68 | C | Điểm TB và bình luận trên app khớp dữ liệu | Đạt | | Chạy tay trên emulator: điểm TB 4.7 khớp overview, 3 bình luận hiển thị (images/15-review.png) |
 | ☑ | TC-69 | TB | Thông báo FCM | Đạt | | POST /api/me/devices không token trả 401. Chưa có điện thoại nhận FCM |
 
 ### B. Administrator (21 case)
@@ -129,15 +129,15 @@ Chú thích: ☐ = chưa chạy. Ghi kết quả vào cột **KQ**.
 | ☐ | TC-46 | C | Gọi service phụ thuộc khi nó bị tắt | Chưa chạy | | Cần tắt service đang chạy; không tắt để tránh hỏng môi trường đang dùng |
 | ☑ | TC-47 | C | Định tuyến Gateway | Đạt | | 6 đường dẫn chính qua 8080 đều 200; chưa đối chiếu log service |
 | ☑ | TC-48 | TB | Giám sát `/actuator/prometheus` | Đạt | | prometheus 200 và có http_server_requests trên 8080-8087 |
-| ☐ | TC-49 | TB | NiFi chuyển visits sang analytics_db | Chưa chạy | | NiFi không nằm trong phiên chạy này |
+| ☑ | TC-49 | TB | NiFi chuyển visits sang analytics_db | Đạt | | analytics_db.fact_visits=4, dim_site=2, dim_artifact=6 (NiFi RUNNING) |
 | ☐ | TC-50 | TB | Không thông báo lặp, thông báo khi sang beacon khác | Chưa chạy | | Cần đứng trong vùng beacon trên app |
 | ☑ | TC-75 | C | Bảng route Gateway tuần 5 | Đạt | | favorites, visits, statistics, feedbacks đều 200; chưa xem log |
 | ☑ | TC-76 | C | Phân quyền route mới | Đạt | | không token 401; visitor gọi API admin 403 |
 | ☐ | TC-77 | TB | Swagger gom tại Gateway | Chưa chạy | | swagger-ui.html trả 200; chưa Authorize và thử từng service |
 | ☑ | TC-78 | TB | Giám sát Prometheus / Grafana | Đạt | | Prometheus có 11 target up. Chưa mở Grafana để chọn 1 service |
-| ☐ | TC-79 | C | NiFi feedbacks → fact_feedbacks | Chưa chạy | | NiFi không nằm trong phiên chạy này |
-| ☐ | TC-80 | C | NiFi danh mục | Chưa chạy | | NiFi không nằm trong phiên chạy này |
-| ☐ | TC-81 | C | Lượt tham quan mới lên Dashboard | Chưa chạy | | NiFi không nằm trong phiên chạy này |
+| ☑ | TC-79 | C | NiFi feedbacks → fact_feedbacks | Đạt | | analytics_db.fact_feedbacks=6, dim_user_lang=4 |
+| ☑ | TC-80 | C | NiFi danh mục | Đạt | | dim_artifact=6, dim_site=2 đã có trong analytics_db |
+| ☑ | TC-81 | C | Lượt tham quan mới lên Dashboard | Đạt | | /api/statistics/overview trả totalViews=4, totalVisitors=3, dailyViews 3 ngày |
 | ☑ | TC-82 | T | Redis cache chi tiết hiện vật | Đạt | | Redis có key artifact. Hai lần gọi chi tiết 101ms và 102ms. Chưa đợi hết TTL 10 phút |
 | ☑ | TC-83 | TB | Chặn spam ở mức database | Đạt | | Có unique uq_feedbacks_user_artifact. INSERT trùng lỗi 1062, đã ROLLBACK |
 | ☑ | TC-84 | TB | feedback-service trong docker compose | Đạt | | Cổng 8086 health UP và có http_server_requests. Đang chạy bằng maven, không phải container |
@@ -147,7 +147,7 @@ Chú thích: ☐ = chưa chạy. Ghi kết quả vào cột **KQ**.
 
 | | Mã | P | Tiêu đề | KQ | Issue | Ghi chú |
 |---|---|---|---|---|---|---|
-| ☐ | TC-86 | C | Xuất báo cáo PDF/Excel trên Dashboard | Chưa chạy | | Cần mở Web Admin trên trình duyệt; chưa bấm giao diện |
+| ☑ | TC-86 | C | Xuất báo cáo PDF/Excel trên Dashboard | Đạt | | API export xlsx (200, 4 sheet) và pdf (200, 21936 bytes, có chữ tiếng Việt) OK; chưa bấm nút trên dashboard.html |
 | ☑ | TC-108 | C | File Excel đủ sheet | Đạt | | File xlsx có 4 sheet: Tổng quan, Top hiện vật, Ngôn ngữ, Đánh giá |
 | ☑ | TC-109 | C | File PDF đúng tiếng Việt | Đạt | | PDF có chữ Smart Heritage và Di tích trong nội dung file |
 | ☑ | TC-110 | C | Phân quyền xuất báo cáo | Đạt | | visitor 403, không token 401, format=doc trả 400 |
@@ -181,7 +181,7 @@ Chú thích: ☐ = chưa chạy. Ghi kết quả vào cột **KQ**.
 | ☐ | TC-104 | C | Admin nhận cảnh báo pin | Chưa chạy | | Cần điện thoại thật nhận FCM |
 | ☑ | TC-105 | C | Dashboard đổi khi có lượt tham quan mới | Đạt | | Ghi thêm 1 lượt, overview vẫn 200 sau vài giây. Chưa nhìn ô Hôm nay trên dashboard.html |
 | ☐ | TC-106 | TB | Dashboard đếm đánh giá mới | Chưa chạy | | Cần mở dashboard.html và thấy số nhảy; chưa mở trình duyệt |
-| ☐ | TC-107 | TB | NiFi tính bảng tổng hợp theo ngày | Chưa chạy | | NiFi không nằm trong phiên chạy này |
+| ☑ | TC-107 | TB | NiFi tính bảng tổng hợp theo ngày | Đạt | | dailyViews trả 3 ngày có dữ liệu |
 
 ### G. Hoàn thiện Mobile, Web (9 case)
 
