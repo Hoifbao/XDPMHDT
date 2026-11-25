@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'features/personalization/personalization_service.dart';
+import 'features/personalization/personalization_sync.dart';
 import 'package:http/http.dart' as http;
 import 'core/network/auth_http_client.dart';
 import 'features/auth/auth_service.dart';
@@ -39,7 +40,7 @@ void main() {
     AuthService.currentUser.addListener(
       () => unawaited(DeviceRegistrationService.I.ensureRegistered()),
     );
-    runApp(const SmartHeritageApp());
+    runApp(const PersonalizationSync(child: SmartHeritageApp()));
   }, () => AuthHttpClient(inner));
 }
 
@@ -95,14 +96,14 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
-  void openArtifact(Map<String, dynamic> artifact) {
+  void openArtifact(Map<String, dynamic> artifact, {String source = 'MANUAL'}) {
     final id = (artifact['id'] as num).toInt();
     unawaited(PersonalizationService.recordVisit(
       artifactId: id,
       artifactName: artifact['name']?.toString() ?? 'Hiện vật',
       siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
       thumbnailUrl: artifact['image']?.toString() ?? '',
-      source: 'MANUAL',
+      source: source,
     ));
     Navigator.push(
       context,
@@ -142,7 +143,7 @@ class _HomePageState extends State<HomePage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              openArtifact(artifacts.first);
+              openArtifact(artifacts.first, source: 'BEACON');
             },
             child: const Text('Xem hiện vật'),
           ),

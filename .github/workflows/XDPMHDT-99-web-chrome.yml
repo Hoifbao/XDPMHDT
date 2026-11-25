@@ -1,0 +1,70 @@
+name: XDPMHDT-99 Flutter Web Chrome smoke
+on:
+  push:
+    branches:
+      - fix/XDPMHDT-99-phu-w7-personalization
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome-web:
+    name: Flutter Web on Chrome (CI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: Interface
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          flutter-version: "3.50.0"
+          cache: true
+      - name: Show browser and Flutter versions
+        run: |
+          flutter --version
+          command -v google-chrome || command -v chromium
+          google-chrome --version || chromium --version
+      - name: Create web bootstrap for CI only
+        run: |
+          flutter create --platforms=web --project-name smartheritage --no-pub .
+          flutter pub get
+      - name: Build Flutter Web
+        run: flutter build web --dart-define=DEMO_MODE=true --dart-define=API_BASE_URL=http://localhost:8080
+      - name: Run personalization smoke tests in headless Chrome
+        run: flutter test --platform chrome --reporter expanded test/personalization_screens_test.dart test/features/personalization/personalization_offline_test.dart
+      - name: Verify build artifacts
+        run: |
+          test -f build/web/index.html
+          test -f build/web/main.dart.js || test -f build/web/main.dart.wasm
+          du -sh build/web
+
+      - name: Launch built application in headless Chrome and capture proof
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory build/web > /tmp/smartheritage-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for i in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8765/ > /dev/null; then break; fi
+            sleep 1
+          done
+          google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1280,720 --virtual-time-budget=12000 --screenshot=/tmp/smartheritage-web-chrome.png http://127.0.0.1:8765/ > /tmp/smartheritage-chrome.log 2>&1
+          test -s /tmp/smartheritage-web-chrome.png
+          google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=12000 --dump-dom http://127.0.0.1:8765/ > /tmp/smartheritage-web-dom.html 2>> /tmp/smartheritage-chrome.log
+          grep -Eiq 'flutter-view|flt-glass-pane' /tmp/smartheritage-web-dom.html
+      - name: Keep Chrome screenshot and DOM proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-heritage-flutter-web-chrome-proof
+          path: |
+            /tmp/smartheritage-web-chrome.png
+            /tmp/smartheritage-web-dom.html
+            /tmp/smartheritage-chrome.log
+          retention-days: 7
+          if-no-files-found: warn
