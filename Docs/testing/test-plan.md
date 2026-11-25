@@ -303,7 +303,7 @@ Chuẩn bị theo mục 3.1. Sau mỗi bước, xem tin trong queue `qa.events`.
 
 | Mã TC | US | Tiêu đề | Tiền điều kiện | Bước | Dữ liệu | Kết quả mong đợi | Ưu tiên |
 |---|---|---|---|---|---|---|---|
-| TC-87 | US22 | VisitRecorded khi ghi 1 lượt (Phú) | Đăng nhập `visitor_an` | `POST /api/me/visits` | `{"artifactId":1,"source":"BEACON"}` | Có đúng 1 tin routing key `visit.recorded`; `data` có `visitId, userId, artifactId, siteId, detectedAt, durationSeconds, source` | C |
+| TC-87 | US22 | VisitRecorded khi ghi 1 lượt (Phú) | Đăng nhập `visitor_an` | `POST /api/me/visits` | `{"artifactId":1,"source":"BEACON"}` | Có đúng 1 tin routing key `visit.recorded`; `data` có `visitId, artifactId, detectedAt` (đúng hợp đồng analytics-service, `VisitEventData`; sửa 25/11 – bản cũ ghi thêm `userId, siteId, durationSeconds, source`) | C |
 | TC-88 | US21, US22 | VisitRecorded khi gửi theo lô (Phú) | Đăng nhập `visitor_an` | `POST /api/me/visits/batch` 2 lần cùng `clientEventId` | 2 event có `clientEventId` khác nhau | Lần 1: 2 tin `visit.recorded`; lần 2 (trùng): không có tin mới | C |
 | TC-89 | US08 | FeedbackCreated khi đánh giá mới (Tường) | Đăng nhập `visitor_mai`, chưa đánh giá hiện vật 3 | `POST /api/artifacts/3/feedbacks` | `{"rating":4,"comment":"Rất hay"}` | 201; có đúng 1 tin `feedback.created`, `type = FeedbackCreated`; `data` có `feedbackId, userId = 3, artifactId = 3, rating = 4, createdAt` | C |
 | TC-90 | US08 | Gửi lại không phát FeedbackCreated (Tường) | Sau TC-89 | Gửi lại `POST /api/artifacts/3/feedbacks` | `{"rating":2}` | 200, đánh giá về PENDING; không có tin `feedback.created` mới | C |

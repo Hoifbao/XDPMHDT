@@ -7,6 +7,7 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,6 +45,17 @@ class ServiceUnavailableHandlerTest {
         handler.handle(exchange, new IllegalStateException("wrapped", new UnknownHostException("feedback-service"))).block();
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    void containerVuaStopConGiuIpCuNoRouteToHostTra503() {
+        // Lỗi Minor 12: log thật 25/11 'AnnotatedNoRouteToHostException: feedback-service/172.19.0.16:8086'
+        MockServerWebExchange exchange = exchange();
+        handler.handle(exchange, new IllegalStateException("wrapped", new NoRouteToHostException("feedback-service/172.19.0.16:8086"))).block();
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exchange.getResponse().getStatusCode());
+        String body = exchange.getResponse().getBodyAsString().block();
+        assertTrue(body.contains("\"success\":false"), body);
     }
 
     @Test
