@@ -1,15 +1,15 @@
 # Hướng dẫn sử dụng – Ứng dụng du khách Smart Heritage
 
-**Trạng thái: đã bổ sung ảnh chụp màn hình.** Cấu trúc mục và nội dung đã chốt; còn thiếu duy nhất ảnh hộp thoại xin quyền (`02-permissions.png`).
+**Trạng thái: đã đủ ảnh chụp màn hình (17 ảnh).** Cấu trúc mục và nội dung đã chốt.
 
 | Mục | Giá trị |
 |---|---|
 | Đối tượng | Du khách dùng app Android (không phải quản trị viên) |
 | Phiên bản app | `Interface` – Flutter, `applicationId = com.example.smartheritage` |
 | Bản tài liệu | 0.1 (khung) – 17/11/2026, cập nhật mục 3 + 6.2 theo UI sau commit `436d2f0` |
-| Người viết | Nguyễn Văn Ân |
+| Người viết | Đoàn Phương Thiên Ân |
 | Nguồn đối chiếu | `Docs/testing/test-plan.md` mục 8.1, 8.4, 8.10; `Docs/user-manual/README.md` |
-| Ảnh minh hoạ | `Docs/user-manual/images/` — đã bổ sung, còn thiếu `02-permissions.png` |
+| Ảnh minh hoạ | `Docs/user-manual/images/` — đủ 17 ảnh (25/11: bổ sung `02-permissions.png`, chụp lại `03-home.png`, `10-simulate.png`) |
 
 ---
 
@@ -38,7 +38,7 @@ Phạm vi tài liệu: app Android. iOS, quét beacon khi app chạy nền lâu,
 2. Nếu Android chặn cài đặt, bật *Cài đặt → Ứng dụng → Smart Heritage → Cho phép từ nguồn này*.
 3. Mở app, đồng ý 2 quyền được hỏi (vị trí, thông báo).
 
-`TODO`: ảnh màn hình cấp quyền (`images/02-permissions.png`).
+![Hộp thoại xin quyền vị trí](images/02-permissions.png)
 
 ### 2.3. Trỏ app về máy chủ (dành cho nhóm phát triển)
 
@@ -76,8 +76,10 @@ Các khối trên màn hình, từ trên xuống:
 | Mô phỏng beacon | Nút giả lập phát hiện beacon – **chỉ có ở bản chạy chế độ demo** (xem mục 6.2) | Xem mục 6.2 |
 | Bản đồ di sản | Khung *Các di tích trong hệ thống* (nhãn *OpenStreetMap*) + nút *Mở bản đồ di tích* | Bấm để mở bản đồ (mục 5) |
 | Hiện vật nổi bật | Danh sách hiện vật kèm ảnh, nhãn beacon, mô tả ngắn | Bấm **Mở câu chuyện** để mở chi tiết (mục 7) |
-| Hiện vật đã xem – đọc offline | Những hiện vật đã mở trước đó | Đọc lại khi không có mạng (cùng chức năng với biểu tượng 🕘 trên thanh trên cùng) |
 | Hành trình của bạn | Nút **Xem lịch sử tham quan** – mở lịch sử thật lấy từ máy chủ | Xem mục 9 |
+| Quét iBeacon (BLE / iBeacon) | Nút **Phát hiện hiện vật gần bạn (demo)** và **Quét iBeacon thật** | Xem mục 6 |
+
+Danh sách *Hiện vật đã xem – đọc offline* (những hiện vật đã mở trước đó, đọc lại được khi không có mạng) mở bằng biểu tượng 🕘 trên thanh trên cùng, không nằm thành khối trên Trang chủ.
 
 Trang chủ **không** còn hiển thị các ô số liệu gõ cứng (số khách / lượt tương tác / điểm trung bình) như bản trước; số liệu thật chỉ có trên Web Admin.
 
@@ -252,8 +254,8 @@ Khi quản trị viên duyệt đánh giá, app nhận thông báo *"Đánh giá
 ### 12.2. Ảnh cần bổ sung (làm sau khi chạy hồi quy)
 
 - [x] `01-home.png` – Trang chủ
-- [ ] `02-permissions.png` – Hộp thoại xin quyền (chưa có ảnh)
-- [x] `03-home.png` – Trang chủ
+- [x] `02-permissions.png` – Hộp thoại xin quyền vị trí
+- [x] `03-home.png` – Trang chủ, phần dưới (Hành trình của bạn, Quét iBeacon)
 - [x] `04-sidebar.png` – menu ☰
 - [x] `05-login.png` – Đăng nhập
 - [x] `06-register.png` – Đăng ký
