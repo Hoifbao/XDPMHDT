@@ -154,6 +154,13 @@ class ArtifactApiTest {
         mvc.perform(get("/api/media/files/missing.png")).andExpect(status().isNotFound());
     }
 
+    @Test
+    void uploadUrlUsesPublicBaseUrlWhenConfigured() {
+        // Bao W8 (loi 13): co PUBLIC_BASE_URL thi link upload la dia chi Gateway, khong phai host Docker noi bo
+        var controller = new com.smartheritage.content.controller.MediaUploadController(null, "http://localhost:8080/");
+        org.junit.jupiter.api.Assertions.assertEquals("http://localhost:8080/api/media/files/abc.png", controller.fileUrl("abc.png"));
+    }
+
     long create(String body) throws Exception {
         var result = mvc.perform(post("/api/artifacts").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())

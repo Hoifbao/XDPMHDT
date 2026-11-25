@@ -115,6 +115,8 @@ services:
       LEGACY_BACKEND_URL: http://backend:8090
       # Bảo W7: kiểm siteId qua site-service; gửi ArtifactUpdated lên RabbitMQ (trước đây thiếu host -> lỗi kết nối)
       SITE_SERVICE_URL: http://site-service:8082
+      # Bao W8 (loi 13): link file upload tra ve dia chi Gateway, giong media seed (truoc day ra http://content-service:8083/...)
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-smartheritage}
