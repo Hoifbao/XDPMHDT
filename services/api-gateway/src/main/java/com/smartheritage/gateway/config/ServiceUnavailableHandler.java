@@ -12,6 +12,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -21,6 +22,8 @@ import java.util.Map;
  *  - ConnectException: container đang chạy nhưng service chưa mở cổng ("Connection refused"),
  *    gồm cả AnnotatedConnectException và ConnectTimeoutException của Netty (đều là lớp con).
  *  - UnknownHostException: container đã stop nên tên host trong Docker (vd. feedback-service) không còn.
+ *  - NoRouteToHostException (Bảo W8, lỗi Minor 12): container vừa stop nhưng Gateway còn giữ IP cũ
+ *    (vd. feedback-service/172.19.0.16) -> trước đây ra 500 sau ~14 s. Kèm connect-timeout 2 s trong application.yml.
  * Các lỗi khác chuyển tiếp cho bộ xử lý mặc định của Spring Boot (giữ nguyên hành vi cũ).
  * Order(-2): chạy trước DefaultErrorWebExceptionHandler (Order -1).
  */
@@ -57,7 +60,8 @@ public class ServiceUnavailableHandler implements ErrorWebExceptionHandler {
     /** Duyệt cả chuỗi cause vì Reactor/Netty có thể bọc lỗi kết nối trong lỗi khác. */
     static boolean isConnectionFailure(Throwable ex) {
         for (Throwable t = ex; t != null; t = (t.getCause() == t ? null : t.getCause())) {
-            if (t instanceof ConnectException || t instanceof UnknownHostException) {
+            if (t instanceof ConnectException || t instanceof UnknownHostException
+                    || t instanceof NoRouteToHostException) {
                 return true;
             }
         }

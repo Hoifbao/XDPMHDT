@@ -5,6 +5,15 @@ server:
 spring:
   application:
     name: api-gateway
+  # Bảo W8 (lỗi Minor 12): service tắt mà Gateway còn giữ IP cũ thì kết nối treo ~14–30 s rồi 500.
+  # Giới hạn thời gian mở kết nối 2 s -> ServiceUnavailableHandler trả 503 nhanh. Không giới hạn thời gian đọc
+  # (xuất báo cáo, upload media có thể lâu).
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:2000}
 
 app:
   # Phải TRÙNG khóa với auth-service và Backend cũ (cùng biến môi trường JWT_SECRET)
