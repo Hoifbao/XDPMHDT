@@ -79,6 +79,10 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 1,
       'name': 'Khue Van Cac',
+      // Lỗi Minor số 11 (TC-125): tên + di tích theo dữ liệu demo, dùng khi ghi lượt MANUAL
+      // (lịch sử lưu trên máy hiện đúng cả lúc mất mạng)
+      'historyName': 'Khuê Văn Các',
+      'siteName': 'Văn Miếu - Quốc Tử Giám',
       'beacon': 'iBeacon 1',
       'description':
           'The constellation pavilion and signature symbol of the Temple of Literature.',
@@ -88,6 +92,8 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 2,
       'name': 'Doctors’ Stelae',
+      'historyName': 'Bia Tiến sĩ',
+      'siteName': 'Văn Miếu - Quốc Tử Giám',
       'beacon': 'iBeacon 2',
       'description':
           'Stone stelae recording royal examinations and doctoral laureates.',
@@ -100,7 +106,7 @@ class _HomePageState extends State<HomePage> {
     final id = (artifact['id'] as num).toInt();
     unawaited(PersonalizationService.recordVisit(
       artifactId: id,
-      artifactName: artifact['name']?.toString() ?? 'Hiện vật',
+      artifactName: (artifact['historyName'] ?? artifact['name'])?.toString() ?? 'Hiện vật',
       siteName: artifact['siteName']?.toString() ?? 'Di tích Smart Heritage',
       thumbnailUrl: artifact['image']?.toString() ?? '',
       source: source,
