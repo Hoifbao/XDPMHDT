@@ -56,6 +56,8 @@ app:
     confirm-timeout-ms: 5000
   media:
     directory: ${MEDIA_DIRECTORY:./uploads}
+    # Bao W8 (loi 13): dia chi cong khai (Gateway) de tao link file upload. De trong = lay tu request/X-Forwarded-*.
+    public-base-url: ${PUBLIC_BASE_URL:}
   clients:
     site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     timeout: ${CLIENT_TIMEOUT:2s}
