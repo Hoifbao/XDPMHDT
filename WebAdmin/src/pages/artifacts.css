@@ -355,3 +355,30 @@ h2 {
     flex: none;
     cursor: pointer;
 }
+
+/* Bao W8 (TC-27): o tim kiem va loc di tich phia tren danh sach hien vat */
+.artifact-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 12px;
+}
+
+.artifact-filter input,
+.artifact-filter select {
+    flex: 1 1 200px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #d9ded8;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: var(--ink);
+}
+
+.artifact-filter input:focus,
+.artifact-filter select:focus {
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px #56715d1a;
+}

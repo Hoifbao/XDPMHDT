@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 import 'package:uuid/uuid.dart';
 
 import '../../screens/artifact_detail_screen.dart';
@@ -585,6 +586,16 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Thử lại'),
               ),
+              // Lỗi 14: thiếu quyền → mở trang Cài đặt của app; quay lại app thì
+              // didChangeAppLifecycleState tự quét lại.
+              if (BeaconService.needsAppSettings(_error)) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: openAppSettings,
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Mở Cài đặt'),
+                ),
+              ],
             ],
           ),
         ),

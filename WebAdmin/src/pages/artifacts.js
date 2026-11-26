@@ -91,27 +91,46 @@ form.addEventListener('reset', event => {
         message.textContent = 'Sẵn sàng tạo hiện vật mới.';
     });
 });
+// Bao W8 (TC-27): giu danh sach trong bo nho, tim kiem + loc di tich ngay tren trinh duyet
+let allArtifacts = [];
+const searchBox = document.getElementById('artifact-search');
+const siteFilter = document.getElementById('artifact-site-filter');
+// Bo dau tieng Viet de go "bia tien si" van tim ra "Bia Tiến sĩ"
+const plain = text => String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 async function loadList() {
     const list = document.getElementById('artifact-list');
     try {
-        const data = await api('/api/artifacts'); list.replaceChildren();
-        for (const item of data) {
-            const row = document.createElement('p'), link = document.createElement('a'), remove = document.createElement('button');
-            row.className = 'artifact-row'; link.className = 'artifact-link';
-            if (String(id) === String(item.id)) link.classList.add('active');
-            link.href = '?id=' + item.id; link.textContent = `${item.name} (${item.artifactCode || item.id})`;
-            remove.type = 'button'; remove.className = 'text-button'; remove.textContent = 'Xóa';
-            remove.onclick = async () => {
-                if (!confirm(`Xóa hiện vật “${item.name}”?`)) return;
-                remove.disabled = true;
-                try { await api('/api/artifacts/' + item.id, 'DELETE'); if (String(id) === String(item.id)) form.reset(); await loadList(); }
-                catch (error) { message.textContent = error.message; remove.disabled = false; }
-            };
-            row.append(link, remove); list.appendChild(row);
-        }
-        if (!data.length) list.textContent = 'Chưa có hiện vật.';
+        allArtifacts = await api('/api/artifacts');
+        renderList();
     } catch (error) { list.textContent = 'Không tải được danh sách: ' + error.message; }
 }
+function renderList() {
+    const list = document.getElementById('artifact-list');
+    const keyword = plain(searchBox ? searchBox.value.trim() : '');
+    const siteId = siteFilter ? siteFilter.value : '';
+    const rows = allArtifacts.filter(item =>
+        (!siteId || String(item.siteId) === siteId) &&
+        (!keyword || plain(item.name).includes(keyword) || plain(item.artifactCode).includes(keyword)));
+    list.replaceChildren();
+    for (const item of rows) {
+        const row = document.createElement('p'), link = document.createElement('a'), remove = document.createElement('button');
+        row.className = 'artifact-row'; link.className = 'artifact-link';
+        if (String(id) === String(item.id)) link.classList.add('active');
+        link.href = '?id=' + item.id; link.textContent = `${item.name} (${item.artifactCode || item.id})`;
+        remove.type = 'button'; remove.className = 'text-button'; remove.textContent = 'Xóa';
+        remove.onclick = async () => {
+            if (!confirm(`Xóa hiện vật “${item.name}”?`)) return;
+            remove.disabled = true;
+            try { await api('/api/artifacts/' + item.id, 'DELETE'); if (String(id) === String(item.id)) form.reset(); await loadList(); }
+            catch (error) { message.textContent = error.message; remove.disabled = false; }
+        };
+        row.append(link, remove); list.appendChild(row);
+    }
+    if (!allArtifacts.length) list.textContent = 'Chưa có hiện vật.';
+    else if (!rows.length) list.textContent = 'Không có hiện vật khớp bộ lọc.';
+}
+if (searchBox) searchBox.addEventListener('input', renderList);
+if (siteFilter) siteFilter.addEventListener('change', renderList);
 async function init() {
     submit.disabled = true;
     try {
@@ -120,6 +139,7 @@ async function init() {
         const sites = await api('/api/heritage-sites'), select = form.elements.location_id;
         select.replaceChildren(new Option('Chọn địa điểm', ''));
         sites.forEach(site => select.add(new Option(site.name, site.id)));
+        if (siteFilter) sites.forEach(site => siteFilter.add(new Option(site.name, site.id)));
         if (id) {
             const data = await api('/api/artifacts/' + id + '?lang=vi');
             input(form, 'location_id').value = data.siteId; fill(form, fields, data);

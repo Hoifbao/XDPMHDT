@@ -311,7 +311,7 @@ class BeaconService {
         ? await permissions.request()
         : {for (final p in permissions) p: await p.status};
     if (statuses.values.any((status) => !status.isGranted)) {
-      throw Exception('Cần cấp quyền Bluetooth và Vị trí để quét beacon.');
+      throw Exception(permissionDeniedMessage);
     }
 
     // Android: BLE scan cần dịch vụ Định vị (GPS) đang bật, quyền đã cấp chưa đủ
@@ -363,6 +363,15 @@ class BeaconService {
     return FlutterBluePlus.adapterState
         .map((state) => state == BluetoothAdapterState.on);
   }
+
+  /// Bảo W8 (lỗi Minor 14, TC-11/TC-127): bị từ chối quyền thì chỉ "Thử lại" là không đủ —
+  /// Android từ chối 2 lần sẽ không hỏi lại nữa, nên phải chỉ đường vào Cài đặt (giống màn Bản đồ).
+  static const permissionDeniedMessage =
+      'Cần cấp quyền Bluetooth và Vị trí để quét beacon. '
+      'Vào Cài đặt → Ứng dụng → Smart Heritage → Quyền để bật, hoặc bấm "Mở Cài đặt".';
+
+  /// Lỗi này cần người dùng tự bật quyền trong Cài đặt (màn quét hiện thêm nút "Mở Cài đặt").
+  static bool needsAppSettings(String? message) => message == permissionDeniedMessage;
 
   /// Thông báo lỗi gọn cho người dùng (bỏ tiền tố "Exception: " của Dart).
   static String userMessage(Object error) {

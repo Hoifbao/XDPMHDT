@@ -93,6 +93,19 @@ void main() {
     });
   });
 
+  group('BeaconService.needsAppSettings (lỗi 14)', () {
+    test('thiếu quyền thì cần mở Cài đặt', () {
+      final message = BeaconService.userMessage(Exception(BeaconService.permissionDeniedMessage));
+      expect(BeaconService.needsAppSettings(message), isTrue);
+      expect(message, contains('Cài đặt'));
+    });
+
+    test('lỗi khác (GPS tắt, null) thì không', () {
+      expect(BeaconService.needsAppSettings('Hãy bật Định vị (GPS) để quét beacon.'), isFalse);
+      expect(BeaconService.needsAppSettings(null), isFalse);
+    });
+  });
+
   group('BeaconService.userMessage', () {
     test('bỏ tiền tố "Exception: " khỏi thông báo lỗi', () {
       expect(

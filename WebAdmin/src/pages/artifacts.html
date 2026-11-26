@@ -28,7 +28,15 @@
             </div>
         </div>
 
-        <section class="card form-section"><h2>Danh sách hiện vật</h2><div id="artifact-list" role="status">Đang tải…</div></section>
+        <section class="card form-section">
+            <h2>Danh sách hiện vật</h2>
+            <!-- Bao W8 (TC-27): tim theo ten/ma va loc theo di tich, loc ngay tren trinh duyet -->
+            <div class="artifact-filter">
+                <input type="search" id="artifact-search" placeholder="Tìm theo tên hoặc mã hiện vật…" aria-label="Tìm hiện vật">
+                <select id="artifact-site-filter" aria-label="Lọc theo di tích"><option value="">Tất cả di tích</option></select>
+            </div>
+            <div id="artifact-list" role="status">Đang tải…</div>
+        </section>
         <section class="card form-section">
             <h2>Ngôn ngữ hỗ trợ</h2>
             <p>Tiếng Việt luôn hoạt động để làm bản dự phòng. Tắt ngôn ngữ sẽ giữ nguyên các bản dịch đã lưu.</p>
