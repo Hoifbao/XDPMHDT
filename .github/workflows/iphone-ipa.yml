@@ -1,0 +1,136 @@
+name: SmartHeritage iPhone IPA (unsigned)
+
+on:
+  push:
+    branches: [feature/smartheritage-iphone-ipa]
+    paths: ['.github/workflows/iphone-ipa.yml', 'Interface/**']
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: 'Flutter stable version (Dart >= 3.13.4 required)'
+        required: false
+        default: '3.50.0'
+        type: string
+      api_base_url:
+        description: 'Backend HTTPS URL reachable from iPhone (fallback: repository variable API_BASE_URL)'
+        required: false
+        type: string
+      demo_mode:
+        description: 'Show beacon simulation button'
+        default: true
+        type: boolean
+      publish_release:
+        description: 'Also publish the IPA as a GitHub prerelease'
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: Interface
+    env:
+      API_BASE_URL: ${{ inputs.api_base_url || vars.API_BASE_URL }}
+      DEMO_MODE: ${{ github.event_name == 'push' || inputs.demo_mode }}
+      COCOAPODS_DISABLE_STATS: 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ inputs.flutter_version || '3.50.0' }}
+          cache: true
+
+      - name: Show toolchain
+        run: |
+          flutter --version
+          dart --version
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          pod --version
+
+      - name: Check project and backend configuration
+        run: |
+          if [[ ! -f pubspec.yaml ]]; then
+            echo "::error::Missing pubspec.yaml in $PWD. Run this job from Interface/."
+            exit 1
+          fi
+          test -f ios/Podfile
+          test -f ios/Runner.xcodeproj/project.pbxproj
+          plutil -lint ios/Runner/Info.plist
+          if [[ -z "$API_BASE_URL" ]]; then
+            echo '::warning::API_BASE_URL is empty. The app will use localhost:8080; backend features will not work on a physical iPhone. Enter api_base_url or set the repository variable API_BASE_URL.'
+          elif [[ ! "$API_BASE_URL" =~ ^https://[^[:space:]]+$ ]]; then
+            echo '::warning::Use an HTTPS backend URL reachable from your iPhone for backend features.'
+          fi
+
+      - name: Prepare dependencies
+        run: |
+          flutter config --no-enable-swift-package-manager
+          flutter pub get
+
+      - name: Build for physical iPhone
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --dart-define="API_BASE_URL=$API_BASE_URL" \
+            --dart-define="DEMO_MODE=$DEMO_MODE" \
+            2>&1 | tee "$RUNNER_TEMP/smartheritage-ios-build.log"
+
+      - name: Package unsigned IPA
+        run: |
+          test -f build/ios/iphoneos/Runner.app/Info.plist
+          mkdir -p build/ios/ipa/Payload
+          ditto build/ios/iphoneos/Runner.app build/ios/ipa/Payload/Runner.app
+          cd build/ios/ipa
+          zip -qry SmartHeritage-unsigned.ipa Payload
+          unzip -t SmartHeritage-unsigned.ipa
+          printf '### SmartHeritage iPhone build\nDownload **SmartHeritage-iPhone-unsigned** from Artifacts, then extract the ZIP to get `SmartHeritage-unsigned.ipa`.\n\nThis IPA is unsigned. Sign it before installing on a physical iPhone.\n' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: SmartHeritage-iPhone-unsigned
+          path: Interface/build/ios/ipa/SmartHeritage-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: SmartHeritage-iOS-build-log
+          path: ${{ runner.temp }}/smartheritage-ios-build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish optional prerelease
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          APP_VERSION=$(awk '/^version:/ {print $2; exit}' pubspec.yaml)
+          test -n "$APP_VERSION"
+          RELEASE_TAG="ios-v${APP_VERSION}-run${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          printf '%s\n' \
+            'Unsigned SmartHeritage iPhone build. Sign the IPA before installing on a physical iPhone.' \
+            "Source commit: $GITHUB_SHA" \
+            "Build: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > "$RUNNER_TEMP/ios-release-notes.md"
+          gh release create "$RELEASE_TAG" \
+            build/ios/ipa/SmartHeritage-unsigned.ipa \
+            --target "$GITHUB_SHA" \
+            --title "SmartHeritage $APP_VERSION - iPhone test #$GITHUB_RUN_NUMBER" \
+            --notes-file "$RUNNER_TEMP/ios-release-notes.md" \
+            --prerelease
+          printf '\n[Download IPA from Release](%s/%s/releases/tag/%s)\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
