@@ -261,7 +261,7 @@ class AuthService {
           .timeout(_timeout);
       if (baseUrl != server || _refreshToken != token) return false;
       if (response.statusCode == 200) {
-        return _saveSession(
+        return await _saveSession(
           jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
           server,
         );
