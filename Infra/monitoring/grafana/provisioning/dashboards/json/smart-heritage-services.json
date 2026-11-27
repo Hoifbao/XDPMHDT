@@ -9,7 +9,7 @@
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {
     "from": "now-1h",
@@ -1156,6 +1156,203 @@
         "w": 8,
         "x": 16,
         "y": 44
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "RabbitMQ – hàng đợi & DLQ (TC-100)",
+      "id": 21,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Tin trong DLQ",
+      "description": "Tổng số tin nằm trong các hàng đợi *.dlq (sự kiện xử lý lỗi quá 3 lần). Khác 0 là đỏ, khớp cảnh báo RabbitMQDeadLetter. Xử lý xong thì Purge DLQ trên RabbitMQ UI.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "expr": "sum(rabbitmq_queue_messages{job=\"rabbitmq\", queue=~\".*dlq.*\"}) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "id": 22,
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 53
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tin trong DLQ theo hàng đợi",
+      "description": "Số tin trong từng hàng đợi DLQ (rabbitmq_queue_messages, job rabbitmq, /metrics/per-object).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "expr": "sum by (queue) (rabbitmq_queue_messages{job=\"rabbitmq\", queue=~\".*dlq.*\"})",
+          "legendFormat": "{{queue}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "id": 23,
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 6,
+        "y": 53
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tin chờ xử lý theo hàng đợi (không gồm DLQ)",
+      "description": "Tin Ready chưa được bên nhận lấy; > 100 thì cảnh báo RabbitMQQueueBacklog.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS}"
+          },
+          "expr": "sum by (queue) (rabbitmq_queue_messages_ready{job=\"rabbitmq\", queue!~\".*dlq.*\"})",
+          "legendFormat": "{{queue}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "id": 24,
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 53
       },
       "datasource": {
         "type": "prometheus",

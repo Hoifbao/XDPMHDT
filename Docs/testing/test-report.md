@@ -22,18 +22,21 @@ Lần 2 nâng lên **93/136 case: 90 đạt, 3 đạt một phần (TC-46, TC-62
 Lần 2 đạt **127/136 = 93% (yêu cầu ≥ 90%): 122 đạt, 5 đạt một phần (TC-46, 53, 62, 100, 104), 1 chặn (TC-101), 8 chưa chạy** (cần điện thoại Android, beacon thật, Firebase – mục 7). Phát hiện lỗi Minor 14 (mục 6), sửa và nghiệm thu trong XDPMHDT-116 (TC-11, TC-127 chạy lại đạt); TC-27 đạt sau khi thêm tìm kiếm, lọc di tích.
 **Cập nhật 27/11 (XDPMHDT-117):** ghi kết quả TC-69 (phần API, chạy 26/11, mục 4.7): **đạt một phần**, thiếu phần điện thoại nhận thông báo (Firebase + máy Android thật).
 Lần 2 đạt **128/136 = 94%: 122 đạt, 6 đạt một phần (TC-46, 53, 62, 69, 100, 104), 1 chặn (TC-101), 7 chưa chạy** (mục 7).
+**Cập nhật 27/11 (XDPMHDT-118):** sửa và chạy lại 3 case đạt một phần: TC-46 (503 sau 1.777 / 1.712 ms nhờ hạn chờ tổng 1,5 s khi gọi service khác), TC-53 (thêm ô tìm kiếm không dấu ở màn Bản đồ), TC-100 (thêm panel DLQ trên Grafana).
+Lần 2 đạt **128/136 = 94%: 125 đạt, 3 đạt một phần (TC-62, 69, 104), 1 chặn (TC-101), 7 chưa chạy**.
 
 ## 1. Tổng hợp theo 3 cấp kiểm thử
 
 | Cấp | Cách chạy | Kết quả |
 |---|---|---|
-| Unit | `mvn test` (10 module Java), `flutter test` (app) | **341/341 đạt** (Java 277, Flutter 64), 22/11 – mục 2 |
+| Unit | `mvn test` (10 module Java), `flutter test` (app) | **341/341 đạt** (Java 277, Flutter 64), 22/11; 27/11 (XDPMHDT-118): content-service 33/33, feedback-service 68/68, Flutter 89/89 – mục 2 |
 | Integration | `Docs/testing/integration-smoke.ps1 -Events` qua Gateway | **12/12 đạt**, 19/11 – mục 3 |
-| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: **65/131 đã chạy, 62 đạt, 3 không đạt** (17/11, `main@761248f`); lần 2: **128 đã chạy, 122 đạt, 6 đạt một phần, 1 chặn, 7 chưa chạy** (19–27/11) – mục 4 |
+| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: **65/131 đã chạy, 62 đạt, 3 không đạt** (17/11, `main@761248f`); lần 2: **128 đã chạy, 125 đạt, 3 đạt một phần, 1 chặn, 7 chưa chạy** (19–27/11) – mục 4 |
 
 ## 2. Unit test
 
 Chạy ngày 22/11/2026 trên `main` `31853e6` (code backend và app Android giống tag `v1.0`): 341/341, giống lần 19/11 (`66e8361`).
+Ngày 27/11 (XDPMHDT-118, trước khi merge): `mvn -pl services/content-service,services/feedback-service -am test` 101/101 (content 33, feedback 68; +3 test hạn chờ tổng cho TC-46), `flutter test` 89/89, `flutter analyze` không có error/warning.
 Lần 17/11 (`533e64c`): 330/330 (Java 269, Flutter 61); số test tăng do PR #84 (content-service +8, app +3).
 
 ```bash
@@ -93,24 +96,24 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 
 | Nhóm | Số case | Lần 1: đã chạy | Lần 1: đạt | Lần 2: đã chạy | Lần 2: đạt | Ghi chú |
 |---|---|---|---|---|---|---|
-| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 36 | 33 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 62 (giả lập, **đạt một phần**), 64; Ân 24/11: TC-09, 51, 55; script 25/11: TC-01, 03 → 08; Bảo 26–27/11 (mục 4.6): TC-11 (lỗi 14, đạt sau XDPMHDT-116), 14, 52, 53 (**đạt một phần**), 56 (giả lập), 57, 63; Bảo 26/11 (mục 4.7, XDPMHDT-117): TC-69 (**đạt một phần**, phần API, thiếu Firebase). Chưa chạy: TC-10, 58, 59, 60 (cần máy thật, beacon) |
+| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 36 | 34 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 62 (giả lập, **đạt một phần**), 64; Ân 24/11: TC-09, 51, 55; script 25/11: TC-01, 03 → 08; Bảo 26–27/11 (mục 4.6): TC-11 (lỗi 14, đạt sau XDPMHDT-116), 14, 52, 53 (đạt sau XDPMHDT-118), 56 (giả lập), 57, 63; Bảo 26/11 (mục 4.7, XDPMHDT-117): TC-69 (**đạt một phần**, phần API, thiếu Firebase). Chưa chạy: TC-10, 58, 59, 60 (cần máy thật, beacon) |
 | Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | 21 | 21 | Lần 1: TC-36, TC-71 không đạt. Lần 2: TC-34, TC-35, TC-36, TC-71 (API); TC-70 (Web); R1 23/11: TC-24, 37, 72; script 25/11: TC-26, 28, 29, 30, 32; Bảo 25–27/11 (mục 4.7): TC-22, 23, 25, 27 (đạt sau XDPMHDT-116), 31, 33, 73, 74 |
-| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 23 | 22 | Lần 2 (Tường): TC-83; R1 23/11: TC-47, 75, 85; Bảo 24/11: TC-48, 78; script 25/11: TC-38 → 45, 46 (**đạt một phần**), 76, 82, 84; Bảo 25/11 (mục 4.7): TC-77; NiFi 27/11 (mục 4.8): TC-49, 79, 80, 81. Chưa chạy: TC-50 (cần máy thật, beacon) |
+| System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 23 | 23 | Lần 2 (Tường): TC-83; R1 23/11: TC-47, 75, 85; Bảo 24/11: TC-48, 78; script 25/11: TC-38 → 45, 46 (đạt sau XDPMHDT-118), 76, 82, 84; Bảo 25/11 (mục 4.7): TC-77; NiFi 27/11 (mục 4.8): TC-49, 79, 80, 81. Chưa chạy: TC-50 (cần máy thật, beacon) |
 | Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | 3 | 3 | 4 | 4 | Lần 1: TC-86 chưa bấm nút trên Dashboard. Lần 2 (Tuấn, máy sạch `v1.0`, 21/11): TC-86, TC-108 → TC-110 |
-| Tuần 6: Sự kiện RabbitMQ (TC-87 → TC-100) | 14 | 5 | 5 | 14 | 13 | Lần 1: TC-87, 88, 89, 90, 94. Lần 2 (Tường): TC-89 → TC-93; Bảo 24/11: TC-98, TC-100 (**đạt một phần**); script 25/11: TC-87, 88, 99; Bảo 25–27/11 (mục 4.7): TC-94, 95, 96, 97 |
+| Tuần 6: Sự kiện RabbitMQ (TC-87 → TC-100) | 14 | 5 | 5 | 14 | 14 | Lần 1: TC-87, 88, 89, 90, 94. Lần 2 (Tường): TC-89 → TC-93; Bảo 24/11: TC-98, TC-100 (đạt sau XDPMHDT-118); script 25/11: TC-87, 88, 99; Bảo 25–27/11 (mục 4.7): TC-94, 95, 96, 97 |
 | Tuần 6: Thông báo, pin, thời gian thực (TC-101 → TC-107) | 7 | 1 | 1 | 5 | 4 | Lần 1: TC-69 chỉ phần 401. Lần 2: TC-105 (Tuấn, 21/11); script 25/11: TC-103; TC-101 **Chặn** (thiếu Firebase và máy thật); Bảo 25–26/11 (mục 4.7): TC-104 (**đạt một phần**, thiếu Firebase), 106; NiFi 27/11: TC-107. Chưa chạy: TC-102 |
 | Tuần 6: Hoàn thiện Mobile, Web (TC-111 → TC-119) | 9 | 3 | 3 | 9 | 9 | Lần 1: TC-116, TC-117, TC-118. Lần 2: TC-116, TC-118 (API); TC-114, TC-115, TC-117 (app, Web); Bảo 26/11 (mục 4.6): TC-111, 112, 113, 119 |
 | Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | 1 | 1 | 5 | 5 | Lần 1: TC-120. Lần 2 (Bảo, 24/11): TC-120, 121, 122, 124; TC-123 (k6 500 VU) đạt theo số đo k6 21/11 (mục 4.3, [load-test-w7.md](load-test-w7.md)) |
 | Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | 6 | 6 | Lần 1: chỉ TC-130 (API 403). R1 23/11: TC-131; Bảo 24/11: TC-125; script 25/11: TC-129, 130; Bảo 26/11 (mục 4.6): TC-126, 127 (lỗi 14, đạt sau XDPMHDT-116). Chưa chạy: TC-128 (cần 2 beacon thật) |
 | Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường). Không thuộc lần 1 tuần 6 |
-| **Tổng** | **136** | **65** | **62** | **128** | **122** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (15 case mới; TC-13, 21, 70, 133, 134 đã tính trước), 9 case của Bảo (mục 4.3), 3 case của Ân (mục 4.4), 30 case bằng script (mục 4.5); 3 đạt một phần (TC-46, TC-62, TC-100); 1 chặn (TC-101); 27/11: 13 case app, 15 case Web, 5 case NiFi, TC-123 (mục 4.3, 4.6 → 4.8); XDPMHDT-117: TC-69 (phần API, 26/11); 6 đạt một phần (TC-46, 53, 62, 69, 100, 104); 1 chặn (TC-101); 7 chưa chạy (TC-10, 50, 58, 59, 60, 102, 128) |
+| **Tổng** | **136** | **65** | **62** | **128** | **125** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (15 case mới; TC-13, 21, 70, 133, 134 đã tính trước), 9 case của Bảo (mục 4.3), 3 case của Ân (mục 4.4), 30 case bằng script (mục 4.5); 3 đạt một phần (TC-46, TC-62, TC-100); 1 chặn (TC-101); 27/11: 13 case app, 15 case Web, 5 case NiFi, TC-123 (mục 4.3, 4.6 → 4.8); XDPMHDT-117: TC-69 (phần API, 26/11); XDPMHDT-118: TC-46, 53, 100 từ đạt một phần lên đạt; 3 đạt một phần (TC-62, 69, 104); 1 chặn (TC-101); 7 chưa chạy (TC-10, 50, 58, 59, 60, 102, 128) |
 
 - Tỉ lệ đã chạy lần 1: **65/131 = 50%** (yêu cầu ≥ 90%, chưa đạt).
 - Tỉ lệ đạt trên số đã chạy lần 1: **62/65 = 95%**.
 - Lần 2 (19–25/11): **93/136** case đã chạy: 90 đạt, 3 đạt một phần (TC-46, TC-62, TC-100); TC-101 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1; R1: mục 4.2; giám sát, sự kiện, ngoại tuyến: mục 4.3; app (Ân): mục 4.4; API, MySQL, RabbitMQ, Docker: mục 4.5.
-- Lần 2 sau 27/11: **128/136** case đã chạy: 122 đạt, 6 đạt một phần; TC-101 bị chặn; 7 case chưa chạy. Chi tiết 27/11: app mục 4.6, Web Admin và TC-69 (API) mục 4.7, NiFi mục 4.8, k6 mục 4.3.
+- Lần 2 sau 27/11: **128/136** case đã chạy: 125 đạt, 3 đạt một phần (sau XDPMHDT-118); TC-101 bị chặn; 7 case chưa chạy. Chi tiết 27/11: app mục 4.6, Web Admin và TC-69 (API) mục 4.7, NiFi mục 4.8, k6 mục 4.3.
 - Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90% = 123/136): **128/136 = 94%, đạt** (25/11 là 93/136 = 68%). 8 case còn lại cần điện thoại Android thật, beacon thật hoặc Firebase (mục 7).
-- Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): 101 case C, đã chạy 96, đạt 93 = **97%, đạt** (3 đạt một phần: TC-46, 62, 104; chưa chạy hoặc chặn: TC-10, 58, 59, 60, 101).
+- Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): 101 case C, đã chạy 96, đạt 94 = **98%, đạt** (2 đạt một phần: TC-62, 104; chưa chạy hoặc chặn: TC-10, 58, 59, 60, 101).
 
 ### 4.1 Chạy lại phần Thống kê trên máy sạch `v1.0` (Tuấn, 21/11/2026)
 
@@ -166,7 +169,7 @@ Chạy trên `main` `e2ff2fc`, Docker `--profile all`, máy ảo Pixel 7. TC-48,
 | TC-48 | Metric Prometheus của từng service | Đạt | 8 cổng 8080 → 8087: `/actuator/prometheus` 200, có `http_server_requests_*` |
 | TC-78 | Prometheus target và dashboard Grafana theo service | Đạt | Target `smart-heritage` 8/8, `mysql`, `redis` UP; dashboard `sh-services` chọn content-service thì mọi biểu đồ chỉ còn content-service. Ghi chú: ô "Độ trễ p95" trống khi 5 phút không có request |
 | TC-98 | Định dạng sự kiện RabbitMQ | Đạt | Đủ 5 loại: `visit.recorded`, `artifact.updated`, `beacon.battery.low`, `feedback.created`, `feedback.approved`; có `eventId` (UUID), `type`, `version`, `occurredAt` (ISO), `data`; không có `__TypeId__`; `content_type = application/json`. `artifact.updated` chỉ phát khi có trường đổi (đúng thiết kế) |
-| TC-100 | Tin hỏng vào DLQ | Đạt một phần | Tin hỏng vào `analytics.visit-recorded` chuyển sang `analytics.dlq` sau 9 s, còn nguyên; Prometheus thấy DLQ tăng; cảnh báo `RabbitMQDeadLetter` bật. Thiếu: dashboard Grafana chưa có panel DLQ |
+| TC-100 | Tin hỏng vào DLQ | Đạt | Tin hỏng vào `analytics.visit-recorded` chuyển sang `analytics.dlq` sau 9 s, còn nguyên; Prometheus thấy DLQ tăng; cảnh báo `RabbitMQDeadLetter` bật. 24/11 thiếu panel Grafana (đạt một phần). 27/11 (XDPMHDT-118): thêm hàng "RabbitMQ – hàng đợi & DLQ" vào dashboard *Smart Heritage – Microservices*; publish `{"bad":true}` → ô "Tin trong DLQ" = 1 (đỏ), biểu đồ có `analytics.dlq`; đã Purge DLQ. Ảnh `Monitoring_nghiem_thu` TC-100_1 → 4 |
 | TC-120 | RabbitMQ vào Prometheus | Đạt | Target `rabbitmq` UP, có số liệu 11 queue (6 chính + 5 DLQ) |
 | TC-121 | Cảnh báo ServiceDown | Đạt | Tắt content-service: Pending sau 12 s, Firing ~72 s; bật lại: UP sau 10 s, cảnh báo tắt sau 30 s |
 | TC-122 | Các quy tắc cảnh báo còn lại | Đạt | `RabbitMQDeadLetter` 51 s; `RabbitMQQueueBacklog` (> 100 tin, queue tạm) 161 s; `HighLatencyP95` (api-gateway p95 = 3,2 s) Firing; `HighErrorRate5xx` (api-gateway 94%) Pending rồi Firing (xem lịch sử `ALERTS`) |
@@ -213,7 +216,7 @@ Dữ liệu thử đều được xoá hoặc trả lại (media, beacon 9/9, pi
 | TC-43 | Đồng bộ offline không ghi trùng | Đạt | Lần 1 `created = 1`; lần 2 `duplicates = 1`; DB 1 dòng, `duration_seconds` NULL |
 | TC-44 | Mỗi service một schema | Đạt | Đủ 7 schema + `smart_heritage_db`; `site_user` đọc `content_db.artifacts`: ERROR 1142 (chạy trên DB đang dùng, không `down -v`) |
 | TC-45 | Id thống nhất giữa các schema | Đạt | 0 id hiện vật lạc ở `beacon_db`, `likes`, `visits`, `feedbacks` |
-| TC-46 | Gọi service phụ thuộc khi nó bị tắt | Đạt một phần | Tắt site-service: tạo hiện vật 503 "Không kết nối được dịch vụ di tích…"; tắt content-service + Backend cũ: gửi đánh giá 503 "Không kết nối được dịch vụ hiện vật…"; service gọi không treo, không sập. Thời gian **~4,1 – 4,3 s** (3 lần chạy), test-plan yêu cầu khoảng 2 s: timeout gọi service khác 2 s cộng thời gian phân giải tên container đã tắt |
+| TC-46 | Gọi service phụ thuộc khi nó bị tắt | Đạt | Tắt site-service: tạo hiện vật 503 "Không kết nối được dịch vụ di tích…"; tắt content-service + Backend cũ: gửi đánh giá 503 "Không kết nối được dịch vụ hiện vật…"; service gọi không treo, không sập. Thời gian **~4,1 – 4,3 s** (3 lần chạy), test-plan yêu cầu khoảng 2 s: timeout gọi service khác 2 s cộng thời gian phân giải tên container đã tắt. 27/11 (XDPMHDT-118): thêm hạn chờ tổng 1,5 s (`app.clients.deadline`, gồm cả bước tra tên) cho content-service và feedback-service; chạy lại `Chay_lan2_API_v1.ps1 -Phan C`: 503 sau **1.777 ms** (tắt site) và **1.712 ms** (tắt content) → **Đạt**; TC-129 chạy lại vẫn đạt (503 sau 2,0 – 2,6 s) |
 | TC-76 | Phân quyền route mới | Đạt | Không token 401; visitor gọi API ADMIN 403; lịch sử `visitor_an` và `visitor_mai` không trùng id |
 | TC-82 | Redis cache chi tiết hiện vật | Đạt | Lần 2: 34 ms; key `sh:content:detail:v1:{2}:data` có TTL (mặc định `app.detail-cache.ttl-seconds = 120` s, test-plan ghi 10 phút) nên hết hạn sẽ đọc lại DB |
 | TC-84 | feedback-service trong docker compose | Đạt | Container healthy; DB user `feedback_user`; `:8086` health UP; có `http_server_requests_*` |
@@ -233,7 +236,7 @@ Chạy tay trên máy ảo Android Pixel 7, `DEMO_MODE=true`, `main` `38874a1`, 
 | TC-11 | Từ chối quyền hoặc tắt Bluetooth | Đạt | 26/11: không crash nhưng chỉ có "Thử lại", không chỉ vào Cài đặt → lỗi Minor 14. 27/11 chạy lại trên nhánh XDPMHDT-116: thông báo chỉ đường vào Cài đặt + nút "Mở Cài đặt" mở đúng App info; cấp Location, Nearby devices rồi quay lại app thì màn Quét tự quét lại (Registry 3) | TC-11_1 → 4 |
 | TC-14 | Xem lại nội dung khi rời vùng beacon | Đạt | Chế độ máy bay: màn chi tiết giữ nội dung, có dòng "Đang xem nội dung đã tải – có thể thiếu cập nhật mới nhất" | TC-14_1 → 3 |
 | TC-52 | Chỉ đường | Đạt | Mở Google Maps, đích Văn Miếu Quốc Tử Giám | TC-52_1 |
-| TC-53 | Từ chối quyền vị trí, mất mạng | Đạt một phần | Thiếu quyền: vẫn hiện bản đồ, 2 di tích và hướng dẫn "Vào Cài đặt → Ứng dụng → Smart Heritage → Quyền → Vị trí"; mất mạng: "Không tải được danh sách di tích. Kiểm tra kết nối mạng." + Thử lại, không crash. Màn Bản đồ chưa có ô tìm kiếm nên phần tìm "Văn Miếu" chưa kiểm được | TC-53_1 → 2 |
+| TC-53 | Từ chối quyền vị trí, mất mạng | Đạt | Thiếu quyền: vẫn hiện bản đồ, 2 di tích và hướng dẫn "Vào Cài đặt → Ứng dụng → Smart Heritage → Quyền → Vị trí"; mất mạng: "Không tải được danh sách di tích. Kiểm tra kết nối mạng." + Thử lại, không crash. 26/11 màn Bản đồ chưa có ô tìm kiếm (đạt một phần). 27/11 (XDPMHDT-118) thêm ô tìm theo tên/địa chỉ, không phân biệt dấu: "Văn Miếu" và "van mieu" → Văn Miếu – Quốc Tử Giám (1/2 địa điểm, còn 1 marker); "xyz" → "Không có di tích khớp" + nút Xoá tìm kiếm | TC-53_1 → 6 |
 | TC-56 | Rời vùng beacon vẫn xem tiếp | Đạt (giả lập) | Giả lập ra vùng trên máy ảo (chưa có beacon thật); 13:15 → 13:21 màn chi tiết không đóng, audio vẫn phát | TC-56_1 → 6 |
 | TC-57 | Mở lại hiện vật đã xem khi mất mạng | Đạt | Hiện vật đã xem mở từ bộ nhớ máy; hiện vật chưa xem báo "Không có kết nối mạng và chưa có bản đã tải" + Thử lại; màn "Hiện vật đã xem" lưu 20 hiện vật gần nhất | TC-57_1 → 3 |
 | TC-63 | Hàng đợi ngoại tuyến | Đạt | 4 lượt ghi lúc máy bay ("Chờ đồng bộ") lên server khi có mạng: `visits` id 10 → 13, mỗi dòng một `client_event_id`; kiểm trùng `(user_id, client_event_id)`: 0 dòng (27/11); khoá duy nhất `uq_visits_user_event` chặn gửi lại. Lượt id 10 có `duration_seconds` NULL vì mở từ hộp thoại demo ở màn chính (không đo được thời gian dừng, đúng thiết kế) | TC-63_1 → 5 |
@@ -321,7 +324,6 @@ nên chưa sửa code ở lần 2, chuyển sang tuần 8. Ngày 23/11 đã sử
 - Giới hạn ảnh 10 MB, audio 30 MB chỉ kiểm trên trình duyệt (`artifacts.js`); server chỉ chặn chung 100 MB (TC-74).
 - Tên hiện vật trên ảnh đầu màn chi tiết là chữ tối trên nền nâu, khó đọc (TC-119).
 - Màn hình rất hẹp (~274 dp) thì tiêu đề AppBar màn chính tràn 22 px; ở 360 dp (điện thoại nhỏ phổ biến) không tràn (TC-119).
-- Màn Bản đồ trên app chưa có ô tìm kiếm di tích (TC-53).
 - Gán beacon không phát sự kiện RabbitMQ; registry đọc DB nên vẫn đúng ngay (TC-96).
 - Thẻ "Pin thấp (< 20%)" chỉ đếm beacon đang hoạt động; beacon "Không hoạt động" 15% không được đếm (TC-33, TC-104).
 
@@ -368,7 +370,7 @@ Phần quét đã kiểm thay bằng giả lập trên máy ảo (TC-56, TC-62, 
 - Lần 2 (19–25/11, trên `v1.0` rồi `main` sau các PR sửa lỗi): 93 case đã chạy: 90 đạt, 3 đạt một phần (TC-46 chậm ~4 s, TC-62 giả lập, TC-100 thiếu panel Grafana), 1 case chặn (TC-101). 3 case không đạt của lần 1 đều đạt
   và đều không phải lỗi code. Luồng Đánh giá đầy đủ trên app và Web (gửi, sửa, chờ duyệt, duyệt, ẩn, điểm trung bình, số chờ duyệt) đạt;
   Thống kê trên máy sạch 5/5 đạt; giám sát và cảnh báo (TC-48, 78, 120 → 122, 124) đạt.
-- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **đạt** sau 27/11: 128/136 = 94% (122 đạt, 6 đạt một phần, 1 chặn, 7 chưa chạy vì thiếu thiết bị); case ưu tiên Cao đạt 93/96 = 97%. Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 đạt một phần (TC-62, giả lập). (Bản 25/11: 93/136 = 68%.)
+- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **đạt** sau 27/11: 128/136 = 94% (125 đạt, 3 đạt một phần, 1 chặn, 7 chưa chạy vì thiếu thiết bị); case ưu tiên Cao đạt 94/96 = 98%. XDPMHDT-118 đưa TC-46 (hạn chờ tổng 1,5 s), TC-53 (tìm kiếm Bản đồ), TC-100 (panel DLQ Grafana) lên đạt. Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 đạt một phần (TC-62, giả lập). (Bản 25/11: 93/136 = 68%.)
 - Lỗi còn tồn: không có Blocker, Critical, Major; 14 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC), 1 ngày 23/11 (PR #101, treo quyền màn Quét iBeacon), 2 ngày 25/11 (PR #88, #104, Yêu thích và Lịch sử khi mất mạng), 1 ngày 25/11 (XDPMHDT-114, Gateway trả 503 khi service vừa tắt). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98). Thêm lỗi 13 (PR #107, link upload media) và lỗi 14 (XDPMHDT-116, màn Quét khi bị từ chối quyền).
 - Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-69 mới kiểm phần API, TC-101 chặn); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
   (NiFi, k6 500 VU lần 2) đã chạy và đạt ngày 27/11 (mục 4.3, 4.8); 7 case cần điện thoại, beacon thật, Firebase chưa chạy (mục 7).

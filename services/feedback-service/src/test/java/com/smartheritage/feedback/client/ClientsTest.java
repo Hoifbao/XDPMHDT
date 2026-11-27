@@ -1,6 +1,8 @@
 package com.smartheritage.feedback.client;
 
 import com.smartheritage.common.web.ApiException;
+import com.smartheritage.feedback.config.RestClientConfig;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -139,5 +142,54 @@ class ClientsTest {
         UserProfileClient client = new UserProfileClient(builder.build());
         assertThat(client.findCurrentUserFullName()).isEmpty();
         assertThat(client.findCurrentUserFullName()).isEmpty();
+    }
+
+    // ─────────────── TC-46: hạn tổng thời gian chờ ───────────────
+
+    @Test
+    void artifactClient_contentServiceCham_tra503TruocDeadline() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/artifacts/", exchange -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(Duration.ofSeconds(5));
+            factory.setReadTimeout(Duration.ofSeconds(5));
+            RestClient restClient = RestClient.builder()
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort())
+                    .requestFactory(factory)
+                    .requestInterceptor(new RestClientConfig.DeadlineInterceptor(Duration.ofMillis(500)))
+                    .build();
+
+            long start = System.nanoTime();
+            assertThatThrownBy(() -> new ArtifactClient(restClient).getArtifactStatus(1L))
+                    .isInstanceOf(ApiException.class)
+                    .hasMessageContaining("content-service")
+                    .extracting(e -> ((ApiException) e).getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat((System.nanoTime() - start) / 1_000_000).isLessThan(1500L);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void deadlineInterceptor_khongDoiKetQuaKhiServiceTraNhanh() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://content")
+                .requestInterceptor(new RestClientConfig.DeadlineInterceptor(Duration.ofMillis(1500)));
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://content/api/artifacts/1"))
+                .andRespond(withSuccess("{\"success\":true,\"data\":{\"id\":1,\"status\":\"ACTIVE\"}}",
+                        MediaType.APPLICATION_JSON));
+
+        assertThat(new ArtifactClient(builder.build()).getArtifactStatus(1L)).isEqualTo("ACTIVE");
+        server.verify();
     }
 }

@@ -35,6 +35,15 @@ class _MapScreenState extends State<MapScreen> {
 
   final MapController _mapController = MapController();
 
+  // TC-53: ô tìm kiếm di tích theo tên/địa chỉ, không phân biệt dấu.
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  /// Di tích hiển thị trên bản đồ và danh sách sau khi lọc theo ô tìm kiếm.
+  List<HeritageSiteItem> get _visibleSites => _query.trim().isEmpty
+      ? _sites
+      : _sites.where((s) => siteMatchesQuery(s, _query)).toList();
+
   // Hà Nội – trung tâm mặc định khi chưa có GPS
   static const LatLng _defaultCenter = LatLng(21.0277644, 105.8354028);
 
@@ -42,6 +51,37 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _initLocation();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // ── Tìm kiếm (TC-53) ─────────────────────────────────────────────────────
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _query = value;
+      // Di tích đang chọn không còn khớp thì bỏ chọn để danh sách hiện kết quả lọc.
+      if (_selectedSite != null && !siteMatchesQuery(_selectedSite!, value)) {
+        _selectedSite = null;
+      }
+    });
+  }
+
+  void _onSearchSubmitted(String value) {
+    final matches = _visibleSites;
+    if (matches.length == 1) {
+      _onMarkerTap(matches.first);
+    }
+    FocusScope.of(context).unfocus();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
   }
 
   // ── GPS ──────────────────────────────────────────────────────────────────
@@ -183,6 +223,7 @@ class _MapScreenState extends State<MapScreen> {
         child: Column(
           children: [
             if (_locationError != null) _buildLocationBanner(),
+            _buildSearchBar(),
             Expanded(flex: 5, child: _buildMap()),
             Expanded(
               flex: 4,
@@ -270,6 +311,44 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: TextField(
+        key: const Key('map_search_field'),
+        controller: _searchController,
+        onChanged: _onSearchChanged,
+        onSubmitted: _onSearchSubmitted,
+        textInputAction: TextInputAction.search,
+        style: const TextStyle(fontSize: 14, color: _ink),
+        decoration: InputDecoration(
+          hintText: 'Tìm di tích theo tên hoặc địa chỉ',
+          hintStyle: const TextStyle(fontSize: 14, color: _muted),
+          prefixIcon: const Icon(Icons.search, color: _sage),
+          suffixIcon: _query.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Xoá tìm kiếm',
+                  icon: const Icon(Icons.close, color: _muted, size: 20),
+                  onPressed: _clearSearch,
+                ),
+          filled: true,
+          fillColor: Colors.white,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _sage, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMap() {
     final center = _currentPosition != null
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
@@ -311,7 +390,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ]),
           MarkerLayer(
-            markers: _sites.where((s) => s.hasCoords).map((site) => Marker(
+            markers: _visibleSites.where((s) => s.hasCoords).map((site) => Marker(
               point: LatLng(site.latitude!, site.longitude!),
               width: 44, height: 52,
               child: GestureDetector(
@@ -458,6 +537,26 @@ class _MapScreenState extends State<MapScreen> {
         ]),
       );
     }
+    final visible = _visibleSites;
+    if (visible.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.search_off, size: 40, color: _muted),
+            const SizedBox(height: 8),
+            Text('Không có di tích khớp "${_query.trim()}".',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _muted)),
+            TextButton(
+              onPressed: _clearSearch,
+              child: const Text('Xoá tìm kiếm',
+                  style: TextStyle(color: _sage)),
+            ),
+          ]),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -471,19 +570,21 @@ class _MapScreenState extends State<MapScreen> {
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold, color: _ink),
               ),
-              _pill('${_sites.length} địa điểm'),
+              _pill(_query.trim().isEmpty
+                  ? '${visible.length} địa điểm'
+                  : '${visible.length}/${_sites.length} địa điểm'),
             ],
           ),
         ),
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            itemCount: _sites.length,
+            itemCount: visible.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _SiteListTile(
-              site: _sites[i],
-              isSelected: _selectedSite?.id == _sites[i].id,
-              onTap: () => _onMarkerTap(_sites[i]),
+              site: visible[i],
+              isSelected: _selectedSite?.id == visible[i].id,
+              onTap: () => _onMarkerTap(visible[i]),
             ),
           ),
         ),
@@ -609,4 +710,47 @@ class _PermissionDenied implements Exception {
 
 class _ServiceDisabled implements Exception {
   const _ServiceDisabled();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Tìm kiếm không phân biệt dấu (TC-53)
+// ─────────────────────────────────────────────────────────────────────────────
+
+final Map<String, String> _vietnameseFold = () {
+  const groups = <String, String>{
+    'a': 'àáạảãâầấậẩẫăằắặẳẵÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ',
+    'e': 'èéẹẻẽêềếệểễÈÉẸẺẼÊỀẾỆỂỄ',
+    'i': 'ìíịỉĩÌÍỊỈĨ',
+    'o': 'òóọỏõôồốộổỗơờớợởỡÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ',
+    'u': 'ùúụủũưừứựửữÙÚỤỦŨƯỪỨỰỬỮ',
+    'y': 'ỳýỵỷỹỲÝỴỶỸ',
+    'd': 'đĐ',
+  };
+  final map = <String, String>{};
+  groups.forEach((base, chars) {
+    for (final rune in chars.runes) {
+      map[String.fromCharCode(rune)] = base;
+    }
+  });
+  return map;
+}();
+
+/// Chữ thường, bỏ dấu tiếng Việt, gộp khoảng trắng: "Văn  Miếu" → "van mieu".
+String foldVietnamese(String input) {
+  final buffer = StringBuffer();
+  for (final rune in input.runes) {
+    // Dấu tổ hợp (chuỗi dạng NFD từ một số bàn phím) → bỏ
+    if (rune >= 0x0300 && rune <= 0x036F) continue;
+    final ch = String.fromCharCode(rune);
+    buffer.write(_vietnameseFold[ch] ?? ch.toLowerCase());
+  }
+  return buffer.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+}
+
+/// Di tích khớp khi mọi từ trong ô tìm kiếm có trong tên hoặc địa chỉ (không phân biệt dấu, hoa thường).
+bool siteMatchesQuery(HeritageSiteItem site, String query) {
+  final words = foldVietnamese(query).split(' ').where((w) => w.isNotEmpty);
+  if (words.isEmpty) return true;
+  final haystack = foldVietnamese('${site.name} ${site.location ?? ''}');
+  return words.every(haystack.contains);
 }
