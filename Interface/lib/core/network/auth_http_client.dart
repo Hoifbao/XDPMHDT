@@ -23,7 +23,9 @@ class AuthHttpClient extends http.BaseClient {
     '/api/auth/logout',
   };
 
-  bool _isBackend(Uri url) => url.toString().startsWith(AuthService.baseUrl);
+  bool _isBackend(Uri url) =>
+      (url.scheme == 'http' || url.scheme == 'https') &&
+      url.origin == Uri.parse(AuthService.baseUrl).origin;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -36,13 +38,16 @@ class AuthHttpClient extends http.BaseClient {
     _attachToken(request);
     final response = await _inner.send(request);
 
-    if (response.statusCode != 401 || retry == null || !AuthService.hasRefreshToken) {
+    if (response.statusCode != 401 ||
+        retry == null ||
+        !_isBackend(request.url) ||
+        !AuthService.hasRefreshToken) {
       return response;
     }
 
     await response.stream.drain<void>();
     final refreshed = await AuthService.refreshTokens();
-    if (!refreshed) {
+    if (!refreshed || !_isBackend(retry.url)) {
       // Trả về 401 rỗng để màn hình gọi API hiển thị lỗi như bình thường
       return http.StreamedResponse(const Stream.empty(), 401, request: request);
     }

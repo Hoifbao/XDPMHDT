@@ -195,12 +195,20 @@ class BeaconService {
 
   static List<RegistryBeacon>? _cachedRegistry;
   static DateTime? _cacheTime;
+  static String? _registryServer;
 
   /// Lấy registry: RAM (còn hạn) → API → đĩa (nếu API lỗi).
   /// Gọi khi mở app và mỗi 30 phút.
   static Future<List<RegistryBeacon>> getRegistry({
     bool forceRefresh = false,
   }) async {
+    final server = AuthService.baseUrl;
+    final prefix = AuthService.serverStoragePrefix;
+    if (_registryServer != server) {
+      _registryServer = server;
+      _cachedRegistry = null;
+      _cacheTime = null;
+    }
     final now = DateTime.now();
     if (!forceRefresh &&
         _cachedRegistry != null &&
@@ -211,14 +219,17 @@ class BeaconService {
 
     try {
       final fresh = await fetchRegistry();
+      if (AuthService.baseUrl != server) return fresh;
       _cachedRegistry = fresh;
       _cacheTime = now;
-      await _persistRegistry(fresh, now);
+      await _persistRegistry(fresh, now, prefix);
       return fresh;
     } catch (e) {
+      if (AuthService.baseUrl != server) rethrow;
       // API lỗi: dùng RAM hoặc đĩa nếu còn
       if (_cachedRegistry != null) return _cachedRegistry!;
-      final disk = await _loadPersistedRegistry();
+      final disk = await _loadPersistedRegistry(prefix, server);
+      if (AuthService.baseUrl != server) rethrow;
       if (disk != null && disk.isNotEmpty) {
         _cachedRegistry = disk;
         return disk;
@@ -230,6 +241,7 @@ class BeaconService {
   static Future<void> _persistRegistry(
     List<RegistryBeacon> items,
     DateTime at,
+    String prefix,
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -244,23 +256,26 @@ class BeaconService {
                 'siteName': b.siteName,
               })
           .toList();
-      await prefs.setString(_prefsKey, jsonEncode(jsonList));
-      await prefs.setString(_prefsTimeKey, at.toIso8601String());
+      await prefs.setString('$prefix$_prefsKey', jsonEncode(jsonList));
+      await prefs.setString('$prefix$_prefsTimeKey', at.toIso8601String());
     } catch (_) {}
   }
 
-  static Future<List<RegistryBeacon>?> _loadPersistedRegistry() async {
+  static Future<List<RegistryBeacon>?> _loadPersistedRegistry(
+    String prefix,
+    String server,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
+      final raw = prefs.getString('$prefix$_prefsKey');
       if (raw == null || raw.isEmpty) return null;
       final list = jsonDecode(raw) as List<dynamic>;
       final items = list
           .whereType<Map<String, dynamic>>()
           .map(RegistryBeacon.fromJson)
           .toList();
-      final timeRaw = prefs.getString(_prefsTimeKey);
-      if (timeRaw != null) {
+      final timeRaw = prefs.getString('$prefix$_prefsTimeKey');
+      if (timeRaw != null && AuthService.baseUrl == server) {
         _cacheTime = DateTime.tryParse(timeRaw);
       }
       return items;
