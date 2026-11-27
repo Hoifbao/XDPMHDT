@@ -1,0 +1,78 @@
+name: iPhone test IPA (unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: Flutter SDK version (must support Dart >= 3.13.4)
+        required: true
+        default: '3.50.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      FLUTTER_VERSION: ${{ inputs.flutter_version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Show Apple toolchain
+        run: |
+          uname -m
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Prepare dependencies
+        run: |
+          flutter --version
+          flutter config --enable-swift-package-manager
+          flutter pub get
+          pod --version
+          python3 tool/check_ios_configuration.py
+      - name: Analyze and test
+        run: |
+          flutter analyze --no-fatal-infos
+          flutter test
+      - name: Build for physical iPhone
+        run: flutter build ios --release --no-codesign --dart-define=USE_FIREBASE=true
+      - name: Package unsigned IPA
+        run: |
+          test -d build/ios/iphoneos/Runner.app
+          mkdir -p build/ios/ipa/Payload
+          ditto build/ios/iphoneos/Runner.app build/ios/ipa/Payload/Runner.app
+          cd build/ios/ipa
+          zip -qry SuperCalendar-unsigned.ipa Payload
+          unzip -t SuperCalendar-unsigned.ipa
+      - uses: actions/upload-artifact@v6
+        with:
+          name: SuperCalendar-iPhone-unsigned
+          path: build/ios/ipa/SuperCalendar-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Publish iPhone test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          APP_VERSION=$(awk '/^version:/ {print $2; exit}' pubspec.yaml)
+          test -n "$APP_VERSION"
+          RELEASE_TAG="ios-v${APP_VERSION}-run${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          printf '%s\n' \
+            'Unsigned iPhone test build. Sign the IPA before installing on a physical iPhone.' \
+            "Source commit: $GITHUB_SHA" \
+            "Build: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > "$RUNNER_TEMP/ios-release-notes.md"
+          gh release create "$RELEASE_TAG" \
+            build/ios/ipa/SuperCalendar-unsigned.ipa \
+            --target "$GITHUB_SHA" \
+            --title "SuperCalendar $APP_VERSION - iPhone test #$GITHUB_RUN_NUMBER" \
+            --notes-file "$RUNNER_TEMP/ios-release-notes.md" \
+            --prerelease
+          printf '### iPhone test release\n[Download IPA from Release](%s/%s/releases/tag/%s)\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
