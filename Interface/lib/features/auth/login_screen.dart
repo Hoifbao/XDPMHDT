@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'profile_screen.dart';
 import 'register_screen.dart';
+import 'server_address_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,6 +68,18 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = '';
       });
     }
+  }
+
+  Future<void> _openServerAddress() async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => const ServerAddressDialog(),
+    );
+    if (!mounted || saved != true) return;
+    setState(() => _error = '');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đã lưu địa chỉ máy chủ.')),
+    );
   }
 
   @override
@@ -167,6 +180,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextButton(
                       onPressed: _loading ? null : _openRegister,
                       child: const Text('Chưa có tài khoản? Đăng ký'),
+                    ),
+                    TextButton.icon(
+                      onPressed: _loading ? null : _openServerAddress,
+                      icon: const Icon(Icons.link),
+                      label: const Text('Địa chỉ máy chủ'),
                     ),
                   ],
                 ),
