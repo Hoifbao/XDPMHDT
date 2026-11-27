@@ -42,12 +42,14 @@ class PersonalizationService {
   static Future<void>? _tail;
   static Future<void>? _syncing;
   static final _operationServerKey = Object();
+  static final _operationStorageKey = Object();
 
   // Capture the account at invocation, not after waiting for another operation.
   // A rejected operation must not poison the queue for subsequent operations.
   static Future<T> _serial<T>(Future<T> Function() operation) {
     final account = _userId;
     final server = AuthService.baseUrl;
+    final storagePrefix = AuthService.serverStoragePrefix;
     final previous = _tail;
     final done = Completer<void>();
     _tail = done.future;
@@ -59,7 +61,10 @@ class PersonalizationService {
         }
         final value = await runZoned(
           operation,
-          zoneValues: {_operationServerKey: server},
+          zoneValues: {
+            _operationServerKey: server,
+            _operationStorageKey: storagePrefix,
+          },
         );
         if (_userId != account || AuthService.baseUrl != server) {
           throw StateError('Phiên đăng nhập đã thay đổi.');
@@ -158,7 +163,7 @@ class PersonalizationService {
   static String get _baseUrl => AuthService.baseUrl;
 
   static String _cacheKey(int userId, String name) =>
-      'sh.personalization.${AuthService.serverStoragePrefix}$userId.$name';
+      'sh.personalization.${Zone.current[_operationStorageKey]}$userId.$name';
 
   static Map<String, String> _headers() => const {
     'Accept': 'application/json',
@@ -241,7 +246,6 @@ class PersonalizationService {
     String name,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    _requireAccount(userId);
     final raw = prefs.getString(_cacheKey(userId, name));
     if (raw == null || raw.isEmpty) return <Map<String, dynamic>>[];
     try {
@@ -264,7 +268,6 @@ class PersonalizationService {
     List<Map<String, dynamic>> rows,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    _requireAccount(userId);
     final saved = await prefs.setString(
       _cacheKey(userId, name),
       jsonEncode(rows),

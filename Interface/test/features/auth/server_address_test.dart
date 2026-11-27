@@ -12,14 +12,11 @@ import 'package:smartheritage/features/auth/login_screen.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const server = 'https://demo.example.org';
-  final originalClient = AuthService.rawClient;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await AuthService.init();
   });
-
-  tearDown(() => AuthService.rawClient = originalClient);
 
   testWidgets('login checks and saves an HTTPS server for the next launch', (
     tester,
