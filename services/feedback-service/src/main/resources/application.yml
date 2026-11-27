@@ -36,6 +36,8 @@ app:
     # Lấy tên hiển thị (fullName) của người gửi đánh giá qua /api/auth/me
     auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
     timeout: ${CLIENT_TIMEOUT:2s}
+    # TC-46: tổng thời gian chờ content/auth-service (gồm tra tên container), quá hạn -> 503
+    deadline: ${CLIENT_DEADLINE:1500ms}
 
 springdoc:
   swagger-ui:

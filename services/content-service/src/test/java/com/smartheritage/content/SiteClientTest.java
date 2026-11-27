@@ -2,12 +2,15 @@ package com.smartheritage.content;
 
 import com.smartheritage.common.web.ApiException;
 import com.smartheritage.content.client.SiteClient;
+import com.smartheritage.content.config.RestClientConfig;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -48,6 +51,42 @@ class SiteClientTest {
             // API đọc không hỏng khi site-service lỗi
             assertTrue(client.findName(3L).isEmpty());
             assertEquals("Museum", client.findName(1L).orElseThrow());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    /** TC-46: site-service chậm/treo thì 503 trước hạn tổng (deadline), không chờ hết timeout kết nối/đọc. */
+    @Test
+    void slowSiteServiceReturns503WithinDeadline() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/heritage-sites/", exchange -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(Duration.ofSeconds(5));
+            factory.setReadTimeout(Duration.ofSeconds(5));
+            RestClient restClient = RestClient.builder()
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort())
+                    .requestFactory(factory)
+                    .requestInterceptor(new RestClientConfig.DeadlineInterceptor(Duration.ofMillis(500)))
+                    .build();
+            var client = new SiteClient(restClient);
+
+            long start = System.nanoTime();
+            ApiException error = assertThrows(ApiException.class, () -> client.requireSite(1L));
+            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+            assertEquals(503, error.getStatus().value());
+            assertTrue(elapsedMs < 1500, "phải trả 503 trong khoảng deadline, thực tế " + elapsedMs + " ms");
         } finally {
             server.stop(0);
         }

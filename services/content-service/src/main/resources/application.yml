@@ -61,6 +61,8 @@ app:
   clients:
     site-url: ${SITE_SERVICE_URL:${LEGACY_BACKEND_URL:http://localhost:8090}}
     timeout: ${CLIENT_TIMEOUT:2s}
+    # TC-46: tổng thời gian chờ site-service (gồm tra tên container), quá hạn -> 503
+    deadline: ${CLIENT_DEADLINE:1500ms}
 
 springdoc:
   swagger-ui:
