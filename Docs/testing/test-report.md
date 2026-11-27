@@ -20,6 +20,8 @@ Khi chạy TC-125 phát hiện thêm 2 lỗi Minor (số 10, 11, mục 6), đã 
 Lần 2 nâng lên **93/136 case: 90 đạt, 3 đạt một phần (TC-46, TC-62, TC-100), 1 chặn (TC-101)**; 12/12 lỗi Minor đã sửa.
 **Cập nhật 27/11 (XDPMHDT-116):** chạy thêm 13 case app, 15 case Web Admin (mục 4.6, 4.7), 5 case NiFi (mục 4.8) và ghi kết quả k6 500 VU (TC-123, [load-test-w7.md](load-test-w7.md)).
 Lần 2 đạt **127/136 = 93% (yêu cầu ≥ 90%): 122 đạt, 5 đạt một phần (TC-46, 53, 62, 100, 104), 1 chặn (TC-101), 8 chưa chạy** (cần điện thoại Android, beacon thật, Firebase – mục 7). Phát hiện lỗi Minor 14 (mục 6), sửa và nghiệm thu trong XDPMHDT-116 (TC-11, TC-127 chạy lại đạt); TC-27 đạt sau khi thêm tìm kiếm, lọc di tích.
+**Cập nhật 27/11 (XDPMHDT-117):** ghi kết quả TC-69 (phần API, chạy 26/11, mục 4.7): **đạt một phần**, thiếu phần điện thoại nhận thông báo (Firebase + máy Android thật).
+Lần 2 đạt **128/136 = 94%: 122 đạt, 6 đạt một phần (TC-46, 53, 62, 69, 100, 104), 1 chặn (TC-101), 7 chưa chạy** (mục 7).
 
 ## 1. Tổng hợp theo 3 cấp kiểm thử
 
@@ -27,7 +29,7 @@ Lần 2 đạt **127/136 = 93% (yêu cầu ≥ 90%): 122 đạt, 5 đạt một 
 |---|---|---|
 | Unit | `mvn test` (10 module Java), `flutter test` (app) | **341/341 đạt** (Java 277, Flutter 64), 22/11 – mục 2 |
 | Integration | `Docs/testing/integration-smoke.ps1 -Events` qua Gateway | **12/12 đạt**, 19/11 – mục 3 |
-| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: **65/131 đã chạy, 62 đạt, 3 không đạt** (17/11, `main@761248f`); lần 2: **127 đã chạy, 122 đạt, 5 đạt một phần, 1 chặn, 8 chưa chạy** (19–27/11) – mục 4 |
+| System | Test Plan, chạy tay trên Web Admin, app Android và API | Lần 1: **65/131 đã chạy, 62 đạt, 3 không đạt** (17/11, `main@761248f`); lần 2: **128 đã chạy, 122 đạt, 6 đạt một phần, 1 chặn, 7 chưa chạy** (19–27/11) – mục 4 |
 
 ## 2. Unit test
 
@@ -91,7 +93,7 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 
 | Nhóm | Số case | Lần 1: đã chạy | Lần 1: đạt | Lần 2: đã chạy | Lần 2: đạt | Ghi chú |
 |---|---|---|---|---|---|---|
-| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 35 | 33 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 62 (giả lập, **đạt một phần**), 64; Ân 24/11: TC-09, 51, 55; script 25/11: TC-01, 03 → 08; Bảo 26–27/11 (mục 4.6): TC-11 (lỗi 14, đạt sau XDPMHDT-116), 14, 52, 53 (**đạt một phần**), 56 (giả lập), 57, 63. Chưa chạy: TC-10, 58, 59, 60, 69 (cần máy thật, beacon, Firebase) |
+| Visitor (TC-01 → TC-21, TC-51 → TC-69) | 40 | 18 | 17 | 36 | 33 | Lần 1: TC-13 không đạt. Lần 2: TC-13, TC-17 → TC-21 (API, 19/11); TC-65 → TC-68 (app, 22/11); R1 23/11: TC-02, 12, 15, 16, 54, 61, 62 (giả lập, **đạt một phần**), 64; Ân 24/11: TC-09, 51, 55; script 25/11: TC-01, 03 → 08; Bảo 26–27/11 (mục 4.6): TC-11 (lỗi 14, đạt sau XDPMHDT-116), 14, 52, 53 (**đạt một phần**), 56 (giả lập), 57, 63; Bảo 26/11 (mục 4.7, XDPMHDT-117): TC-69 (**đạt một phần**, phần API, thiếu Firebase). Chưa chạy: TC-10, 58, 59, 60 (cần máy thật, beacon) |
 | Administrator (TC-22 → TC-37, TC-70 → TC-74) | 21 | 17 | 15 | 21 | 21 | Lần 1: TC-36, TC-71 không đạt. Lần 2: TC-34, TC-35, TC-36, TC-71 (API); TC-70 (Web); R1 23/11: TC-24, 37, 72; script 25/11: TC-26, 28, 29, 30, 32; Bảo 25–27/11 (mục 4.7): TC-22, 23, 25, 27 (đạt sau XDPMHDT-116), 31, 33, 73, 74 |
 | System (TC-38 → TC-50, TC-75 → TC-85) | 24 | 16 | 16 | 23 | 22 | Lần 2 (Tường): TC-83; R1 23/11: TC-47, 75, 85; Bảo 24/11: TC-48, 78; script 25/11: TC-38 → 45, 46 (**đạt một phần**), 76, 82, 84; Bảo 25/11 (mục 4.7): TC-77; NiFi 27/11 (mục 4.8): TC-49, 79, 80, 81. Chưa chạy: TC-50 (cần máy thật, beacon) |
 | Tuần 6: Xuất báo cáo (TC-86, TC-108 → TC-110) | 4 | 3 | 3 | 4 | 4 | Lần 1: TC-86 chưa bấm nút trên Dashboard. Lần 2 (Tuấn, máy sạch `v1.0`, 21/11): TC-86, TC-108 → TC-110 |
@@ -101,13 +103,13 @@ Dữ liệu demo: 6 hiện vật, mỗi hiện vật bản `vi`/`en` đúng ngô
 | Tuần 6: Giám sát, kiểm thử tải (TC-120 → TC-124) | 5 | 1 | 1 | 5 | 5 | Lần 1: TC-120. Lần 2 (Bảo, 24/11): TC-120, 121, 122, 124; TC-123 (k6 500 VU) đạt theo số đo k6 21/11 (mục 4.3, [load-test-w7.md](load-test-w7.md)) |
 | Tuần 6: Trường hợp đặc biệt, bản chốt (TC-125 → TC-131) | 7 | 1 | 1 | 6 | 6 | Lần 1: chỉ TC-130 (API 403). R1 23/11: TC-131; Bảo 24/11: TC-125; script 25/11: TC-129, 130; Bảo 26/11 (mục 4.6): TC-126, 127 (lỗi 14, đạt sau XDPMHDT-116). Chưa chạy: TC-128 (cần 2 beacon thật) |
 | Tuần 7: Quản lý người dùng (TC-132 → TC-136) | 5 | — | — | 5 | 5 | Chạy 17/11 qua Gateway (Tường). Không thuộc lần 1 tuần 6 |
-| **Tổng** | **136** | **65** | **62** | **127** | **122** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (15 case mới; TC-13, 21, 70, 133, 134 đã tính trước), 9 case của Bảo (mục 4.3), 3 case của Ân (mục 4.4), 30 case bằng script (mục 4.5); 3 đạt một phần (TC-46, TC-62, TC-100); 1 chặn (TC-101); 27/11: 13 case app, 15 case Web, 5 case NiFi, TC-123 (mục 4.3, 4.6 → 4.8); 5 đạt một phần (TC-46, 53, 62, 100, 104); 1 chặn (TC-101); 8 chưa chạy (TC-10, 50, 58, 59, 60, 69, 102, 128) |
+| **Tổng** | **136** | **65** | **62** | **128** | **122** | Lần 1: 66 case chưa chạy. Lần 2: phần của Tường (API + app, Web), TC-132 → TC-136, phần Thống kê của Tuấn, 20 case R1 (15 case mới; TC-13, 21, 70, 133, 134 đã tính trước), 9 case của Bảo (mục 4.3), 3 case của Ân (mục 4.4), 30 case bằng script (mục 4.5); 3 đạt một phần (TC-46, TC-62, TC-100); 1 chặn (TC-101); 27/11: 13 case app, 15 case Web, 5 case NiFi, TC-123 (mục 4.3, 4.6 → 4.8); XDPMHDT-117: TC-69 (phần API, 26/11); 6 đạt một phần (TC-46, 53, 62, 69, 100, 104); 1 chặn (TC-101); 7 chưa chạy (TC-10, 50, 58, 59, 60, 102, 128) |
 
 - Tỉ lệ đã chạy lần 1: **65/131 = 50%** (yêu cầu ≥ 90%, chưa đạt).
 - Tỉ lệ đạt trên số đã chạy lần 1: **62/65 = 95%**.
 - Lần 2 (19–25/11): **93/136** case đã chạy: 90 đạt, 3 đạt một phần (TC-46, TC-62, TC-100); TC-101 bị chặn. Kết quả từng case phần Đánh giá: [regression-w7-feedback.md](regression-w7-feedback.md); phần Thống kê: mục 4.1; R1: mục 4.2; giám sát, sự kiện, ngoại tuyến: mục 4.3; app (Ân): mục 4.4; API, MySQL, RabbitMQ, Docker: mục 4.5.
-- Lần 2 sau 27/11: **127/136** case đã chạy: 122 đạt, 5 đạt một phần; TC-101 bị chặn; 8 case chưa chạy. Chi tiết 27/11: app mục 4.6, Web Admin mục 4.7, NiFi mục 4.8, k6 mục 4.3.
-- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90% = 123/136): **127/136 = 93%, đạt** (25/11 là 93/136 = 68%). 9 case còn lại cần điện thoại Android thật, beacon thật hoặc Firebase (mục 7).
+- Lần 2 sau 27/11: **128/136** case đã chạy: 122 đạt, 6 đạt một phần; TC-101 bị chặn; 7 case chưa chạy. Chi tiết 27/11: app mục 4.6, Web Admin và TC-69 (API) mục 4.7, NiFi mục 4.8, k6 mục 4.3.
+- Tỉ lệ đã chạy lần 2 (yêu cầu ≥ 90% = 123/136): **128/136 = 94%, đạt** (25/11 là 93/136 = 68%). 8 case còn lại cần điện thoại Android thật, beacon thật hoặc Firebase (mục 7).
 - Tỉ lệ đạt của case ưu tiên Cao (yêu cầu ≥ 90%): 101 case C, đã chạy 96, đạt 93 = **97%, đạt** (3 đạt một phần: TC-46, 62, 104; chưa chạy hoặc chặn: TC-10, 58, 59, 60, 101).
 
 ### 4.1 Chạy lại phần Thống kê trên máy sạch `v1.0` (Tuấn, 21/11/2026)
@@ -254,6 +256,7 @@ Chrome + Live Server, tài khoản `admin`, `main` `8a416bf` (25/11) và `38874a
 | TC-27 | CRUD hiện vật trên CMS | Đạt | Tạo, sửa, xoá "QA TC-27" đều lưu thật; thiếu bản dịch thì báo "Bản dịch cần tiêu đề và nội dung thuyết minh". 25/11 trang chưa có tìm kiếm, lọc; 27/11 thêm trong XDPMHDT-116 và chạy lại: "bia tien si" (không dấu) → Bia Tiến sĩ; lọc Hoàng thành Thăng Long → 3 hiện vật; "kvc" → Khuê Văn Các; "xyz" → "Không có hiện vật khớp bộ lọc." | TC-27_1 → 10 |
 | TC-31 | Gán beacon cho hiện vật cùng di tích | Đạt | Gán beacon 1/3 (id 4) cho Bia Tiến sĩ: cột Hiện vật đổi ngay; bỏ gán về "(Chưa gán)" | TC-31_1 → 3 |
 | TC-33 | Danh sách beacon có trạng thái và pin | Đạt | Có cột Trạng thái, Pin; lọc Văn Miếu ra 3 beacon; beacon 1/3 "Không hoạt động", 15% | TC-33_1 → 2 |
+| TC-69 | Thông báo FCM (phần API) | Đạt một phần | Chạy 26/11 bằng PowerShell qua Gateway: `POST /api/me/devices` không token → 401; `visitor_an` → 201 (`isNew` true, `welcomeNotificationSent` false), `beacon_db.devices` có dòng `user_id` 2; `GET /api/me/devices` chỉ trả `tokenPreview` (không lộ token đầy đủ); `/api/me/devices/test`: 0 thiết bị gửi được. Phần điện thoại nhận thông báo chưa kiểm (thiếu Firebase, máy Android thật). Thiết bị thử đã xoá | Log terminal |
 | TC-73 | Quản lý danh sách ngôn ngữ | Đạt | Thêm `fr` đang hoạt động: dropdown có en, fr, vi; tắt `fr`: chỉ còn en, vi; đã tắt lại | TC-73_1 → 3 |
 | TC-74 | Upload file media | Đạt | Ảnh hợp lệ tải lên, link qua Gateway (sau lỗi 13); file sai định dạng: "File rỗng hoặc định dạng không hỗ trợ"; 27/11: ảnh 12 MB báo "Tệp quá lớn: ảnh tối đa 10 MB, audio 30 MB, video 100 MB." | TC-74_1 → 4 |
 | TC-77 | Swagger gom tại Gateway | Đạt | Chọn được 7 service + backend-cu; Authorize bằng token; thử API trả 200; API có mô tả | TC-77_1 → 3 |
@@ -341,7 +344,7 @@ thay `idx_fact_visits_artifact_date` (DB cũ chạy `Infra/analytics_w8_cover_in
 |---|---|---|---|
 | TC-101 | Chặn | Du khách nhận thông báo FCM khi được duyệt: chưa có `Interface/android/app/google-services.json`, khoá service account Firebase và điện thoại Android thật. Code gửi sự kiện (feedback-service) và nhận, gửi FCM (beacon-service, PR #62) đã có | File cấu hình Firebase + 1 điện thoại Android thật |
 
-**Case chưa chạy ở lần 2 (8):** cần thiết bị nhóm không có (không ai có điện thoại Android; máy ảo không có BLE thật).
+**Case chưa chạy ở lần 2 (7):** cần thiết bị nhóm không có (không ai có điện thoại Android; máy ảo không có BLE thật).
 
 | Mã TC | Nội dung | Cần để chạy |
 |---|---|---|
@@ -350,9 +353,10 @@ thay `idx_fact_visits_artifact_date` (DB cũ chạy `Infra/analytics_w8_cover_in
 | TC-58 | Tự hiện hiện vật ≤ 2 giây | Điện thoại Android + beacon (đo 10 lần) |
 | TC-59 | Không báo trùng | Điện thoại Android + beacon |
 | TC-60 | Đi từ beacon A sang B | Điện thoại Android + 2 beacon cách ≥ 3 m |
-| TC-69 | Thông báo FCM | Firebase + điện thoại Android |
 | TC-102 | Admin được báo có đánh giá mới | Firebase + điện thoại Android |
 | TC-128 | 2 beacon gần nhau | Điện thoại Android + 2 beacon |
+
+TC-69 đã chạy phần API ngày 26/11 (đạt một phần, mục 4.7); phần điện thoại nhận thông báo vẫn cần Firebase + điện thoại Android.
 
 Phần quét đã kiểm thay bằng giả lập trên máy ảo (TC-56, TC-62, TC-126) và unit test chống nhảy beacon (PR #92).
 
@@ -364,7 +368,7 @@ Phần quét đã kiểm thay bằng giả lập trên máy ảo (TC-56, TC-62, 
 - Lần 2 (19–25/11, trên `v1.0` rồi `main` sau các PR sửa lỗi): 93 case đã chạy: 90 đạt, 3 đạt một phần (TC-46 chậm ~4 s, TC-62 giả lập, TC-100 thiếu panel Grafana), 1 case chặn (TC-101). 3 case không đạt của lần 1 đều đạt
   và đều không phải lỗi code. Luồng Đánh giá đầy đủ trên app và Web (gửi, sửa, chờ duyệt, duyệt, ẩn, điểm trung bình, số chờ duyệt) đạt;
   Thống kê trên máy sạch 5/5 đạt; giám sát và cảnh báo (TC-48, 78, 120 → 122, 124) đạt.
-- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **đạt** sau 27/11: 127/136 = 93% (122 đạt, 5 đạt một phần, 1 chặn, 8 chưa chạy vì thiếu thiết bị); case ưu tiên Cao đạt 93/96 = 97%. Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 đạt một phần (TC-62, giả lập). (Bản 25/11: 93/136 = 68%.)
+- Đạt tiêu chí kết thúc kiểm thử lần 2 (chạy ≥ 90% Test Plan): **đạt** sau 27/11: 128/136 = 94% (122 đạt, 6 đạt một phần, 1 chặn, 7 chưa chạy vì thiếu thiết bị); case ưu tiên Cao đạt 93/96 = 97%. Hồi quy R1 (20 case, mục 4.2): 19 đạt, 1 đạt một phần (TC-62, giả lập). (Bản 25/11: 93/136 = 68%.)
 - Lỗi còn tồn: không có Blocker, Critical, Major; 14 lỗi Minor đều đã sửa: 1 ngày 22/11 (script DB), 6 ngày 23/11 (PR #96), 1 ngày 23/11 (PR #98, giờ UTC), 1 ngày 23/11 (PR #101, treo quyền màn Quét iBeacon), 2 ngày 25/11 (PR #88, #104, Yêu thích và Lịch sử khi mất mạng), 1 ngày 25/11 (XDPMHDT-114, Gateway trả 503 khi service vừa tắt). Lọc di tích với 1.000.000 lượt giảm từ ~25 s xuống 0,53 s (PR #98). Thêm lỗi 13 (PR #107, link upload media) và lỗi 14 (XDPMHDT-116, màn Quét khi bị từ chối quyền).
-- Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-101); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
-  (NiFi, k6 500 VU lần 2) đã chạy và đạt ngày 27/11 (mục 4.3, 4.8); 8 case cần điện thoại, beacon thật, Firebase chưa chạy (mục 7).
+- Rủi ro cho buổi bảo vệ: thông báo FCM chưa chạy trên máy thật (TC-69 mới kiểm phần API, TC-101 chặn); app chỉ kiểm trên máy ảo; các phần lần 1 chưa chạy
+  (NiFi, k6 500 VU lần 2) đã chạy và đạt ngày 27/11 (mục 4.3, 4.8); 7 case cần điện thoại, beacon thật, Firebase chưa chạy (mục 7).
