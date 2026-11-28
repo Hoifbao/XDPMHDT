@@ -11,10 +11,6 @@ import '../personalization/personalization_service.dart';
 import 'beacon_service.dart';
 import 'local_notification_service.dart';
 
-/// Bản cài iPhone là release (kDebugMode = false) → bật nút giả lập qua
-/// --dart-define=DEMO_MODE=true (iOS không thấy iBeacon qua CoreBluetooth).
-const bool _kDemoMode = bool.fromEnvironment('DEMO_MODE');
-
 /// Màn hình quét iBeacon – luồng beacon chính của đề tài.
 ///
 /// Luồng:
@@ -27,7 +23,7 @@ const bool _kDemoMode = bool.fromEnvironment('DEMO_MODE');
 ///    - app ở foreground → ArtifactDetailScreen (KHÔNG tự đóng khi rời vùng);
 ///    - app bị thu nhỏ (chạy nền) → local notification, bấm vào mở đúng hiện vật.
 /// 6. Ra vùng (RSSI ≤ rssiExit hoặc không thấy > 10s) → POST visits (BEACON).
-/// 7. Bản debug (hoặc DEMO_MODE=true) có nút "Giả lập phát hiện beacon" để demo không cần beacon thật.
+/// 7. Bản debug có nút "Giả lập phát hiện beacon" để demo không cần beacon thật.
 class BeaconScanScreen extends StatefulWidget {
   /// Ngôn ngữ ưa thích; null → AuthService.preferredLanguage.
   final String? lang;
@@ -405,7 +401,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
         actions: [
           // Sprint 5 (Thứ 4): nút giả lập chỉ có ở bản debug — demo chạy được
           // toàn luồng như beacon thật khi không có beacon ngoài thực tế.
-          if (kDebugMode || _kDemoMode)
+          if (kDebugMode)
             IconButton(
               tooltip: 'Giả lập phát hiện beacon',
               icon: const Icon(Icons.bug_report),
