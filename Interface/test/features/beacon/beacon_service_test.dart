@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:smartheritage/features/beacon/beacon_service.dart';
 
 const _uuidBytes = [
@@ -229,6 +231,26 @@ void main() {
       expect(beacon.artifactId, isNull);
       expect(beacon.artifactName, isNull);
       expect(beacon.siteName, isNull);
+    });
+  });
+
+  group('requiredPermissions', () {
+    test('iOS chi xin Bluetooth + Vi tri (khong co quyen rieng cua Android)', () {
+      expect(
+        BeaconService.requiredPermissions(TargetPlatform.iOS),
+        [Permission.bluetooth, Permission.locationWhenInUse],
+      );
+    });
+
+    test('Android xin bluetoothScan, bluetoothConnect va Vi tri', () {
+      expect(
+        BeaconService.requiredPermissions(TargetPlatform.android),
+        [
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+          Permission.locationWhenInUse,
+        ],
+      );
     });
   });
 }
