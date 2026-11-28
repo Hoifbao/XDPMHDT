@@ -1,0 +1,70 @@
+# Build ban iOS cho iPhone that (IPA chua ky) de cai bang Sideloadly tren Windows.
+# Chay khi push nhanh co chu "iphone"; khong anh huong main va workflow guard.
+# Can bien repo API_BASE_URL (Settings > Secrets and variables > Actions > Variables),
+# nen dung domain ngrok co dinh vi URL duoc ghi cung vao app luc build.
+name: iPhone device build (unsigned)
+
+on:
+  push:
+    branches: ['**iphone**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest          # repo cong khai -> runner macOS chuan mien phi
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: Interface
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ghim dung ban Flutter tren may Bao (giong ios-simulator.yml)
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.8
+          channel: stable
+          cache: true
+
+      - name: Phien ban cong cu
+        run: |
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      - name: Kiem tra bien API_BASE_URL
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Chua tao bien API_BASE_URL (Settings > Secrets and variables > Actions > Variables)"
+            exit 1
+          fi
+          echo "API_BASE_URL = $API_BASE_URL"
+
+      - name: Tai thu vien
+        run: flutter pub get
+
+      # Ban may that: release, khong ky (Sideloadly ky bang Apple ID luc cai).
+      # DEMO_MODE=true de hien nut gia lap beacon (iOS khong thay iBeacon qua CoreBluetooth).
+      - name: Build ban iPhone that
+        run: >
+          flutter build ios --release --no-codesign
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+          --dart-define=DEMO_MODE=true
+
+      - name: Dong goi IPA
+        run: |
+          test -d build/ios/iphoneos/Runner.app
+          mkdir -p Payload
+          ditto build/ios/iphoneos/Runner.app Payload/Runner.app
+          zip -qry SmartHeritage-unsigned.ipa Payload
+          unzip -t SmartHeritage-unsigned.ipa > /dev/null
+
+      # Artifact chi giu 7 ngay -> tai IPA ve may va giu lai de ky lai khi het han
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartHeritage-iphone
+          path: Interface/SmartHeritage-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
