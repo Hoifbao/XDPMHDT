@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -154,7 +155,7 @@ class ScannedBeacon {
   final int minor;
   final int rssi;
 
-  /// Khoảng cách ước lượng (mét), tính từ RSSI và TX Power của beacon.
+  /// Khoảng cách ước lượng (mét). iOS trả -1 nếu không đo được.
   final double accuracy;
   final DateTime lastSeen;
 
@@ -167,6 +168,29 @@ class ScannedBeacon {
     required this.lastSeen,
   });
 
+  static ScannedBeacon? fromIosSample(Map<Object?, Object?> sample) {
+    final uuid = sample['uuid'];
+    final major = sample['major'];
+    final minor = sample['minor'];
+    final rssi = sample['rssi'];
+    if (uuid is! String ||
+        major is! int ||
+        minor is! int ||
+        rssi is! int ||
+        rssi >= 0) {
+      return null;
+    }
+    final accuracy = sample['accuracy'];
+    return ScannedBeacon(
+      uuid: uuid.toUpperCase(),
+      major: major,
+      minor: minor,
+      rssi: rssi,
+      accuracy: accuracy is num && accuracy.isFinite ? accuracy.toDouble() : -1,
+      lastSeen: DateTime.now(),
+    );
+  }
+
   String get key => beaconKey(uuid, major, minor);
 }
 
@@ -178,7 +202,7 @@ String beaconKey(String uuid, int major, int minor) {
 //  BEACON SERVICE
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Quét iBeacon bằng flutter_blue_plus và tải registry từ Backend.
+/// Quét iBeacon và tải registry từ Backend. Android đọc gói BLE, iOS dùng Core Location.
 ///
 /// iBeacon là gói quảng bá BLE của Apple (company ID 0x004C) với
 /// cấu trúc: 0x02 0x15 | UUID (16 byte) | Major (2) | Minor (2) | TX Power (1).
@@ -196,12 +220,20 @@ class BeaconService {
 
   static List<RegistryBeacon>? _cachedRegistry;
   static DateTime? _cacheTime;
+  static String? _registryServer;
 
   /// Lấy registry: RAM (còn hạn) → API → đĩa (nếu API lỗi).
   /// Gọi khi mở app và mỗi 30 phút.
   static Future<List<RegistryBeacon>> getRegistry({
     bool forceRefresh = false,
   }) async {
+    final server = AuthService.baseUrl;
+    final prefix = AuthService.serverStoragePrefix;
+    if (_registryServer != server) {
+      _registryServer = server;
+      _cachedRegistry = null;
+      _cacheTime = null;
+    }
     final now = DateTime.now();
     if (!forceRefresh &&
         _cachedRegistry != null &&
@@ -212,14 +244,17 @@ class BeaconService {
 
     try {
       final fresh = await fetchRegistry();
+      if (AuthService.baseUrl != server) return fresh;
       _cachedRegistry = fresh;
       _cacheTime = now;
-      await _persistRegistry(fresh, now);
+      await _persistRegistry(fresh, now, prefix);
       return fresh;
     } catch (e) {
+      if (AuthService.baseUrl != server) rethrow;
       // API lỗi: dùng RAM hoặc đĩa nếu còn
       if (_cachedRegistry != null) return _cachedRegistry!;
-      final disk = await _loadPersistedRegistry();
+      final disk = await _loadPersistedRegistry(prefix, server);
+      if (AuthService.baseUrl != server) rethrow;
       if (disk != null && disk.isNotEmpty) {
         _cachedRegistry = disk;
         return disk;
@@ -231,6 +266,7 @@ class BeaconService {
   static Future<void> _persistRegistry(
     List<RegistryBeacon> items,
     DateTime at,
+    String prefix,
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -245,23 +281,26 @@ class BeaconService {
                 'siteName': b.siteName,
               })
           .toList();
-      await prefs.setString(_prefsKey, jsonEncode(jsonList));
-      await prefs.setString(_prefsTimeKey, at.toIso8601String());
+      await prefs.setString('$prefix$_prefsKey', jsonEncode(jsonList));
+      await prefs.setString('$prefix$_prefsTimeKey', at.toIso8601String());
     } catch (_) {}
   }
 
-  static Future<List<RegistryBeacon>?> _loadPersistedRegistry() async {
+  static Future<List<RegistryBeacon>?> _loadPersistedRegistry(
+    String prefix,
+    String server,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
+      final raw = prefs.getString('$prefix$_prefsKey');
       if (raw == null || raw.isEmpty) return null;
       final list = jsonDecode(raw) as List<dynamic>;
       final items = list
           .whereType<Map<String, dynamic>>()
           .map(RegistryBeacon.fromJson)
           .toList();
-      final timeRaw = prefs.getString(_prefsTimeKey);
-      if (timeRaw != null) {
+      final timeRaw = prefs.getString('$prefix$_prefsTimeKey');
+      if (timeRaw != null && AuthService.baseUrl == server) {
         _cacheTime = DateTime.tryParse(timeRaw);
       }
       return items;
@@ -292,6 +331,14 @@ class BeaconService {
 
   // ── BLE ────────────────────────────────────────────────────────────────
 
+  static const _iosCommands = MethodChannel('smartheritage/beacon');
+  static const _iosSamples = EventChannel('smartheritage/beacon/ranging');
+  static const _bluetoothOffMessage =
+      'Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.';
+
+  static bool get usesIosRanging =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
   /// Xin quyền, kiểm tra thiết bị và bật Bluetooth nếu cần.
   ///
   /// [askToTurnOn] = true: hiện hộp thoại hệ thống xin bật Bluetooth — dùng khi người
@@ -299,11 +346,19 @@ class BeaconService {
   /// [askToTurnOn] = false: chỉ báo lỗi, không hỏi lại — dùng khi app tự quét lại lúc
   /// quay về foreground, tránh hộp thoại hiện lặp vô hạn sau khi người dùng từ chối.
   static Future<void> initialize({bool askToTurnOn = true}) async {
+    if (usesIosRanging) {
+      await _initializeIos(requestPermissions: askToTurnOn);
+      return;
+    }
     if (!await FlutterBluePlus.isSupported) {
       throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
     }
 
-    final permissions = requiredPermissions(defaultTargetPlatform);
+    final permissions = [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+    ];
     final statuses = askToTurnOn
         ? await permissions.request()
         : {for (final p in permissions) p: await p.status};
@@ -345,48 +400,119 @@ class BeaconService {
     }
   }
 
+  static Future<void> _initializeIos({required bool requestPermissions}) async {
+    final location = await _iosPermission(
+      Permission.locationWhenInUse,
+      requestPermissions,
+    );
+    if (!location.isGranted) throw Exception(_iosLocationPermissionMessage);
+    if (await Permission.locationWhenInUse.serviceStatus ==
+        ServiceStatus.disabled) {
+      throw Exception('Bật Dịch vụ định vị của iPhone rồi thử lại.');
+    }
+
+    final bluetooth = await _iosPermission(
+      Permission.bluetooth,
+      requestPermissions,
+    );
+    if (!bluetooth.isGranted) throw Exception(_iosBluetoothPermissionMessage);
+
+    final state = await _settledAdapterStates().first.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => throw Exception('Chưa đọc được trạng thái Bluetooth. Bấm Thử lại.'),
+    );
+    switch (state) {
+      case BluetoothAdapterState.on:
+        return;
+      case BluetoothAdapterState.unauthorized:
+        throw Exception(_iosBluetoothPermissionMessage);
+      case BluetoothAdapterState.unavailable:
+        throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
+      default:
+        throw Exception(_bluetoothOffMessage);
+    }
+  }
+
+  static Future<PermissionStatus> _iosPermission(
+    Permission permission,
+    bool request,
+  ) {
+    if (!request) return permission.status;
+    return permission.request().timeout(
+      const Duration(seconds: 45),
+      onTimeout: () => PermissionStatus.denied,
+    );
+  }
+
+  static Stream<BluetoothAdapterState> _settledAdapterStates() {
+    return FlutterBluePlus.adapterState.where(
+      (state) =>
+          state == BluetoothAdapterState.on ||
+          state == BluetoothAdapterState.off ||
+          state == BluetoothAdapterState.unauthorized ||
+          state == BluetoothAdapterState.unavailable,
+    );
+  }
+
   /// Bắt đầu quét liên tục. Gọi [stopScan] khi thoát màn hình.
-  static Future<void> startScan() {
+  static Future<void> startScan(Iterable<RegistryBeacon> registry) {
+    if (usesIosRanging) {
+      final uuids = registry.map((beacon) => beacon.uuid.toUpperCase()).toSet();
+      return _iosCommands.invokeMethod<void>('start', uuids.toList());
+    }
     return FlutterBluePlus.startScan(
       continuousUpdates: true,
       androidUsesFineLocation: true,
     );
   }
 
-  static Future<void> stopScan() => FlutterBluePlus.stopScan();
+  static Future<void> stopScan() => usesIosRanging
+      ? _iosCommands.invokeMethod<void>('stop')
+      : FlutterBluePlus.stopScan();
 
   /// Trạng thái Bluetooth theo thời gian thực (true = đang bật).
   static Stream<bool> bluetoothOn() {
-    return FlutterBluePlus.adapterState
-        .map((state) => state == BluetoothAdapterState.on);
+    final states =
+        usesIosRanging ? _settledAdapterStates() : FlutterBluePlus.adapterState;
+    return states.map((state) => state == BluetoothAdapterState.on).distinct();
   }
 
   /// Bảo W8 (lỗi Minor 14, TC-11/TC-127): bị từ chối quyền thì chỉ "Thử lại" là không đủ —
   /// Android từ chối 2 lần sẽ không hỏi lại nữa, nên phải chỉ đường vào Cài đặt (giống màn Bản đồ).
-  /// Quyền cần xin trước khi quét, theo nền tảng.
-  ///
-  /// iOS: `bluetoothScan`/`bluetoothConnect` là quyền riêng của Android, permission_handler
-  /// trên iOS luôn trả "từ chối vĩnh viễn" (UnknownPermissionStrategy) → app báo thiếu quyền
-  /// dù Cài đặt đã bật (lỗi XA gặp trên iPhone 28/11). iOS dùng `Permission.bluetooth`.
-  @visibleForTesting
-  static List<Permission> requiredPermissions(TargetPlatform platform) =>
-      platform == TargetPlatform.iOS
-          ? [Permission.bluetooth, Permission.locationWhenInUse]
-          : [
-              Permission.bluetoothScan,
-              Permission.bluetoothConnect,
-              Permission.locationWhenInUse,
-            ];
-
   static const permissionDeniedMessage =
       'Cần cấp quyền Bluetooth và Vị trí để quét beacon. '
       'Vào Cài đặt → Ứng dụng → Smart Heritage → Quyền để bật, hoặc bấm "Mở Cài đặt".';
+  static const _iosLocationPermissionMessage =
+      'Cho phép Smart Heritage sử dụng Vị trí khi dùng ứng dụng để quét iBeacon. '
+      'Bấm "Mở Cài đặt" để cấp quyền.';
+  static const _iosBluetoothPermissionMessage =
+      'Cho phép Smart Heritage sử dụng Bluetooth để quét iBeacon. '
+      'Bấm "Mở Cài đặt" để cấp quyền.';
+  static const _iosPreciseLocationMessage =
+      'Bật Vị trí chính xác cho Smart Heritage để quét iBeacon. '
+      'Bấm "Mở Cài đặt" rồi chọn Vị trí.';
 
   /// Lỗi này cần người dùng tự bật quyền trong Cài đặt (màn quét hiện thêm nút "Mở Cài đặt").
-  static bool needsAppSettings(String? message) => message == permissionDeniedMessage;
+  static bool needsAppSettings(String? message) =>
+      message == permissionDeniedMessage ||
+      message == _iosLocationPermissionMessage ||
+      message == _iosBluetoothPermissionMessage ||
+      message == _iosPreciseLocationMessage;
 
   /// Thông báo lỗi gọn cho người dùng (bỏ tiền tố "Exception: " của Dart).
   static String userMessage(Object error) {
+    if (error is PlatformException) {
+      switch (error.code) {
+        case 'location_permission':
+          return _iosLocationPermissionMessage;
+        case 'precise_location':
+          return _iosPreciseLocationMessage;
+        case 'ranging_unavailable':
+          return 'iBeacon cần iPhone hoặc iPad thật có hỗ trợ tính năng này.';
+        case 'ranging_failed':
+          return 'iPhone chưa quét được iBeacon. Kiểm tra Bluetooth và Vị trí rồi thử lại.';
+      }
+    }
     const prefix = 'Exception: ';
     final text = error.toString();
     return text.startsWith(prefix) ? text.substring(prefix.length) : text;
@@ -394,6 +520,15 @@ class BeaconService {
 
   /// Luồng beacon iBeacon đang thấy. Mỗi lần có kết quả quét mới sẽ phát danh sách hiện tại.
   static Stream<List<ScannedBeacon>> ranging() {
+    if (usesIosRanging) {
+      return _iosSamples.receiveBroadcastStream().map((event) {
+        return (event as List<Object?>)
+            .whereType<Map<Object?, Object?>>()
+            .map(ScannedBeacon.fromIosSample)
+            .whereType<ScannedBeacon>()
+            .toList();
+      });
+    }
     return FlutterBluePlus.scanResults.map((results) {
       return results
           .map((result) => parseIBeacon(

@@ -41,20 +41,34 @@ class PersonalizationService {
 
   static Future<void>? _tail;
   static Future<void>? _syncing;
+  static final _operationServerKey = Object();
+  static final _operationStorageKey = Object();
 
   // Capture the account at invocation, not after waiting for another operation.
   // A rejected operation must not poison the queue for subsequent operations.
   static Future<T> _serial<T>(Future<T> Function() operation) {
     final account = _userId;
+    final server = AuthService.baseUrl;
+    final storagePrefix = AuthService.serverStoragePrefix;
     final previous = _tail;
     final done = Completer<void>();
     _tail = done.future;
     return (() async {
       try {
         if (previous != null) await previous;
-        if (_userId != account) throw StateError('Phiên đăng nhập đã thay đổi.');
-        final value = await operation();
-        if (_userId != account) throw StateError('Phiên đăng nhập đã thay đổi.');
+        if (_userId != account || AuthService.baseUrl != server) {
+          throw StateError('Phiên đăng nhập đã thay đổi.');
+        }
+        final value = await runZoned(
+          operation,
+          zoneValues: {
+            _operationServerKey: server,
+            _operationStorageKey: storagePrefix,
+          },
+        );
+        if (_userId != account || AuthService.baseUrl != server) {
+          throw StateError('Phiên đăng nhập đã thay đổi.');
+        }
         return value;
       } finally {
         // Release the queue before returning, and do not retain an idle Future
@@ -135,7 +149,9 @@ class PersonalizationService {
   }
 
   static void _requireAccount(int userId) {
-    if (_userId != userId) throw StateError('Phiên đăng nhập đã thay đổi.');
+    if (_userId != userId || Zone.current[_operationServerKey] != _baseUrl) {
+      throw StateError('Phiên đăng nhập đã thay đổi.');
+    }
   }
 
   static final Uuid _uuid = Uuid();
@@ -147,7 +163,7 @@ class PersonalizationService {
   static String get _baseUrl => AuthService.baseUrl;
 
   static String _cacheKey(int userId, String name) =>
-      'sh.personalization.$userId.$name';
+      'sh.personalization.${Zone.current[_operationStorageKey]}$userId.$name';
 
   static Map<String, String> _headers() => const {
     'Accept': 'application/json',

@@ -72,12 +72,5 @@
 	<string>Smart Heritage dùng vị trí để tìm di tích gần bạn và quét beacon.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Smart Heritage dùng vị trí để tìm di tích gần bạn và quét beacon.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Smart Heritage kết nối máy chủ demo trong mạng nội bộ.</string>
 </dict>
 </plist>
