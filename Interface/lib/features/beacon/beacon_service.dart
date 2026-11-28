@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -303,7 +302,11 @@ class BeaconService {
       throw Exception('Thiết bị không hỗ trợ Bluetooth Low Energy.');
     }
 
-    final permissions = requiredPermissions(defaultTargetPlatform);
+    final permissions = [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+    ];
     final statuses = askToTurnOn
         ? await permissions.request()
         : {for (final p in permissions) p: await p.status};
@@ -363,21 +366,6 @@ class BeaconService {
 
   /// Bảo W8 (lỗi Minor 14, TC-11/TC-127): bị từ chối quyền thì chỉ "Thử lại" là không đủ —
   /// Android từ chối 2 lần sẽ không hỏi lại nữa, nên phải chỉ đường vào Cài đặt (giống màn Bản đồ).
-  /// Quyền cần xin trước khi quét, theo nền tảng.
-  ///
-  /// iOS: `bluetoothScan`/`bluetoothConnect` là quyền riêng của Android, permission_handler
-  /// trên iOS luôn trả "từ chối vĩnh viễn" (UnknownPermissionStrategy) → app báo thiếu quyền
-  /// dù Cài đặt đã bật (lỗi XA gặp trên iPhone 28/11). iOS dùng `Permission.bluetooth`.
-  @visibleForTesting
-  static List<Permission> requiredPermissions(TargetPlatform platform) =>
-      platform == TargetPlatform.iOS
-          ? [Permission.bluetooth, Permission.locationWhenInUse]
-          : [
-              Permission.bluetoothScan,
-              Permission.bluetoothConnect,
-              Permission.locationWhenInUse,
-            ];
-
   static const permissionDeniedMessage =
       'Cần cấp quyền Bluetooth và Vị trí để quét beacon. '
       'Vào Cài đặt → Ứng dụng → Smart Heritage → Quyền để bật, hoặc bấm "Mở Cài đặt".';

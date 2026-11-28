@@ -15,7 +15,6 @@ import 'features/heritage_sites/map_screen.dart'; // Ân W5
 import 'screens/artifact_detail_screen.dart';
 import 'screens/recent_artifacts_screen.dart';
 import 'core/media_lifecycle.dart';
-import 'core/app_strings.dart';
 import 'shared/app_sidebar.dart';
 import 'features/visit_history/visit_history_screen.dart';
 
@@ -74,25 +73,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  /// Ngôn ngữ giao diện dùng chung (core/app_strings.dart): nút VI/EN ở đây và nút cờ ở
-  /// màn Chi tiết hiện vật cùng đổi một biến, menu bên cũng đổi theo.
-  bool get isVietnamese => AppLang.isVietnamese;
-
-  void _onLangChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    AppLang.current.addListener(_onLangChanged);
-  }
-
-  @override
-  void dispose() {
-    AppLang.current.removeListener(_onLangChanged);
-    super.dispose();
-  }
+  bool isVietnamese = true;
 
   final List<Map<String, dynamic>> artifacts = [
     {
@@ -105,7 +86,6 @@ class _HomePageState extends State<HomePage> {
       'beacon': 'iBeacon 1',
       'description':
           'The constellation pavilion and signature symbol of the Temple of Literature.',
-      'descriptionVi': 'Gác Khuê Văn – biểu tượng tiêu biểu của Văn Miếu - Quốc Tử Giám.',
       // Bỏ link Unsplash gõ cứng (bị 404) -> card hiện khung thay thế
       'image': '',
     },
@@ -117,7 +97,6 @@ class _HomePageState extends State<HomePage> {
       'beacon': 'iBeacon 2',
       'description':
           'Stone stelae recording royal examinations and doctoral laureates.',
-      'descriptionVi': 'Những tấm bia đá ghi danh các vị đỗ tiến sĩ qua các khoa thi.',
       // Bỏ link Unsplash gõ cứng (bị 404) -> card hiện khung thay thế
       'image': '',
     },
@@ -147,18 +126,20 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(tr('beaconFound')),
-        content: Column(
+        title: const Text('Beacon được phát hiện'),
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.bluetooth_searching,
               size: 60,
               color: Color(0xFF718B78),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
-              tr('beaconFoundBody').replaceAll('{name}', _artifactName(artifacts.first)),
+              'Đã phát hiện iBeacon gần bạn.\n\n'
+              'Hiện vật: Khue Van Cac\n'
+              'Khoảng cách: khoảng 2m',
               textAlign: TextAlign.center,
             ),
           ],
@@ -170,7 +151,7 @@ class _HomePageState extends State<HomePage> {
               Navigator.pop(context);
               openArtifact(artifacts.first, source: 'BEACON');
             },
-            child: Text(tr('viewArtifact')),
+            child: const Text('Xem hiện vật'),
           ),
         ],
       ),
@@ -220,7 +201,7 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            tooltip: tr('recentOffline'),
+            tooltip: 'Hiện vật đã xem — đọc offline',
             icon: const Icon(Icons.history),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecentArtifactsScreen())),
           ),
@@ -228,7 +209,7 @@ class _HomePageState extends State<HomePage> {
           ValueListenableBuilder<AuthUser?>(
             valueListenable: AuthService.currentUser,
             builder: (context, user, _) => IconButton(
-              tooltip: user == null ? tr('login') : tr('profile'),
+              tooltip: user == null ? 'Đăng nhập' : 'Hồ sơ cá nhân',
               icon: Icon(user == null ? Icons.login : Icons.account_circle),
               onPressed: () => Navigator.push(
                 context,
@@ -240,8 +221,9 @@ class _HomePageState extends State<HomePage> {
           ),
           TextButton(
             onPressed: () {
-              // Listener _onLangChanged tự vẽ lại trang chủ
-              AppLang.set(isVietnamese ? 'en' : 'vi');
+              setState(() {
+                isVietnamese = !isVietnamese;
+              });
             },
             child: Text(
               isVietnamese ? 'VI' : 'EN',
@@ -291,8 +273,8 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            tr('heroTitle'),
+          const Text(
+            'Lịch sử trong tầm tay.',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -300,8 +282,9 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            tr('heroSubtitle'),
+          const Text(
+            'Trải nghiệm du lịch văn hóa ứng dụng iBeacon, '
+            'biến mỗi hiện vật thành một câu chuyện tương tác.',
             style: TextStyle(
               fontSize: 16,
               height: 1.5,
@@ -316,7 +299,7 @@ class _HomePageState extends State<HomePage> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.push(
                       context, MaterialPageRoute(builder: (_) => const MapScreen())),
-                  child: Text(tr('exploreHeritage')),
+                  child: const Text('Khám phá di sản'),
                 ),
               ),
               if (kDemoMode) ...[
@@ -324,7 +307,7 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: beaconDemo,
-                    child: Text(tr('simulateBeacon')),
+                    child: const Text('Mô phỏng beacon'),
                   ),
                 ),
               ],
@@ -350,22 +333,22 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Expanded: tiêu đề co lại theo bề ngang, không tràn khi màn hình hẹp
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      tr('mapEyebrow'),
-                      style: const TextStyle(
+                      'BẢN ĐỒ DI SẢN',
+                      style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 1.5,
                         color: Color(0xFF718B78),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
-                      tr('mapTitle'),
-                      style: const TextStyle(
+                      'Các di tích trong hệ thống',
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -407,9 +390,9 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            tr('mapHint'),
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          const Text(
+            'Ứng dụng sẽ tự động phát hiện iBeacon khi bạn đến gần hiện vật.',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
           ),
           const SizedBox(height: 12),
           // Ân W5: mở bản đồ di tích tương tác
@@ -419,7 +402,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const MapScreen())),
               icon: const Icon(Icons.map_outlined),
-              label: Text(tr('openMap')),
+              label: const Text('Mở bản đồ di tích'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF718B78),
                 foregroundColor: Colors.white,
@@ -448,14 +431,14 @@ class _HomePageState extends State<HomePage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              tr('featuredArtifacts'),
-              style: const TextStyle(
+            const Text(
+              'Hiện vật nổi bật',
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            _pill(tr('artifactCount').replaceAll('{n}', '${artifacts.length}')),
+            _pill('${artifacts.length} artifacts'),
           ],
         ),
         const SizedBox(height: 14),
@@ -484,7 +467,7 @@ class _HomePageState extends State<HomePage> {
                 _pill(artifact['beacon']),
                 const SizedBox(height: 10),
                 Text(
-                  _artifactName(artifact),
+                  artifact['name'],
                   style: const TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.bold,
@@ -492,7 +475,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  (isVietnamese ? artifact['descriptionVi'] : artifact['description'])?.toString() ?? '',
+                  artifact['description'],
                   style: const TextStyle(
                     color: Colors.grey,
                     height: 1.4,
@@ -504,7 +487,7 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () => openArtifact(artifact),
-                        child: Text(tr('openStory')),
+                        child: const Text('Mở câu chuyện'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -533,17 +516,17 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('journeyTitle'),
-            style: const TextStyle(
+          const Text(
+            'Hành trình của bạn',
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            tr('journeyHint'),
-            style: const TextStyle(color: Colors.grey),
+          const Text(
+            'Các hiện vật bạn đã ghé thăm được lưu lại, kể cả khi mất mạng.',
+            style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -554,7 +537,7 @@ class _HomePageState extends State<HomePage> {
                 MaterialPageRoute(builder: (_) => const VisitHistoryScreen()),
               ),
               icon: const Icon(Icons.timeline),
-              label: Text(tr('viewVisitHistory')),
+              label: const Text('Xem lịch sử tham quan'),
             ),
           ),
         ],
@@ -572,9 +555,9 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('beaconEyebrow'),
-            style: const TextStyle(
+          const Text(
+            'QUÉT IBEACON',
+            style: TextStyle(
               fontSize: 11,
               letterSpacing: 1.5,
               color: Color(0xFF718B78),
@@ -590,9 +573,9 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           // Bảo W7: bỏ khung "Tín hiệu BLE đang hoạt động / UUID: SMART-HERITAGE-DEMO" gõ cứng
-          Text(
-            tr('beaconHint'),
-            style: const TextStyle(color: Color(0xFF69716B)),
+          const Text(
+            'Bật Bluetooth và đi lại gần hiện vật, ứng dụng sẽ tự hiện nội dung.',
+            style: TextStyle(color: Color(0xFF69716B)),
           ),
           const SizedBox(height: 14),
           if (kDemoMode) ...[
@@ -600,7 +583,9 @@ class _HomePageState extends State<HomePage> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: beaconDemo,
-                child: Text(tr('beaconDemoButton')),
+                child: const Text(
+                  'Phát hiện hiện vật gần bạn (demo) →',
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -617,17 +602,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               icon: const Icon(Icons.bluetooth_searching),
-              label: Text(tr('scanRealBeacon')),
+              label: const Text('Quét iBeacon thật'),
             ),
           ),
         ],
       ),
     );
   }
-
-  /// Tên hiện vật mẫu theo ngôn ngữ đang chọn (vi: historyName có dấu, en: name)
-  String _artifactName(Map<String, dynamic> artifact) =>
-      ((isVietnamese ? artifact['historyName'] : null) ?? artifact['name']).toString();
 
   /// Ảnh hiện vật: link rỗng hoặc tải lỗi (404, mất mạng) thì hiện khung thay thế, không báo lỗi
   Widget _artifactImage(String url) {

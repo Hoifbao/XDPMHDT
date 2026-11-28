@@ -258,18 +258,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Mở bằng 'en' -> chữ giao diện tiếng Anh (core/app_strings.dart), nội dung fallback vi
       expect(
-        find.text('No translation yet, showing Vietnamese'),
+        find.text('Chưa có bản dịch, đang hiển thị tiếng Việt'),
         findsOneWidget,
       );
-      for (final label in ['Description', 'Images', 'Audio', 'Info']) {
-        // Dữ liệu mẫu cũng có chữ 'Description' -> chỉ tìm trong Tab
-        expect(find.widgetWithText(Tab, label), findsOneWidget);
-      }
-      await tester.tap(find.text('Watch video'));
+      await tester.tap(find.text('Xem video'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Could not load the video.'), findsOneWidget);
+      expect(find.textContaining('Không tải được video.'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
