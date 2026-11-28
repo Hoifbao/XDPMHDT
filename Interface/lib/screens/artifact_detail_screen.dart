@@ -9,6 +9,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:video_player/video_player.dart';
 
+import '../core/app_strings.dart';
 import '../core/artifact_service.dart';
 import '../core/media_lifecycle.dart';
 import '../features/auth/auth_service.dart';
@@ -112,13 +113,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       setState(() {
         _loading = false;
         _isOffline = true;
-        _error = 'Không có kết nối mạng và chưa có bản đã tải.\nVui lòng kết nối internet rồi thử lại.';
+        _error = tr('offlineNoCache', _lang);
       });
     } catch (e) {
       if (!mounted || version != _loadVersion) return;
       setState(() {
         _loading = false;
-        _error = 'Không tải được hiện vật.\n${e.toString()}';
+        _error = tr('loadArtifactFailed', _lang).replaceAll('{error}', e.toString());
       });
     }
   }
@@ -126,6 +127,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   void _switchLang(String lang) {
     if (lang == _lang) return;
     setState(() => _lang = lang);
+    // Đồng bộ ngôn ngữ giao diện chung: quay về trang chủ / menu bên cũng đổi theo
+    if (lang == 'vi' || lang == 'en') AppLang.set(lang);
     _loadArtifact();
   }
 
@@ -147,7 +150,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     final messenger = ScaffoldMessenger.of(context);
     if (!AuthService.isLoggedIn) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Đăng nhập để lưu hiện vật yêu thích')),
+        SnackBar(content: Text(tr('loginToFavorite', _lang))),
       );
       return;
     }
@@ -186,7 +189,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     }
 
     if (_error != null && _artifact == null) {
-      return _ErrorScreen(message: _error!, onRetry: _loadArtifact);
+      return _ErrorScreen(message: _error!, onRetry: _loadArtifact, lang: _lang);
     }
 
     final artifact = _artifact!;
@@ -209,7 +212,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                 borderColor: Colors.blue.shade200,
                 icon: Icons.cloud_off,
                 iconColor: Colors.blue.shade600,
-                text: 'Đang xem nội dung đã tải – có thể thiếu cập nhật mới nhất.',
+                text: tr('offlineBanner', _lang),
               ),
             if (content != null && content.fallbackUsed)
               _Banner(
@@ -218,8 +221,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                 icon: Icons.translate,
                 iconColor: Colors.orange.shade700,
                 text: content.languageCode == 'vi'
-                    ? 'Chưa có bản dịch, đang hiển thị tiếng Việt'
-                    : 'Chưa lưu bản dịch này, đang hiển thị nội dung ${content.languageCode}',
+                    ? tr('fallbackVi', _lang)
+                    : tr('fallbackOther', _lang).replaceAll('{lang}', content.languageCode),
               ),
             Expanded(child: _buildTabBarView(content)),
           ],
@@ -242,7 +245,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
       foregroundColor: Colors.white,
       actions: [
         IconButton(
-          tooltip: 'Tải lại hiện vật',
+          tooltip: tr('reloadArtifact', _lang),
           onPressed: _loadArtifact,
           icon: const Icon(Icons.refresh),
         ),
@@ -251,7 +254,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
             _isFavorite ? Icons.favorite : Icons.favorite_border,
             color: _isFavorite ? Colors.red.shade300 : Colors.white,
           ),
-          tooltip: 'Yêu thích',
+          tooltip: tr('favorite', _lang),
           onPressed: _toggleFavorite,
         ),
       ],
@@ -372,17 +375,24 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
-            tabs: const [
-              Tab(icon: Icon(Icons.article_outlined, size: 18), text: 'Mô tả'),
+            // Chữ dưới icon đổi theo ngôn ngữ đang chọn (trước đây gõ cứng tiếng Việt)
+            tabs: [
               Tab(
-                icon: Icon(Icons.photo_library_outlined, size: 18),
-                text: 'Hình ảnh',
+                icon: const Icon(Icons.article_outlined, size: 18),
+                text: tr('tabDescription', _lang),
               ),
               Tab(
-                icon: Icon(Icons.volume_up_outlined, size: 18),
-                text: 'Âm thanh',
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                text: tr('tabImages', _lang),
               ),
-              Tab(icon: Icon(Icons.info_outline, size: 18), text: 'Thông tin'),
+              Tab(
+                icon: const Icon(Icons.volume_up_outlined, size: 18),
+                text: tr('tabAudio', _lang),
+              ),
+              Tab(
+                icon: const Icon(Icons.info_outline, size: 18),
+                text: tr('tabInfo', _lang),
+              ),
             ],
           ),
         ),
@@ -396,17 +406,19 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
     return TabBarView(
       controller: _tabController,
       children: [
-        _DescriptionTab(content: content),
+        _DescriptionTab(content: content, lang: _lang),
         _GalleryTab(
           key: ValueKey((_lang, content?.imageUrls.join("|"))),
           images: content?.imageUrls ?? [],
+          lang: _lang,
         ),
         _AudioTab(
           // Key theo URL để đổi ngôn ngữ → tải lại audio mới
           key: ValueKey(content?.audioUrl ?? 'no-audio'),
           audioUrl: content?.audioUrl,
+          lang: _lang,
         ),
-        _InfoTab(artifact: _artifact!),
+        _InfoTab(artifact: _artifact!, lang: _lang),
       ],
     );
   }
@@ -433,7 +445,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
               child: OutlinedButton.icon(
                 onPressed: _showRatingDialog,
                 icon: const Icon(Icons.star_outline_rounded, size: 18),
-                label: const Text('Đánh giá'),
+                label: Text(tr('rate', _lang)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _primaryBrown,
                   side: const BorderSide(color: _primaryBrown),
@@ -450,7 +462,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
                 child: ElevatedButton.icon(
                   onPressed: () => _openVideoFullscreen(content!.videoUrl!),
                   icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: const Text('Xem video'),
+                  label: Text(tr('watchVideo', _lang)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryBrown,
                     foregroundColor: Colors.white,
@@ -471,7 +483,9 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
   void _openVideoFullscreen(String url) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => _VideoFullscreenScreen(videoUrl: url)),
+      MaterialPageRoute(
+        builder: (_) => _VideoFullscreenScreen(videoUrl: url, lang: _lang),
+      ),
     );
   }
 
@@ -494,12 +508,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen>
 
 class _DescriptionTab extends StatelessWidget {
   final ArtifactContentItem? content;
-  const _DescriptionTab({this.content});
+  final String lang;
+  const _DescriptionTab({this.content, required this.lang});
 
   @override
   Widget build(BuildContext context) {
     if (content == null) {
-      return const _EmptyContent(message: 'Chưa có nội dung mô tả.');
+      return _EmptyContent(message: tr('noDescription', lang));
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -542,18 +557,18 @@ class _DescriptionTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.record_voice_over_outlined,
                         size: 16,
                         color: Color(0xFF6B3A1F),
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Phụ đề thuyết minh',
-                          style: TextStyle(
+                          tr('transcript', lang),
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                             color: Color(0xFF6B3A1F),
@@ -587,7 +602,8 @@ class _DescriptionTab extends StatelessWidget {
 
 class _GalleryTab extends StatefulWidget {
   final List<String> images;
-  const _GalleryTab({super.key, required this.images});
+  final String lang;
+  const _GalleryTab({super.key, required this.images, required this.lang});
 
   @override
   State<_GalleryTab> createState() => _GalleryTabState();
@@ -622,8 +638,8 @@ class _GalleryTabState extends State<_GalleryTab> {
   @override
   Widget build(BuildContext context) {
     if (widget.images.isEmpty) {
-      return const _EmptyContent(
-        message: 'Chưa có hình ảnh cho hiện vật này.',
+      return _EmptyContent(
+        message: tr('noImages', widget.lang),
         icon: Icons.photo_library_outlined,
       );
     }
@@ -691,7 +707,9 @@ class _GalleryTabState extends State<_GalleryTab> {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'Bấm vào ảnh để phóng to  •  ${_current + 1}/${widget.images.length}',
+            tr('tapToZoom', widget.lang)
+                .replaceAll('{i}', '${_current + 1}')
+                .replaceAll('{n}', '${widget.images.length}'),
             style: TextStyle(fontSize: 12, color: Colors.brown.shade400),
           ),
         ),
@@ -769,19 +787,20 @@ class _PhotoGalleryScreenState extends State<_PhotoGalleryScreen> {
 
 class _AudioTab extends StatelessWidget {
   final String? audioUrl;
-  const _AudioTab({super.key, this.audioUrl});
+  final String lang;
+  const _AudioTab({super.key, this.audioUrl, required this.lang});
 
   @override
   Widget build(BuildContext context) {
     if (audioUrl == null) {
-      return const _EmptyContent(
-        message: 'Chưa có file âm thanh cho ngôn ngữ này.',
+      return _EmptyContent(
+        message: tr('noAudio', lang),
         icon: Icons.volume_off_outlined,
       );
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: _AudioPlayerWidget(audioUrl: audioUrl!),
+      child: _AudioPlayerWidget(audioUrl: audioUrl!, lang: lang),
     );
   }
 }
@@ -792,7 +811,8 @@ class _AudioTab extends StatelessWidget {
 
 class _AudioPlayerWidget extends StatefulWidget {
   final String audioUrl;
-  const _AudioPlayerWidget({required this.audioUrl});
+  final String lang;
+  const _AudioPlayerWidget({required this.audioUrl, required this.lang});
 
   @override
   State<_AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
@@ -888,14 +908,12 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget>
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.red.shade200),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red),
-            SizedBox(width: 8),
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                'Không tải được file âm thanh. Kiểm tra đường link hoặc kết nối mạng.',
-              ),
+              child: Text(tr('audioFailed', widget.lang)),
             ),
           ],
         ),
@@ -936,9 +954,9 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Thuyết minh âm thanh',
-            style: TextStyle(
+          Text(
+            tr('audioGuide', widget.lang),
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1111,7 +1129,8 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget>
 
 class _VideoFullscreenScreen extends StatefulWidget {
   final String videoUrl;
-  const _VideoFullscreenScreen({required this.videoUrl});
+  final String lang;
+  const _VideoFullscreenScreen({required this.videoUrl, required this.lang});
 
   @override
   State<_VideoFullscreenScreen> createState() => _VideoFullscreenScreenState();
@@ -1250,7 +1269,7 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
           : AppBar(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              title: const Text('Video thuyết minh'),
+              title: Text(tr('videoGuide', widget.lang)),
             ),
       body: _hasError
           ? Center(
@@ -1263,10 +1282,10 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
                     size: 64,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Không tải được video.\nKiểm tra đường link hoặc kết nối mạng.',
+                  Text(
+                    tr('videoFailed', widget.lang),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70),
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -1277,7 +1296,7 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
                       });
                       _initVideo();
                     },
-                    child: const Text('Thử lại'),
+                    child: Text(tr('retry', widget.lang)),
                   ),
                 ],
               ),
@@ -1369,8 +1388,8 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
                               ),
                               IconButton(
                                 tooltip: _fullscreen
-                                    ? 'Thoát toàn màn hình'
-                                    : 'Toàn màn hình',
+                                    ? tr('exitFullscreen', widget.lang)
+                                    : tr('fullscreen', widget.lang),
                                 icon: Icon(
                                   _fullscreen
                                       ? Icons.fullscreen_exit
@@ -1398,7 +1417,8 @@ class _VideoFullscreenScreenState extends State<_VideoFullscreenScreen>
 
 class _InfoTab extends StatelessWidget {
   final ArtifactDetail artifact;
-  const _InfoTab({required this.artifact});
+  final String lang;
+  const _InfoTab({required this.artifact, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -1408,27 +1428,27 @@ class _InfoTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _InfoCard(
-            title: 'Thông tin hiện vật',
+            title: tr('artifactInfo', lang),
             icon: Icons.info_outline,
             children: [
-              _InfoRow(label: 'Mã hiện vật', value: artifact.artifactCode),
-              _InfoRow(label: 'Niên đại', value: artifact.period),
-              _InfoRow(label: 'Chất liệu', value: artifact.material),
-              _InfoRow(label: 'Kích thước', value: artifact.dimensions),
+              _InfoRow(label: tr('artifactCode', lang), value: artifact.artifactCode),
+              _InfoRow(label: tr('period', lang), value: artifact.period),
+              _InfoRow(label: tr('material', lang), value: artifact.material),
+              _InfoRow(label: tr('dimensions', lang), value: artifact.dimensions),
               _InfoRow(
-                label: 'Trạng thái',
+                label: tr('status', lang),
                 value: artifact.status == 'ACTIVE'
-                    ? 'Đang trưng bày'
-                    : 'Tạm ẩn',
+                    ? tr('onDisplay', lang)
+                    : tr('hidden', lang),
               ),
             ],
           ),
           const SizedBox(height: 16),
           _InfoCard(
-            title: 'Vị trí',
+            title: tr('location', lang),
             icon: Icons.location_on_outlined,
             children: [
-              _InfoRow(label: 'Di tích', value: artifact.locationName),
+              _InfoRow(label: tr('site', lang), value: artifact.locationName),
               if (artifact.beaconUuid != null)
                 _InfoRow(label: 'Beacon UUID', value: artifact.beaconUuid),
             ],
@@ -1677,12 +1697,17 @@ class _EmptyContent extends StatelessWidget {
 class _ErrorScreen extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
-  const _ErrorScreen({required this.message, required this.onRetry});
+  final String lang;
+  const _ErrorScreen({
+    required this.message,
+    required this.onRetry,
+    required this.lang,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết hiện vật')),
+      appBar: AppBar(title: Text(tr('artifactDetail', lang))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -1704,7 +1729,7 @@ class _ErrorScreen extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Thử lại'),
+                label: Text(tr('retry', lang)),
               ),
             ],
           ),
