@@ -58,9 +58,11 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   Timer? _registryRefreshTimer;
 
   bool _loading = true;
+  bool _starting = false;
   String? _error;
 
   static const _uuid = Uuid();
+  static const _demoMode = bool.fromEnvironment('DEMO_MODE');
 
   /// Tag chung cho log của luồng quét — dễ lọc trong console (đầu ra Thứ 2 02/11).
   static const _logTag = '[BEACON-SCAN]';
@@ -125,13 +127,21 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   }
 
   Future<void> _start({bool forceRefresh = false, bool askToTurnOn = true}) async {
-    await _subscription?.cancel();
+    if (!mounted || _starting) return;
+    _starting = true;
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
+      final previousScan = _subscription;
+      _subscription = null;
+      if (previousScan != null) {
+        await previousScan.cancel();
+        await BeaconService.stopScan();
+      }
+      if (!mounted) return;
       final List<RegistryBeacon> items;
       try {
         items = await BeaconService.getRegistry(forceRefresh: forceRefresh);
@@ -140,6 +150,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
         throw Exception('Không tải được danh sách beacon và chưa có bản lưu trên máy. '
             'Kiểm tra mạng rồi bấm Thử lại.');
       }
+      if (!mounted) return;
       _registry
         ..clear()
         ..addEntries(items.map((b) => MapEntry(b.key, b)));
@@ -147,20 +158,25 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
       debugPrint('$_logTag Registry nạp được ${items.length} beacon khi mở app '
           '(tự làm mới mỗi ${BeaconConfig.registryCacheAge.inMinutes} phút). '
           'Có hiện vật gán: ${items.where((b) => b.artifactId != null).length}.');
-      // Local notification cho kịch bản app đang chạy nền (Sprint 5)
-      // Bảo W8: xin quyền thông báo XONG rồi mới xin quyền Bluetooth/Vị trí (BeaconService.initialize).
-      // Android chỉ xử lý 1 yêu cầu quyền mỗi lúc; xin song song thì yêu cầu sau không bao giờ trả
-      // kết quả → lần đầu mở màn này xoay mãi "Đang tải registry và khởi động BLE..." (R1 23/11).
-      await LocalNotificationService.I.initialize()
-          .timeout(const Duration(seconds: 15), onTimeout: () {});
-      LocalNotificationService.I.onNotificationTap = _onNotificationTap;
+      // Android xử lý từng yêu cầu quyền. Khởi tạo thông báo trước khi xin BLE.
+      if (!BeaconService.usesIosRanging) {
+        await LocalNotificationService.I.initialize()
+            .timeout(const Duration(seconds: 15), onTimeout: () {});
+        if (!mounted) return;
+        LocalNotificationService.I.onNotificationTap = _onNotificationTap;
+      }
       await BeaconService.initialize(askToTurnOn: askToTurnOn);
-      await BeaconService.startScan();
+      if (!mounted) return;
+      await BeaconService.startScan(items);
+      if (!mounted) {
+        await BeaconService.stopScan();
+        return;
+      }
 
       _subscription = BeaconService.ranging().listen(
         _onBeaconsSeen,
         onError: (Object e) {
-          if (mounted) _stopWithError('Lỗi quét BLE: $e');
+          if (mounted) _stopWithError(BeaconService.userMessage(e));
         },
       );
       _bluetoothSub ??= BeaconService.bluetoothOn().listen(_onBluetoothChanged);
@@ -173,13 +189,15 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
           _error = BeaconService.userMessage(e);
         });
       }
+    } finally {
+      _starting = false;
     }
   }
 
   /// Bluetooth tắt giữa chừng: kết thúc các lượt đang trong vùng (ghi lượt tham quan), báo rõ.
   /// Bật lại thì quét tiếp tự động.
   void _onBluetoothChanged(bool on) {
-    if (!mounted) return;
+    if (!mounted || _loading) return;
     if (!on) {
       _stopWithError('Bluetooth đã tắt. Bật Bluetooth để tiếp tục nhận diện hiện vật.');
     } else if (_error != null && !_loading) {
@@ -208,7 +226,11 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
   Future<void> _reloadRegistry() async {
     try {
       final items = await BeaconService.getRegistry(forceRefresh: true);
-      if (mounted) {
+      if (mounted && !_starting) {
+        if (BeaconService.usesIosRanging && _subscription != null) {
+          await BeaconService.startScan(items);
+          if (!mounted || _starting) return;
+        }
         setState(() {
           _registry
             ..clear()
@@ -222,6 +244,10 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
 
   void _onBeaconsSeen(List<ScannedBeacon> beacons) {
     if (!mounted) return;
+    if (BeaconService.usesIosRanging &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
 
     final now = DateTime.now();
     final averages = <String, int>{};
@@ -399,9 +425,7 @@ class _BeaconScanScreenState extends State<BeaconScanScreen>
       appBar: AppBar(
         title: const Text('Quét iBeacon'),
         actions: [
-          // Sprint 5 (Thứ 4): nút giả lập chỉ có ở bản debug — demo chạy được
-          // toàn luồng như beacon thật khi không có beacon ngoài thực tế.
-          if (kDebugMode)
+          if (kDebugMode || _demoMode)
             IconButton(
               tooltip: 'Giả lập phát hiện beacon',
               icon: const Icon(Icons.bug_report),
